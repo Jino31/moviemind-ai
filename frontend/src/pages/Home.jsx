@@ -1,7 +1,29 @@
 import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+
+import { useEffect, useState } from "react";
+
+import { onAuthStateChanged } from "firebase/auth";
 
 function Home() {
+
   const navigate = useNavigate();
+
+  // =========================
+  // REAL-TIME AUTH STATE
+  // =========================
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -18,6 +40,7 @@ function Home() {
         <div className="flex items-center justify-between px-10 py-8 border-b border-white/10">
 
           <div>
+
             <h1 className="text-5xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
               MovieMind AI
             </h1>
@@ -25,23 +48,66 @@ function Home() {
             <p className="text-white/50 mt-2">
               AI Powered Movie Discovery Platform
             </p>
+
           </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate("/login")}
-              className="px-6 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
-            >
-              Login
-            </button>
+          {/* RIGHT SIDE */}
+          <div className="flex gap-4 items-center">
 
-            <button
-              onClick={() => navigate("/profile")}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 hover:scale-105 transition"
-            >
-              Profile
-            </button>
+            {!user ? (
+
+              <button
+                onClick={() => navigate("/login")}
+                className="
+                  px-6 py-3
+                  rounded-2xl
+                  border border-white/10
+                  bg-white/5
+                  hover:bg-white/10
+                  transition
+                "
+              >
+                Login
+              </button>
+
+            ) : (
+
+              <div
+                onClick={() => navigate("/profile")}
+                className="
+                  flex items-center gap-3
+                  px-5 py-2
+                  rounded-2xl
+                  bg-gradient-to-r
+                  from-red-500
+                  to-pink-500
+                  cursor-pointer
+                  hover:scale-105
+                  transition-all
+                "
+              >
+
+                <img
+                  src={user.photoURL}
+                  alt="profile"
+                  className="
+                    w-10 h-10
+                    rounded-full
+                    object-cover
+                    border border-white/20
+                  "
+                />
+
+                <span className="font-semibold">
+                  {user.displayName}
+                </span>
+
+              </div>
+
+            )}
+
           </div>
+
         </div>
 
         {/* HERO */}
@@ -52,18 +118,22 @@ function Home() {
           </div>
 
           <h1 className="text-6xl md:text-8xl font-black leading-tight mb-8">
+
             Discover Movies
             <br />
 
             <span className="bg-gradient-to-r from-red-500 via-pink-500 to-fuchsia-500 bg-clip-text text-transparent">
               With AI Intelligence
             </span>
+
           </h1>
 
           <p className="max-w-3xl mx-auto text-xl text-white/60 leading-relaxed mb-14">
+
             Personalized movie discovery powered by AI.
             Explore trending films, emotional stories,
             dark thrillers, sci-fi adventures and more.
+
           </p>
 
           {/* BUTTONS */}
@@ -71,22 +141,42 @@ function Home() {
 
             <button
               onClick={() => navigate("/movies")}
-              className="px-10 py-5 rounded-3xl bg-gradient-to-r from-red-500 to-pink-500 hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,0,100,0.4)] text-lg font-bold"
+              className="
+                px-10 py-5
+                rounded-3xl
+                bg-gradient-to-r
+                from-red-500
+                to-pink-500
+                hover:scale-105
+                transition-all
+                shadow-[0_0_40px_rgba(255,0,100,0.4)]
+                text-lg font-bold
+              "
             >
               ▶ Explore Movies
             </button>
 
             <button
               onClick={() => navigate("/chatbot")}
-              className="px-10 py-5 rounded-3xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-lg font-bold backdrop-blur-xl"
+              className="
+                px-10 py-5
+                rounded-3xl
+                border border-white/10
+                bg-white/5
+                hover:bg-white/10
+                transition-all
+                text-lg font-bold
+                backdrop-blur-xl
+              "
             >
               ✨ AI Recommendation
             </button>
 
           </div>
+
         </section>
 
-        {/* PREMIUM FEATURES */}
+        {/* FEATURES */}
         <section className="max-w-7xl mx-auto px-6 pb-20">
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -153,6 +243,7 @@ function Home() {
         </section>
 
       </div>
+
     </div>
   );
 }
