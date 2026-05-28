@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   signInWithPopup,
@@ -12,29 +13,27 @@ import {
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   // =========================
   // GOOGLE LOGIN
   // =========================
 
-  const handleGoogleLogin = async () => {
-    try {
-      const result = await signInWithPopup(
-        auth,
-        provider
-      );
+const handleGoogleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
 
-      console.log(result.user);
+    navigate("/profile");
 
-      alert(
-        `Welcome ${result.user.displayName}`
-      );
+    setTimeout(() => {
+      alert(`Welcome ${result.user.displayName}`);
+    }, 500);
 
-    } catch (error) {
-      console.log(error);
-      alert("Google Login Failed");
-    }
-  };
+  } catch (error) {
+    console.log(error);
+    alert("Google Login Failed");
+  }
+};
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
