@@ -10,35 +10,267 @@ function Chatbot() {
   ]);
 
   const [input, setInput] = useState("");
+const handleSend = () => {
 
-  const handleSend = () => {
+  if (!input.trim()) return;
 
-    if (!input.trim()) return;
+  const userMessage = {
+    role: "user",
+    text: input,
+  };
 
-    const userMessage = {
-      role: "user",
-      text: input,
-    };
+  const lower = input.toLowerCase();
 
-    let aiText = "";
+  let aiText = "";
 
-    const lower = input.toLowerCase();
+  // =========================
+  // GREETINGS
+  // =========================
 
-    if (lower.includes("action")) {
-      aiText =
-        "🔥 Best Action Movies:\n\n• John Wick\n• Mad Max Fury Road\n• Extraction";
-    } else if (lower.includes("comedy")) {
-      aiText =
-        "😂 Best Comedy Movies:\n\n• The Hangover\n• Superbad";
-    } else {
-      aiText =
-        "🎬 Recommended Movies:\n\n• Interstellar\n• Inception";
-    }
+  if (
+    lower.includes("hi") ||
+    lower.includes("hello") ||
+    lower.includes("hey")
+  ) {
 
-    const aiReply = {
-      role: "ai",
-      text: aiText,
-    };
+    aiText =
+      "👋 Hello! I am MovieMind AI.\n\nAsk me about:\n• Movies\n• Actors\n• Genres\n• Trailers\n• Recommendations\n• IMDb ratings\n• Sci-Fi, Horror, Action and more.";
+
+  }
+
+  // =========================
+  // ACTION
+  // =========================
+
+  else if (
+    lower.includes("action")
+  ) {
+
+    aiText =
+      "🔥 Best Action Movies:\n\n• John Wick\n• Mad Max Fury Road\n• Extraction\n• Mission Impossible Fallout";
+
+  }
+
+  // =========================
+  // COMEDY
+  // =========================
+
+  else if (
+    lower.includes("comedy")
+  ) {
+
+    aiText =
+      "😂 Best Comedy Movies:\n\n• The Hangover\n• Superbad\n• Free Guy\n• Deadpool";
+
+  }
+
+  // =========================
+  // HORROR
+  // =========================
+
+  else if (
+    lower.includes("horror")
+  ) {
+
+    aiText =
+      "👻 Best Horror Movies:\n\n• The Conjuring\n• Insidious\n• The Nun\n• Smile";
+
+  }
+
+  // =========================
+  // ROMANCE
+  // =========================
+
+  else if (
+    lower.includes("romance") ||
+    lower.includes("love")
+  ) {
+
+    aiText =
+      "💖 Best Romance Movies:\n\n• Titanic\n• La La Land\n• Me Before You\n• The Notebook";
+
+  }
+
+  // =========================
+  // THRILLER
+  // =========================
+
+  else if (
+    lower.includes("thriller")
+  ) {
+
+    aiText =
+      "🕵️ Best Thriller Movies:\n\n• Shutter Island\n• Prisoners\n• Gone Girl\n• Se7en";
+
+  }
+
+  // =========================
+  // SCI-FI
+  // =========================
+
+  else if (
+    lower.includes("sci") ||
+    lower.includes("space")
+  ) {
+
+    aiText =
+      "🚀 Best Sci-Fi Movies:\n\n• Interstellar\n• Inception\n• Dune\n• Blade Runner 2049";
+
+  }
+
+  // =========================
+  // SUPERHERO
+  // =========================
+
+  else if (
+    lower.includes("marvel") ||
+    lower.includes("superhero") ||
+    lower.includes("dc")
+  ) {
+
+    aiText =
+      "🦸 Best Superhero Movies:\n\n• Avengers Endgame\n• The Batman\n• Spider-Man No Way Home\n• Joker";
+
+  }
+
+  // =========================
+  // ANIME
+  // =========================
+
+  else if (
+    lower.includes("anime")
+  ) {
+
+    aiText =
+      "🎌 Best Anime Movies:\n\n• Your Name\n• Spirited Away\n• Weathering With You\n• Suzume";
+
+  }
+
+  // =========================
+  // ACTORS
+  // =========================
+
+  else if (
+    lower.includes("leo") ||
+    lower.includes("leonardo")
+  ) {
+
+    aiText =
+      "⭐ Best Leonardo DiCaprio Movies:\n\n• Inception\n• Titanic\n• The Revenant\n• Wolf of Wall Street";
+
+  }
+
+  else if (
+    lower.includes("srk") ||
+    lower.includes("shah rukh")
+  ) {
+
+    aiText =
+      "🎬 Best Shah Rukh Khan Movies:\n\n• Jawan\n• Pathaan\n• My Name Is Khan\n• Chennai Express";
+
+  }
+
+  else if (
+    lower.includes("vijay")
+  ) {
+
+    aiText =
+      "🔥 Best Vijay Movies:\n\n• Leo\n• Master\n• Ghilli\n• Thuppakki";
+
+  }
+
+  else if (
+    lower.includes("rajini")
+  ) {
+
+    aiText =
+      "🌟 Best Rajinikanth Movies:\n\n• Jailer\n• Baasha\n• Sivaji\n• Enthiran";
+
+  }
+
+  // =========================
+  // MOOD BASED
+  // =========================
+
+  else if (
+    lower.includes("sad")
+  ) {
+
+    aiText =
+      "😢 Emotional Movies:\n\n• The Green Mile\n• Hachi\n• A Silent Voice\n• Grave of the Fireflies";
+
+  }
+
+  else if (
+    lower.includes("happy")
+  ) {
+
+    aiText =
+      "😊 Feel Good Movies:\n\n• Zindagi Na Milegi Dobara\n• 3 Idiots\n• Coco\n• Free Guy";
+
+  }
+
+  else if (
+    lower.includes("motiv")
+  ) {
+
+    aiText =
+      "💪 Motivational Movies:\n\n• Rocky\n• Pursuit of Happyness\n• Whiplash\n• Bhaag Milkha Bhaag";
+
+  }
+
+  // =========================
+  // TRAILER
+  // =========================
+
+  else if (
+    lower.includes("trailer")
+  ) {
+
+    aiText =
+      "🎥 You can watch official trailers on YouTube by searching the movie name followed by 'official trailer'.";
+
+  }
+
+  // =========================
+  // RATING
+  // =========================
+
+  else if (
+    lower.includes("rating") ||
+    lower.includes("imdb")
+  ) {
+
+    aiText =
+      "⭐ IMDb ratings help identify top movies.\n\nMovies above 8.0 are usually highly recommended.";
+
+  }
+
+  // =========================
+  // DEFAULT
+  // =========================
+
+  else {
+
+    aiText =
+      "🤖 I can help with:\n\n• Movie recommendations\n• Genres\n• Actors\n• Trailers\n• IMDb ratings\n• Trending movies\n• Hollywood & Tamil movies\n\nTry asking:\n• Best horror movies\n• Vijay movies\n• Sci-fi recommendations";
+
+  }
+
+  const aiReply = {
+    role: "ai",
+    text: aiText,
+  };
+
+  setMessages((prev) => [
+    ...prev,
+    userMessage,
+    aiReply,
+  ]);
+
+  setInput("");
+
+};
 
     setMessages((prev) => [...prev, userMessage, aiReply]);
 
