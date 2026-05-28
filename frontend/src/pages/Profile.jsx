@@ -1,12 +1,8 @@
 import { useNavigate } from "react-router-dom";
 
-import {
-  signOut,
-} from "firebase/auth";
+import { signOut } from "firebase/auth";
 
-import {
-  auth,
-} from "../firebase";
+import { auth } from "../firebase";
 
 import {
   FaFilm,
@@ -19,15 +15,9 @@ function Profile() {
 
   const navigate = useNavigate();
 
-  // =========================
-  // FIREBASE USER
-  // =========================
-
   const user = auth.currentUser;
 
-  // =========================
   // LOGOUT
-  // =========================
 
   const handleLogout = async () => {
 
@@ -48,9 +38,7 @@ function Profile() {
     }
   };
 
-  // =========================
-  // REAL USER DATA
-  // =========================
+  // USER
 
   const userName =
     user?.displayName || "Movie Lover";
@@ -62,9 +50,7 @@ function Profile() {
   const userEmail =
     user?.email || "No Email";
 
-  // =========================
-  // WATCHLIST DATA
-  // =========================
+  // WATCHLIST
 
   const watchlist =
     JSON.parse(
@@ -76,9 +62,7 @@ function Profile() {
       localStorage.getItem("watchedMovies")
     ) || [];
 
-  // =========================
   // STATS
-  // =========================
 
   const watchlistCount =
     watchlist.length;
@@ -99,14 +83,15 @@ function Profile() {
 
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
 
-      {/* BACKGROUND */}
+      {/* BG */}
 
       <div className="absolute inset-0">
 
         <div
           className="
             absolute top-0 left-0
-            w-[700px] h-[700px]
+            w-[500px] md:w-[700px]
+            h-[500px] md:h-[700px]
             bg-red-600/20
             blur-[180px]
           "
@@ -115,19 +100,11 @@ function Profile() {
         <div
           className="
             absolute bottom-0 right-0
-            w-[700px] h-[700px]
+            w-[500px] md:w-[700px]
+            h-[500px] md:h-[700px]
             bg-purple-600/20
             blur-[180px]
           "
-        ></div>
-
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
         ></div>
 
       </div>
@@ -146,8 +123,11 @@ function Profile() {
         <div
           className="
             max-w-7xl mx-auto
-            flex items-center justify-between
-            px-6 py-5
+            flex flex-col md:flex-row
+            items-start md:items-center
+            justify-between
+            px-4 md:px-6
+            py-4 gap-4
           "
         >
 
@@ -157,7 +137,8 @@ function Profile() {
 
             <h1
               className="
-                text-3xl md:text-5xl font-black
+                text-3xl md:text-5xl
+                font-black
                 bg-gradient-to-r
                 from-red-500
                 via-pink-500
@@ -169,7 +150,7 @@ function Profile() {
               MovieMind AI
             </h1>
 
-            <p className="text-gray-400 mt-2 text-sm md:text-base">
+            <p className="text-gray-400 mt-2 text-xs md:text-sm">
               AI Powered Movie Discovery Platform
             </p>
 
@@ -177,18 +158,17 @@ function Profile() {
 
           {/* BUTTONS */}
 
-          <div className="flex gap-4">
+          <div className="flex gap-3 w-full md:w-auto">
 
             <button
               onClick={() => navigate(-1)}
               className="
-                px-6 py-3
+                flex-1 md:flex-none
+                px-5 py-3
                 rounded-2xl
                 bg-white/5
                 border border-white/10
                 text-white font-semibold
-                hover:scale-105
-                transition-all duration-300
               "
             >
               ← Back
@@ -197,13 +177,12 @@ function Profile() {
             <button
               onClick={handleLogout}
               className="
-                px-6 py-3
+                flex-1 md:flex-none
+                px-5 py-3
                 rounded-2xl
                 bg-red-500
                 text-white
                 font-semibold
-                hover:bg-red-600
-                transition-all duration-300
               "
             >
               Logout
@@ -217,11 +196,11 @@ function Profile() {
 
       {/* CONTENT */}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-44 pb-24">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pt-40 pb-20">
 
         {/* PROFILE */}
 
-        <div className="flex flex-col lg:flex-row gap-10 items-center lg:items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
 
           {/* IMAGE */}
 
@@ -231,23 +210,23 @@ function Profile() {
               src={userPhoto}
               alt="profile"
               className="
-                w-40 h-40
+                w-28 h-28 md:w-40 md:h-40
                 rounded-full
                 object-cover
                 border-4 border-pink-500
-                shadow-[0_0_50px_rgba(236,72,153,0.5)]
               "
             />
 
           </div>
 
-          {/* USER DETAILS */}
+          {/* DETAILS */}
 
-          <div className="flex-1">
+          <div className="flex-1 text-center lg:text-left">
 
             <h1
               className="
-                text-5xl md:text-7xl font-black
+                text-3xl sm:text-4xl md:text-7xl
+                font-black
                 bg-gradient-to-r
                 from-white
                 to-pink-500
@@ -258,17 +237,17 @@ function Profile() {
               {userName}
             </h1>
 
-            <p className="text-lg md:text-2xl text-gray-400 mt-4">
+            <p className="text-sm md:text-xl text-gray-400 mt-4 break-all">
               {userEmail}
             </p>
 
-            {/* AI MATCH */}
+            {/* AI */}
 
-            <div className="mt-10">
+            <div className="mt-8">
 
               <div className="flex justify-between mb-3">
 
-                <span className="font-semibold text-lg">
+                <span className="font-semibold text-sm md:text-lg">
                   AI Taste Match
                 </span>
 
@@ -280,7 +259,7 @@ function Profile() {
 
               <div
                 className="
-                  w-full h-4
+                  w-full h-3 md:h-4
                   rounded-full
                   bg-white/10
                   overflow-hidden
@@ -312,24 +291,24 @@ function Profile() {
 
         <div
           className="
-            grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4
-            gap-6 mt-20
+            grid grid-cols-2 lg:grid-cols-4
+            gap-4 md:gap-6 mt-14
           "
         >
 
           {/* MOVIES */}
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-xl md:text-2xl">
               <FaFilm />
             </div>
 
-            <h2 className="text-4xl font-black mt-6">
+            <h2 className="text-2xl md:text-4xl font-black mt-4">
               {watchedCount}
             </h2>
 
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               Movies Watched
             </p>
 
@@ -337,17 +316,17 @@ function Profile() {
 
           {/* WATCHLIST */}
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-xl md:text-2xl">
               <FaBookmark />
             </div>
 
-            <h2 className="text-4xl font-black mt-6">
+            <h2 className="text-2xl md:text-4xl font-black mt-4">
               {watchlistCount}
             </h2>
 
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               Watchlist
             </p>
 
@@ -355,17 +334,17 @@ function Profile() {
 
           {/* AI */}
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xl md:text-2xl">
               <FaRobot />
             </div>
 
-            <h2 className="text-4xl font-black mt-6">
+            <h2 className="text-2xl md:text-4xl font-black mt-4">
               {aiMatch}%
             </h2>
 
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               AI Match
             </p>
 
@@ -373,17 +352,17 @@ function Profile() {
 
           {/* HOURS */}
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-xl md:text-2xl">
               <FaClock />
             </div>
 
-            <h2 className="text-4xl font-black mt-6">
+            <h2 className="text-2xl md:text-4xl font-black mt-4">
               {watchHours}h
             </h2>
 
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               Watch Hours
             </p>
 
@@ -392,7 +371,9 @@ function Profile() {
         </div>
 
       </div>
+
     </div>
+
   );
 }
 
