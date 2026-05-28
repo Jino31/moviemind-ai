@@ -1,5 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
+
+import {
+  signOut,
+} from "firebase/auth";
+
+import {
+  auth,
+} from "../firebase";
 
 import {
   FaFilm,
@@ -19,7 +26,30 @@ function Profile() {
   const user = auth.currentUser;
 
   // =========================
-  // REAL-TIME USER DATA
+  // LOGOUT
+  // =========================
+
+  const handleLogout = async () => {
+
+    try {
+
+      await signOut(auth);
+
+      localStorage.removeItem("user");
+
+      alert("Logged out successfully");
+
+      navigate("/login");
+
+    } catch (error) {
+
+      console.log(error);
+
+    }
+  };
+
+  // =========================
+  // REAL USER DATA
   // =========================
 
   const userName =
@@ -47,12 +77,14 @@ function Profile() {
     ) || [];
 
   // =========================
-  // DYNAMIC STATS
+  // STATS
   // =========================
 
-  const watchlistCount = watchlist.length;
+  const watchlistCount =
+    watchlist.length;
 
-  const watchedCount = moviesWatched.length;
+  const watchedCount =
+    moviesWatched.length;
 
   const watchHours =
     Math.floor(watchedCount * 2.3);
@@ -68,6 +100,7 @@ function Profile() {
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
 
       {/* BACKGROUND */}
+
       <div className="absolute inset-0">
 
         <div
@@ -100,6 +133,7 @@ function Profile() {
       </div>
 
       {/* NAVBAR */}
+
       <div
         className="
           fixed top-0 left-0 w-full z-50
@@ -118,11 +152,12 @@ function Profile() {
         >
 
           {/* LOGO */}
+
           <div>
 
             <h1
               className="
-                text-3xl md:text-5xl font-black leading-none
+                text-3xl md:text-5xl font-black
                 bg-gradient-to-r
                 from-red-500
                 via-pink-500
@@ -140,33 +175,56 @@ function Profile() {
 
           </div>
 
-          {/* BACK BUTTON */}
-          <button
-            onClick={() => navigate(-1)}
-            className="
-              px-6 py-3
-              rounded-2xl
-              bg-white/5
-              border border-white/10
-              text-white font-semibold
-              backdrop-blur-xl
-              transition-all duration-300
-              hover:scale-105
-            "
-          >
-            ← Back
-          </button>
+          {/* BUTTONS */}
+
+          <div className="flex gap-4">
+
+            <button
+              onClick={() => navigate(-1)}
+              className="
+                px-6 py-3
+                rounded-2xl
+                bg-white/5
+                border border-white/10
+                text-white font-semibold
+                hover:scale-105
+                transition-all duration-300
+              "
+            >
+              ← Back
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="
+                px-6 py-3
+                rounded-2xl
+                bg-red-500
+                text-white
+                font-semibold
+                hover:bg-red-600
+                transition-all duration-300
+              "
+            >
+              Logout
+            </button>
+
+          </div>
 
         </div>
+
       </div>
 
       {/* CONTENT */}
+
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-44 pb-24">
 
-        {/* PROFILE TOP */}
+        {/* PROFILE */}
+
         <div className="flex flex-col lg:flex-row gap-10 items-center lg:items-start">
 
-          {/* AVATAR */}
+          {/* IMAGE */}
+
           <div>
 
             <img
@@ -183,7 +241,8 @@ function Profile() {
 
           </div>
 
-          {/* USER INFO */}
+          {/* USER DETAILS */}
+
           <div className="flex-1">
 
             <h1
@@ -204,6 +263,7 @@ function Profile() {
             </p>
 
             {/* AI MATCH */}
+
             <div className="mt-10">
 
               <div className="flex justify-between mb-3">
@@ -249,6 +309,7 @@ function Profile() {
         </div>
 
         {/* STATS */}
+
         <div
           className="
             grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4
@@ -257,6 +318,7 @@ function Profile() {
         >
 
           {/* MOVIES */}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
 
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-2xl">
@@ -274,6 +336,7 @@ function Profile() {
           </div>
 
           {/* WATCHLIST */}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
 
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-2xl">
@@ -291,6 +354,7 @@ function Profile() {
           </div>
 
           {/* AI */}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
 
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-2xl">
@@ -308,6 +372,7 @@ function Profile() {
           </div>
 
           {/* HOURS */}
+
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
 
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-2xl">
