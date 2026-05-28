@@ -105,26 +105,36 @@ export default function Movies() {
   // SEARCH
   // ============================================
 
-  const searchMovies = async () => {
-    if (!search.trim()) return;
+const searchMovies = async () => {
+  if (!search.trim()) return;
 
-    try {
-      const res = await fetch(
-  `https://moviemind-backend-mhvz.onrender.com/api/movies/search/${search}`
-);
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${search}`
+    );
 
-      const data = await res.json();
+    const data = await res.json();
 
-      setSearchResults(data.results || []);
+    console.log(data);
 
+    setSearchResults(data.results || []);
+
+    setTimeout(() => {
       window.scrollTo({
         top: 850,
         behavior: "smooth",
       });
-    } catch (err) {
-      console.log(err);
+    }, 300);
+
+    if (!data.results || data.results.length === 0) {
+      alert("No movies found");
     }
-  };
+
+  } catch (err) {
+    console.log(err);
+    alert("Search failed");
+  }
+};
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
