@@ -20,18 +20,24 @@ function Login() {
   // =========================
 
 const handleGoogleLogin = async () => {
+
   try {
+
     const result = await signInWithPopup(auth, provider);
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(result.user)
+    );
 
     navigate("/profile");
 
-    setTimeout(() => {
-      alert(`Welcome ${result.user.displayName}`);
-    }, 500);
-
   } catch (error) {
+
     console.log(error);
-    alert("Google Login Failed");
+
+    alert(error.message);
+
   }
 };
 
