@@ -169,8 +169,6 @@ function Profile() {
                 bg-white/5
                 border border-white/10
                 text-white font-semibold
-                hover:bg-white/10
-                transition
               "
             >
               ← Back
@@ -185,8 +183,6 @@ function Profile() {
                 bg-red-500
                 text-white
                 font-semibold
-                hover:bg-red-600
-                transition
               "
             >
               Logout
@@ -218,7 +214,6 @@ function Profile() {
                 rounded-full
                 object-cover
                 border-4 border-pink-500
-                shadow-[0_0_40px_rgba(236,72,153,0.6)]
               "
             />
 
@@ -303,18 +298,7 @@ function Profile() {
 
           {/* MOVIES */}
 
-          <button
-            onClick={() => navigate("/movies")}
-            className="
-              rounded-3xl border border-white/10
-              bg-white/5 backdrop-blur-xl
-              p-5 md:p-6
-              text-left
-              hover:scale-105
-              hover:border-pink-500/50
-              transition duration-300
-            "
-          >
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-xl md:text-2xl">
               <FaFilm />
@@ -328,22 +312,11 @@ function Profile() {
               Movies Watched
             </p>
 
-          </button>
+          </div>
 
           {/* WATCHLIST */}
 
-          <button
-            onClick={() => navigate("/movies")}
-            className="
-              rounded-3xl border border-white/10
-              bg-white/5 backdrop-blur-xl
-              p-5 md:p-6
-              text-left
-              hover:scale-105
-              hover:border-pink-500/50
-              transition duration-300
-            "
-          >
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-xl md:text-2xl">
               <FaBookmark />
@@ -357,22 +330,11 @@ function Profile() {
               Watchlist
             </p>
 
-          </button>
+          </div>
 
           {/* AI */}
 
-          <button
-            onClick={() => navigate("/chatbot")}
-            className="
-              rounded-3xl border border-white/10
-              bg-white/5 backdrop-blur-xl
-              p-5 md:p-6
-              text-left
-              hover:scale-105
-              hover:border-purple-500/50
-              transition duration-300
-            "
-          >
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xl md:text-2xl">
               <FaRobot />
@@ -386,22 +348,11 @@ function Profile() {
               AI Match
             </p>
 
-          </button>
+          </div>
 
           {/* HOURS */}
 
-          <button
-            onClick={() => navigate("/movies")}
-            className="
-              rounded-3xl border border-white/10
-              bg-white/5 backdrop-blur-xl
-              p-5 md:p-6
-              text-left
-              hover:scale-105
-              hover:border-orange-500/50
-              transition duration-300
-            "
-          >
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-6">
 
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-xl md:text-2xl">
               <FaClock />
@@ -415,7 +366,7 @@ function Profile() {
               Watch Hours
             </p>
 
-          </button>
+          </div>
 
         </div>
 
