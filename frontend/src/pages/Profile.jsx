@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -18,6 +19,7 @@ import {
 function Profile() {
 
   const navigate = useNavigate();
+  const [showMenu, setShowMenu] = useState(false);
 
   // =========================
   // FIREBASE USER
@@ -175,41 +177,109 @@ function Profile() {
 
           </div>
 
-          {/* BUTTONS */}
+     {/* PROFILE MENU */}
 
-          <div className="flex gap-4">
+<div className="relative">
 
-            <button
-              onClick={() => navigate(-1)}
-              className="
-                px-6 py-3
-                rounded-2xl
-                bg-white/5
-                border border-white/10
-                text-white font-semibold
-                hover:scale-105
-                transition-all duration-300
-              "
-            >
-              ← Back
-            </button>
+  <button
+    onClick={() => setShowMenu(!showMenu)}
+    className="
+      flex items-center gap-3
+      px-4 py-2
+      rounded-2xl
+      bg-gradient-to-r
+      from-red-500
+      to-pink-500
+      text-white
+      font-semibold
+      shadow-lg
+      hover:scale-105
+      transition-all
+    "
+  >
+    <img
+      src={userPhoto}
+      alt="profile"
+      className="w-8 h-8 rounded-full object-cover"
+    />
 
-            <button
-              onClick={handleLogout}
-              className="
-                px-6 py-3
-                rounded-2xl
-                bg-red-500
-                text-white
-                font-semibold
-                hover:bg-red-600
-                transition-all duration-300
-              "
-            >
-              Logout
-            </button>
+    <span>{userName}</span>
+  </button>
 
-          </div>
+  {showMenu && (
+
+    <div
+      className="
+        absolute right-0 mt-3
+        w-56
+        bg-zinc-900
+        border border-white/10
+        rounded-2xl
+        overflow-hidden
+        shadow-2xl
+        z-50
+      "
+    >
+
+      <button
+        onClick={() => navigate("/")}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        🏠 Home
+      </button>
+
+      <button
+        onClick={() => navigate("/movies")}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        🎬 Movies
+      </button>
+
+      <button
+        onClick={() => navigate("/chatbot")}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        🤖 AI Chat
+      </button>
+
+      <button
+        onClick={() => navigate("/profile")}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        👤 Profile
+      </button>
+
+      <button
+        onClick={() => navigate(-1)}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        ⬅ Back
+      </button>
+
+      <button
+        onClick={() => alert("Settings Coming Soon")}
+        className="w-full text-left px-4 py-3 hover:bg-zinc-800"
+      >
+        ⚙ Settings
+      </button>
+
+      <button
+        onClick={handleLogout}
+        className="
+          w-full text-left
+          px-4 py-3
+          text-red-400
+          hover:bg-red-500/10
+        "
+      >
+        🚪 Logout
+      </button>
+
+    </div>
+
+  )}
+
+</div>
 
         </div>
 
