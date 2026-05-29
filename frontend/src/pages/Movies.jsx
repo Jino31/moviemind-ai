@@ -452,7 +452,7 @@ const searchMovies = async () => {
       `}
     >
 
-      <div className="relative">
+      <div className="relative z-[9999]">
 
         <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40" />
 
