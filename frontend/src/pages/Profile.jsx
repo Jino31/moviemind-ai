@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -289,6 +290,133 @@ function Profile() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-2xl">
               <FaFilm />
             </div>
+            {/* Favorite Movies */}
+
+<div className="mt-20">
+  <h2 className="text-3xl font-bold mb-8">
+    🎬 Favorite Movies
+  </h2>
+
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    {[
+      "Interstellar",
+      "Inception",
+      "Leo",
+      "Avatar",
+    ].map((movie) => (
+      <div
+        key={movie}
+        className="
+          p-6
+          rounded-3xl
+          bg-white/5
+          border border-white/10
+          backdrop-blur-xl
+          hover:scale-105
+          transition
+        "
+      >
+        <h3 className="font-bold text-lg">
+          {movie}
+        </h3>
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* AI Recommendations */}
+
+<div className="mt-20">
+  <h2 className="text-3xl font-bold mb-8">
+    🤖 AI Recommendations
+  </h2>
+
+  <div className="grid md:grid-cols-3 gap-6">
+    {[
+      "Sci-Fi",
+      "Action",
+      "Thriller",
+    ].map((genre) => (
+      <div
+        key={genre}
+        className="
+          p-8
+          rounded-3xl
+          bg-gradient-to-r
+          from-red-500/10
+          to-purple-500/10
+          border border-white/10
+        "
+      >
+        <h3 className="text-xl font-bold">
+          {genre}
+        </h3>
+
+        <p className="text-gray-400 mt-2">
+          Recommended by AI
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* Quick Actions */}
+
+<div className="mt-20">
+  <h2 className="text-3xl font-bold mb-8">
+    ⚡ Quick Actions
+  </h2>
+
+  <div className="grid md:grid-cols-4 gap-6">
+    <button
+      onClick={() => navigate("/")}
+      className="
+        p-5 rounded-2xl
+        bg-white/5
+        border border-white/10
+        hover:bg-white/10
+      "
+    >
+      🏠 Home
+    </button>
+
+    <button
+      onClick={() => navigate("/movies")}
+      className="
+        p-5 rounded-2xl
+        bg-white/5
+        border border-white/10
+        hover:bg-white/10
+      "
+    >
+      🎬 Movies
+    </button>
+
+    <button
+      onClick={() => navigate("/chatbot")}
+      className="
+        p-5 rounded-2xl
+        bg-white/5
+        border border-white/10
+        hover:bg-white/10
+      "
+    >
+      🤖 Chatbot
+    </button>
+
+    <button
+      onClick={handleLogout}
+      className="
+        p-5 rounded-2xl
+        bg-red-500/10
+        border border-red-500/20
+        text-red-400
+      "
+    >
+      🚪 Logout
+    </button>
+  </div>
+</div>
 
             <h2 className="text-4xl font-black mt-6">
               {watchedCount}
