@@ -300,59 +300,66 @@ function Profile() {
           </div>
 
         </div>
+<div className="mt-20 grid md:grid-cols-2 gap-6">
 
-        {/* Favorite Movies */}
+  <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+    <h2 className="text-2xl font-bold mb-6">
+      👤 Personal Information
+    </h2>
 
-        <div className="mt-20">
-          <h2 className="text-3xl font-bold mb-8">
-            🎬 Favorite Movies
-          </h2>
+    <p className="mb-3">
+      <strong>Name:</strong> {userName}
+    </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              "Interstellar",
-              "Inception",
-              "Leo",
-              "Avatar",
-            ].map((movie) => (
-              <div
-                key={movie}
-                className="p-6 rounded-3xl bg-white/5 border border-white/10"
-              >
-                {movie}
-              </div>
-            ))}
-          </div>
-        </div>
+    <p className="mb-6">
+      <strong>Email:</strong> {userEmail}
+    </p>
 
-        {/* AI Recommendations */}
+    <button
+      className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-500"
+    >
+      Edit Profile
+    </button>
+  </div>
 
-        <div className="mt-20">
-          <h2 className="text-3xl font-bold mb-8">
-            🤖 AI Recommendations
-          </h2>
+  <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+    <h2 className="text-2xl font-bold mb-6">
+      ⚙️ Quick Actions
+    </h2>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              "Sci-Fi",
-              "Action",
-              "Thriller",
-            ].map((genre) => (
-              <div
-                key={genre}
-                className="p-8 rounded-3xl bg-white/5 border border-white/10"
-              >
-                <h3 className="text-xl font-bold">
-                  {genre}
-                </h3>
+    <div className="flex flex-col gap-4">
+      <button
+        onClick={() => navigate("/")}
+        className="text-left p-4 rounded-xl bg-white/5"
+      >
+        🏠 Home
+      </button>
 
-                <p className="text-gray-400 mt-2">
-                  Recommended by AI
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <button
+        onClick={() => navigate("/movies")}
+        className="text-left p-4 rounded-xl bg-white/5"
+      >
+        🎬 Movies
+      </button>
+
+      <button
+        onClick={() => navigate("/chatbot")}
+        className="text-left p-4 rounded-xl bg-white/5"
+      >
+        🤖 AI Chatbot
+      </button>
+
+      <button
+        onClick={handleLogout}
+        className="text-left p-4 rounded-xl bg-red-500/10 text-red-400"
+      >
+        🚪 Logout
+      </button>
+    </div>
+  </div>
+
+</div>
+         
 
       </div>
     </div>
