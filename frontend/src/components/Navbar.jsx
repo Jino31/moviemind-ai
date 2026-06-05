@@ -17,10 +17,10 @@ function Navbar() {
             <div className="flex items-center gap-3">
 
               <img
-                src={logo}
-                alt="MovieMind AI"
-                className="h-14 w-14 object-contain"
-              />
+  src={logo}
+  alt="MovieMind AI"
+  className="h-32 w-32 border-4 border-red-500"
+/>
 
               <div>
                 <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
