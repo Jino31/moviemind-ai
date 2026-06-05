@@ -1,3 +1,4 @@
+import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 
@@ -34,19 +35,7 @@ function Home() {
 
         {/* NAVBAR */}
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-10 py-5 md:py-8 border-b border-white/10 gap-4">
-
-          <div>
-
-            <h1 className="text-3xl md:text-5xl font-black leading-tight bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
-              MovieMind AI
-            </h1>
-
-            <p className="text-white/50 mt-2 text-sm md:text-base">
-              AI Powered Movie Discovery Platform
-            </p>
-
-          </div>
+        <Navbar />
 
           {/* RIGHT */}
 
@@ -110,7 +99,7 @@ function Home() {
 
         {/* HERO */}
 
-        <section className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24 text-center">
+        <section className="max-w-7xl mx-auto px-4 md:px-6 pt-40 pb-24 text-center">
 
           <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-red-500/20 bg-red-500/10 text-sm text-red-300 mb-8">
             ● AI Powered Movie Discovery
