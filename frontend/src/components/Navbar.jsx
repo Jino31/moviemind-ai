@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaSearch } from "react-icons/fa";
+import logo from "../assets/logo.png";
 
 function Navbar() {
 
@@ -19,24 +20,23 @@ function Navbar() {
 
           <Link to="/" className="group">
 
-            <h1
-              className="
-                text-3xl md:text-5xl
-                font-black
-                leading-tight
-                bg-gradient-to-r
-                from-red-500
-                via-pink-500
-                to-purple-500
-                bg-clip-text
-                text-transparent
-                transition
-                duration-300
-                group-hover:scale-105
-              "
-            >
-              MovieMind AI
-            </h1>
+          <div className="flex items-center gap-3">
+  <img
+    src={logo}
+    alt="MovieMind AI"
+    className="h-14 w-14"
+  />
+
+  <div>
+    <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+      MovieMind AI
+    </h1>
+
+    <p className="text-gray-400 text-sm">
+      AI Powered Movie Discovery Platform
+    </p>
+  </div>
+</div>
 
             <p className="text-gray-400 text-xs md:text-sm mt-1">
               AI Powered Movie Discovery Platform
