@@ -26,6 +26,12 @@ function Navbar() {
     alt="MovieMind AI"
     className="h-14 w-14"
   />
+<div className="flex items-center gap-3">
+  <img
+    src={logo}
+    alt="MovieMind AI"
+    className="h-12 w-12 object-contain"
+  />
 
   <div>
     <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
