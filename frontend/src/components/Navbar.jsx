@@ -3,109 +3,69 @@ import { FaSearch } from "react-icons/fa";
 import logo from "../assets/logo.png";
 
 function Navbar() {
-
   const navigate = useNavigate();
 
   return (
-
     <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/40 border-b border-white/10">
-
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 md:px-8 py-4 gap-4">
 
-        {/* LEFT */}
-
+        {/* LEFT SIDE */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-14">
 
           {/* LOGO */}
-
           <Link to="/" className="group">
+            <div className="flex items-center gap-3">
 
-          <div className="flex items-center gap-3">
-  <img
-    src={logo}
-    alt="MovieMind AI"
-    className="h-14 w-14"
-  />
-<div className="flex items-center gap-3">
-  <img
-    src={logo}
-    alt="MovieMind AI"
-    className="h-12 w-12 object-contain"
-  />
+              <img
+                src={logo}
+                alt="MovieMind AI"
+                className="h-14 w-14 object-contain"
+              />
 
-  <div>
-    <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
-      MovieMind AI
-    </h1>
+              <div>
+                <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                  MovieMind AI
+                </h1>
 
-    <p className="text-gray-400 text-sm">
-      AI Powered Movie Discovery Platform
-    </p>
-  </div>
-</div>
+                <p className="text-gray-400 text-xs md:text-sm mt-1">
+                  AI Powered Movie Discovery Platform
+                </p>
+              </div>
 
-            <p className="text-gray-400 text-xs md:text-sm mt-1">
-              AI Powered Movie Discovery Platform
-            </p>
-
+            </div>
           </Link>
 
-          {/* NAV LINKS */}
-
+          {/* NAVIGATION */}
           <div className="hidden md:flex items-center gap-6 lg:gap-10">
 
             <Link
               to="/"
-              className="
-                relative
-                text-base lg:text-lg
-                font-semibold
-                text-white
-                hover:text-red-400
-                transition
-              "
+              className="text-base lg:text-lg font-semibold text-white hover:text-red-400 transition"
             >
               Home
             </Link>
 
             <Link
               to="/movies"
-              className="
-                relative
-                text-base lg:text-lg
-                font-semibold
-                text-white
-                hover:text-pink-400
-                transition
-              "
+              className="text-base lg:text-lg font-semibold text-white hover:text-pink-400 transition"
             >
               Movies
             </Link>
 
             <Link
               to="/chatbot"
-              className="
-                relative
-                text-base lg:text-lg
-                font-semibold
-                text-white
-                hover:text-purple-400
-                transition
-              "
+              className="text-base lg:text-lg font-semibold text-white hover:text-purple-400 transition"
             >
               AI Recommendation
             </Link>
 
           </div>
-
         </div>
 
-        {/* RIGHT */}
-
+        {/* RIGHT SIDE */}
         <div className="flex flex-wrap items-center gap-3 md:gap-5 w-full lg:w-auto">
 
           {/* SEARCH */}
-
           <div
             className="
               hidden lg:flex
@@ -118,7 +78,6 @@ function Navbar() {
               backdrop-blur-xl
             "
           >
-
             <FaSearch className="text-gray-400" />
 
             <input
@@ -132,11 +91,9 @@ function Navbar() {
                 w-40 xl:w-56
               "
             />
-
           </div>
 
           {/* LOGIN */}
-
           <button
             onClick={() => navigate("/login")}
             className="
@@ -157,7 +114,6 @@ function Navbar() {
           </button>
 
           {/* PROFILE */}
-
           <button
             onClick={() => navigate("/profile")}
             className="
@@ -179,11 +135,8 @@ function Navbar() {
           </button>
 
         </div>
-
       </div>
-
     </div>
-
   );
 }
 
