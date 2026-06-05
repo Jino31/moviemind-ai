@@ -239,7 +239,7 @@ function Home() {
 
       </div>
 
-    </div>
+  
   );
 }
 
