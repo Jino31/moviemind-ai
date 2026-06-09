@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 import {
   signInWithPopup,
@@ -20,27 +22,59 @@ function Login() {
   // =========================
 
 const handleGoogleLogin = async () => {
-
   try {
+    const result = await signInWithPopup(
+      auth,
+      provider
+    );
+    console.log("Google Login Success");
 
-    const result = await signInWithPopup(auth, provider);
+const user = result.user;
+
+console.log("User UID:", user.uid);
+
+    
+    console.log("User UID:", user.uid);
+
+
+try {
+await setDoc(
+  doc(db, "users", user.uid),
+  {
+    name: user.displayName,
+    email: user.email,
+    photoURL: user.photoURL,
+
+    watchlistCount: 0,
+    watchedCount: 0,
+    watchHours: 0,
+    aiMatch: 70,
+
+    createdAt: new Date().toISOString(),
+  },
+  { merge: true }
+);
+
+
+} catch (err) {
+  console.error(err);
+  alert(err.message);
+}
+
+
+    console.log("Firestore user created");
 
     localStorage.setItem(
       "user",
-      JSON.stringify(result.user)
+      JSON.stringify(user)
     );
 
     navigate("/profile");
-
   } catch (error) {
-
-    console.log(error);
-
+    console.error("Firestore Error:", error);
     alert(error.message);
-
   }
 };
-
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
 

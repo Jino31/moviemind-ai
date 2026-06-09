@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 import {
@@ -20,6 +25,7 @@ function Profile() {
 
   const [user, setUser] = useState(null);
 const [loading, setLoading] = useState(true);
+const [userData, setUserData] = useState(null);
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -47,15 +53,37 @@ useEffect(() => {
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(
     auth,
-    (currentUser) => {
+    async (currentUser) => {
+      if (!currentUser) {
+        navigate("/login");
+        return;
+      }
+
       setUser(currentUser);
+
+      try {
+        const docRef = doc(
+          db,
+          "users",
+          currentUser.uid
+        );
+
+        const docSnap =
+          await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        }
+      } catch (error) {
+        console.log(error);
+      }
+
       setLoading(false);
     }
   );
 
   return () => unsubscribe();
-}, []);
-
+}, [navigate]);
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -82,31 +110,17 @@ useEffect(() => {
 
   const userEmail =
     user?.email || "No Email";
+const watchlistCount =
+  userData?.watchlistCount || 0;
 
-  const watchlist =
-    JSON.parse(
-      localStorage.getItem("watchlist")
-    ) || [];
+const watchedCount =
+  userData?.watchedCount || 0;
 
-  const moviesWatched =
-    JSON.parse(
-      localStorage.getItem("watchedMovies")
-    ) || [];
+const watchHours =
+  userData?.watchHours || 0;
 
-  const watchlistCount =
-    watchlist.length;
-
-  const watchedCount =
-    moviesWatched.length;
-
-  const watchHours =
-    Math.floor(watchedCount * 2.3);
-
-  const aiMatch =
-    Math.min(
-      70 + watchedCount,
-      98
-    );
+const aiMatch =
+  userData?.aiMatch || 70;
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative">

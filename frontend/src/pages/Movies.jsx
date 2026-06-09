@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase";
+
+import {
+  doc,
+  updateDoc,
+  increment,
+} from "firebase/firestore";
 
 import {
   FaPlay,
@@ -175,27 +182,79 @@ const searchMovies = async () => {
   // WATCHLIST
   // ============================================
 
-  const addToWatchlist = (movie) => {
-    const exists = watchlist.find(
-      (m) => m.id === movie.id
-    );
+const addToWatchlist = async (movie) => {
 
-    if (exists) {
-      alert("Already in watchlist");
+  const exists = watchlist.find(
+    (m) => m.id === movie.id
+  );
+
+  if (exists) {
+    alert("Already in watchlist");
+    return;
+  }
+
+  const updated = [...watchlist, movie];
+
+  setWatchlist(updated);
+
+  localStorage.setItem(
+    "watchlist",
+    JSON.stringify(updated)
+  );
+
+  try {
+
+    const user = auth.currentUser;
+
+ if (user) {
+
+  console.log("Updating Firestore...");
+
+  await updateDoc(
+    doc(db, "users", user.uid),
+    {
+      watchlistCount: increment(1),
+    }
+  );
+
+  console.log("Firestore Updated");
+
+}
+
+  } catch (error) {
+    console.log(error);
+  }
+
+  alert("Added to watchlist");
+};
+const markAsWatched = async (movie) => {
+  try {
+    const user = auth.currentUser;
+
+    console.log("Current User:", user);
+
+    if (!user) {
+      console.log("No user found");
       return;
     }
 
-    const updated = [...watchlist, movie];
-
-    setWatchlist(updated);
-
-    localStorage.setItem(
-      "watchlist",
-      JSON.stringify(updated)
+    await updateDoc(
+      doc(db, "users", user.uid),
+      {
+        watchedCount: increment(1),
+        watchHours: increment(2),
+      }
     );
 
-    alert("Added to watchlist");
-  };
+    console.log("Watched Updated");
+    alert("Movie marked as watched");
+
+  } catch (error) {
+    console.log("WATCH ERROR:", error);
+  }
+};
+
+ 
 
   // ============================================
   // NETFLIX ROW
@@ -684,31 +743,42 @@ const searchMovies = async () => {
                 <p className="text-2xl text-white/70 leading-relaxed mb-10">
                   {selectedMovie.overview}
                 </p>
+<div className="flex gap-5">
 
-                <div className="flex gap-5">
+  {/* TRAILER */}
+  <button
+    onClick={() =>
+      openTrailer(selectedMovie.id)
+    }
+    className="px-12 py-5 rounded-2xl bg-white text-black font-bold text-2xl flex items-center gap-3 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(255,255,255,0.8)] active:scale-95"
+  >
+    <FaPlay />
+    Play Trailer
+  </button>
 
-                  {/* TRAILER */}
-                  <button
-                    onClick={() =>
-                      openTrailer(selectedMovie.id)
-                    }
-                    className="px-12 py-5 rounded-2xl bg-white text-black font-bold text-2xl flex items-center gap-3 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(255,255,255,0.8)] active:scale-95"
-                  >
-                    <FaPlay />
-                    Play Trailer
-                  </button>
+  {/* WATCHLIST */}
+  <button
+    onClick={() =>
+      addToWatchlist(selectedMovie)
+    }
+    className="px-12 py-5 rounded-2xl bg-red-500/20 border border-red-500/20 text-2xl transition-all duration-300 hover:bg-red-500 hover:shadow-[0_0_35px_rgba(255,0,100,1)] active:scale-95"
+  >
+    + Watchlist
+  </button>
 
-                  {/* WATCHLIST */}
-                  <button
-                    onClick={() =>
-                      addToWatchlist(selectedMovie)
-                    }
-                    className="px-12 py-5 rounded-2xl bg-red-500/20 border border-red-500/20 text-2xl transition-all duration-300 hover:bg-red-500 hover:shadow-[0_0_35px_rgba(255,0,100,1)] active:scale-95"
-                  >
-                    + Watchlist
-                  </button>
+  {/* WATCHED */}
+  
+  <button
+    onClick={() =>
+      markAsWatched(selectedMovie)
+    }
+    
+    className="px-12 py-5 rounded-2xl bg-green-500 text-white font-bold text-2xl transition-all duration-300 hover:scale-105"
+  >
+    ✓ Watched
+  </button>
 
-                </div>
+</div>
 
               </div>
 
