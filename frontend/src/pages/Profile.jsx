@@ -21,21 +21,30 @@ function Profile() {
   const [user, setUser] = useState(null);
 const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target)
-      ) {
-        setShowMenu(false);
-      }
-    };
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      menuRef.current &&
+      !menuRef.current.contains(event.target)
+    ) {
+      setShowMenu(false);
+    }
+  };
 
-    document.addEventListener(
+  document.addEventListener(
+    "mousedown",
+    handleClickOutside
+  );
+
+  return () => {
+    document.removeEventListener(
       "mousedown",
       handleClickOutside
     );
-    useEffect(() => {
+  };
+}, []);
+
+useEffect(() => {
   const unsubscribe = onAuthStateChanged(
     auth,
     (currentUser) => {
@@ -44,16 +53,8 @@ const [loading, setLoading] = useState(true);
     }
   );
 
-  return unsubscribe;
+  return () => unsubscribe();
 }, []);
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-    };
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -77,7 +78,7 @@ const [loading, setLoading] = useState(true);
 
   const userPhoto =
   user?.photoURL ||
-  "/default-avatar.png";
+  "https://ui-avatars.com/api/?name=User";
 
   const userEmail =
     user?.email || "No Email";
