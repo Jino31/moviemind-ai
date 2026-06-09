@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 import {
   FaFilm,
@@ -17,7 +18,8 @@ function Profile() {
 
   const menuRef = useRef();
 
-  const user = auth.currentUser;
+  const [user, setUser] = useState(null);
+const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -33,6 +35,17 @@ function Profile() {
       "mousedown",
       handleClickOutside
     );
+    useEffect(() => {
+  const unsubscribe = onAuthStateChanged(
+    auth,
+    (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    }
+  );
+
+  return unsubscribe;
+}, []);
 
     return () => {
       document.removeEventListener(
@@ -51,13 +64,20 @@ function Profile() {
       console.log(error);
     }
   };
+  if (loading) {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center text-white">
+      Loading Profile...
+    </div>
+  );
+}
 
   const userName =
     user?.displayName || "Movie Lover";
 
   const userPhoto =
-    user?.photoURL ||
-    "https://i.pravatar.cc/300";
+  user?.photoURL ||
+  "/default-avatar.png";
 
   const userEmail =
     user?.email || "No Email";
