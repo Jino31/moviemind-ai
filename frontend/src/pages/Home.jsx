@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -10,6 +10,8 @@ function Home() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef();
 
   useEffect(() => {
 
@@ -20,6 +22,28 @@ function Home() {
     return () => unsubscribe();
 
   }, []);
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      menuRef.current &&
+      !menuRef.current.contains(event.target)
+    ) {
+      setShowMenu(false);
+    }
+  };
+
+  document.addEventListener(
+    "mousedown",
+    handleClickOutside
+  );
+
+  return () => {
+    document.removeEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+  };
+}, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -70,37 +94,94 @@ function Home() {
 
             ) : (
 
-              <div
-                onClick={() => navigate("/profile")}
-                className="
-                  flex items-center gap-3
-                  px-4 md:px-5 py-2
-                  rounded-2xl
-                  bg-gradient-to-r
-                  from-red-500
-                  to-pink-500
-                  cursor-pointer
-                  hover:scale-105
-                  transition-all
-                "
-              >
+             <div
+  className="relative"
+  ref={menuRef}
+>
 
-                <img
-                  src={user.photoURL}
-                  alt="profile"
-                  className="
-                    w-8 h-8 md:w-10 md:h-10
-                    rounded-full
-                    object-cover
-                    border border-white/20
-                  "
-                />
+  <div
+    onClick={() =>
+      setShowMenu(!showMenu)
+    }
+    className="
+      flex items-center gap-3
+      px-4 md:px-5 py-2
+      rounded-2xl
+      bg-gradient-to-r
+      from-red-500
+      to-pink-500
+      cursor-pointer
+      hover:scale-105
+      transition-all
+    "
+  >
+    <img
+      src={user.photoURL}
+      alt="profile"
+      className="
+        w-8 h-8 md:w-10 md:h-10
+        rounded-full
+        object-cover
+        border border-white/20
+      "
+    />
 
-                <span className="font-semibold text-sm md:text-base">
-                  {user.displayName}
-                </span>
+    <span className="font-semibold text-sm md:text-base">
+      {user.displayName}
+    </span>
+  </div>
 
-              </div>
+  
+{showMenu && (
+  <div
+    className="
+      absolute
+      right-0
+      mt-3
+      w-72
+      rounded-3xl
+      border border-white/10
+      bg-black/95
+      backdrop-blur-xl
+      overflow-hidden
+      z-50
+    "
+  >
+
+    <button
+      onClick={() => navigate("/profile")}
+      className="w-full text-left px-5 py-4 hover:bg-white/10"
+    >
+      👤 My Profile
+    </button>
+
+    <button
+      onClick={() => navigate("/performance")}
+      className="w-full text-left px-5 py-4 hover:bg-white/10"
+    >
+      📊 Performance
+    </button>
+
+    <button
+      onClick={() => navigate("/settings")}
+      className="w-full text-left px-5 py-4 hover:bg-white/10"
+    >
+      ⚙️ Settings
+    </button>
+
+    <button
+      onClick={async () => {
+        await auth.signOut();
+        navigate("/login");
+      }}
+      className="w-full text-left px-5 py-4 text-red-400 hover:bg-red-500/10"
+    >
+      🚪 Logout
+    </button>
+
+  </div>
+)}
+</div>
 
             )}
 

@@ -6,27 +6,61 @@ import Chatbot from "./pages/Chatbot";
 import Movies from "./pages/Movies";
 import MovieDetails from "./pages/MovieDetails";
 import Profile from "./pages/Profile";
+import Performance from "./pages/Performance";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
     <Routes>
+
       {/* Home */}
-      <Route path="/" element={<Home />} />
+      <Route
+        path="/"
+        element={<Home />}
+      />
 
       {/* Login */}
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={<Login />}
+      />
 
       {/* AI Chatbot */}
-      <Route path="/chatbot" element={<Chatbot />} />
+      <Route
+        path="/chatbot"
+        element={<Chatbot />}
+      />
 
       {/* Movies */}
-      <Route path="/movies" element={<Movies />} />
+      <Route
+        path="/movies"
+        element={<Movies />}
+      />
 
       {/* Movie Details */}
-      <Route path="/movie/:id" element={<MovieDetails />} />
+      <Route
+        path="/movie/:id"
+        element={<MovieDetails />}
+      />
 
       {/* Profile */}
-      <Route path="/profile" element={<Profile />} />
+      <Route
+        path="/profile"
+        element={<Profile />}
+      />
+
+      {/* Performance Dashboard */}
+      <Route
+        path="/performance"
+        element={<Performance />}
+      />
+
+      {/* Settings */}
+      <Route
+        path="/settings"
+        element={<Settings />}
+      />
+
     </Routes>
   );
 }
