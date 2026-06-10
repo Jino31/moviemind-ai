@@ -82,6 +82,9 @@ function Profile() {
     userData?.email ||
     user?.email ||
     "No Email";
+    const joinedDate = userData?.createdAt
+  ? new Date(userData.createdAt).toLocaleDateString()
+  : "Recently Joined";
 
  
 
@@ -155,50 +158,136 @@ function Profile() {
         </div>
 
         
+<div className="mt-16 space-y-8">
 
-        {/* Personal Information */}
+  {/* Personal Information */}
 
-        <div className="mt-16">
+  <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
 
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-10">
+    <h2 className="text-3xl font-bold mb-8">
+      👤 Personal Information
+    </h2>
 
-            <h2 className="text-3xl font-bold mb-8">
-              👤 Personal Information
-            </h2>
+    <div className="space-y-6">
 
-            <p className="mb-4 text-lg">
-              <strong>Name:</strong>{" "}
-              {userName}
-            </p>
+      <div>
+        <p className="text-gray-500">
+          Full Name
+        </p>
 
-            <p className="mb-8 text-lg">
-              <strong>Email:</strong>{" "}
-              {userEmail}
-            </p>
+        <p className="text-xl font-semibold">
+          {userName}
+        </p>
+      </div>
 
-            <button
-              onClick={() =>
-                navigate(
-                  "/edit-profile"
-                )
-              }
-              className="
-                px-8 py-4
-                rounded-2xl
-                bg-gradient-to-r
-                from-red-500
-                to-pink-500
-                hover:scale-105
-                transition-all
-                font-semibold
-              "
-            >
-              Edit Profile
-            </button>
+      <div>
+        <p className="text-gray-500">
+          Email Address
+        </p>
 
-          </div>
+        <p className="text-xl font-semibold">
+          {userEmail}
+        </p>
+      </div>
 
-        </div>
+      <div>
+        <p className="text-gray-500">
+          Joined Date
+        </p>
+
+        <p className="text-xl font-semibold">
+          {joinedDate}
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* Account Settings */}
+
+  <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+
+    <h2 className="text-3xl font-bold mb-8">
+      ⚙️ Account Settings
+    </h2>
+
+    <div className="space-y-4">
+
+      <button
+        className="
+        w-full
+        text-left
+        p-5
+        rounded-2xl
+        bg-white/5
+        hover:bg-white/10
+        transition-all
+        "
+      >
+        🔑 Change Password
+      </button>
+
+      <button
+        className="
+        w-full
+        text-left
+        p-5
+        rounded-2xl
+        bg-white/5
+        hover:bg-white/10
+        transition-all
+        "
+      >
+        🔔 Notification Settings
+      </button>
+
+      <button
+        className="
+        w-full
+        text-left
+        p-5
+        rounded-2xl
+        bg-white/5
+        hover:bg-white/10
+        transition-all
+        "
+      >
+        🛡️ Privacy Settings
+      </button>
+
+    </div>
+
+  </div>
+
+  {/* Danger Zone */}
+
+  <div className="border border-red-500/30 bg-red-500/5 rounded-3xl p-8">
+
+    <h2 className="text-3xl font-bold text-red-400 mb-6">
+      ⚠️ Danger Zone
+    </h2>
+
+    <p className="text-gray-400 mb-6">
+      Permanently remove your MovieMind account and all associated data.
+    </p>
+
+    <button
+      className="
+      px-8 py-4
+      rounded-2xl
+      bg-red-500
+      hover:bg-red-600
+      transition-all
+      font-semibold
+      "
+    >
+      Delete Account
+    </button>
+
+  </div>
+
+</div>
 
       </div>
 
