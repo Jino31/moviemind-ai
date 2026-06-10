@@ -1,10 +1,12 @@
 import { initializeApp } from "firebase/app";
-
 import {
   getAuth,
   GoogleAuthProvider,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+  initializeAuth,
+  setPersistence,
 } from "firebase/auth";
-
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -19,10 +21,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+// Use initializeAuth instead of getAuth — fixes redirect in Chrome/Brave
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
 
-export const provider =
-  new GoogleAuthProvider();
+export const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: "select_account" });
 
-export const db =
-  getFirestore(app);
+export const db = getFirestore(app);
+
+console.log("✅ Firebase initialized");
