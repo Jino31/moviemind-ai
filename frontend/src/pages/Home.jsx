@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-
+await signOut(auth);
 import { useEffect, useState, useRef } from "react";
 
 import { onAuthStateChanged } from "firebase/auth";
@@ -145,36 +145,87 @@ function Home() {
       backdrop-blur-xl
       overflow-hidden
       z-50
+      shadow-[0_0_30px_rgba(255,0,100,0.2)]
     "
   >
 
+    {/* Profile */}
     <button
-      onClick={() => navigate("/profile")}
-      className="w-full text-left px-5 py-4 hover:bg-white/10"
+      onClick={() => {
+        setShowMenu(false);
+        navigate("/profile");
+      }}
+      className="
+        w-full
+        text-left
+        px-5
+        py-4
+        hover:bg-white/10
+        transition-all
+      "
     >
       👤 My Profile
     </button>
 
+    {/* Performance */}
     <button
-      onClick={() => navigate("/performance")}
-      className="w-full text-left px-5 py-4 hover:bg-white/10"
+      onClick={() => {
+        setShowMenu(false);
+        navigate("/performance");
+      }}
+      className="
+        w-full
+        text-left
+        px-5
+        py-4
+        hover:bg-white/10
+        transition-all
+      "
     >
       📊 Performance
     </button>
 
+    {/* Settings */}
     <button
-      onClick={() => navigate("/settings")}
-      className="w-full text-left px-5 py-4 hover:bg-white/10"
+      onClick={() => {
+        setShowMenu(false);
+        navigate("/settings");
+      }}
+      className="
+        w-full
+        text-left
+        px-5
+        py-4
+        hover:bg-white/10
+        transition-all
+      "
     >
       ⚙️ Settings
     </button>
 
+    {/* Divider */}
+    <div className="border-t border-white/10" />
+
+    {/* Logout */}
     <button
       onClick={async () => {
-        await auth.signOut();
-        navigate("/login");
+        try {
+          import { signOut } from "firebase/auth";
+          setShowMenu(false);
+          navigate("/login");
+        } catch (error) {
+          console.log(error);
+        }
       }}
-      className="w-full text-left px-5 py-4 text-red-400 hover:bg-red-500/10"
+      className="
+        w-full
+        text-left
+        px-5
+        py-4
+        text-red-400
+        hover:bg-red-500/10
+        transition-all
+      "
     >
       🚪 Logout
     </button>
