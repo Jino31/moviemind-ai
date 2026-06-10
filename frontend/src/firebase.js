@@ -9,7 +9,7 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyColfrF7tfhhflJWoVx2GW-WvInheUTDXk",
-  authDomain: "moviemind-25984.firebaseapp.com",
+  authDomain: "moviemind-ai-chi.vercel.app",
   projectId: "moviemind-25984",
   storageBucket: "moviemind-25984.firebasestorage.app",
   messagingSenderId: "986863262205",
