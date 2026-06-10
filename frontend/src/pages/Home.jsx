@@ -289,7 +289,7 @@ function Home() {
                 text-lg font-bold
               "
             >
-              ▶ Explore Movies
+              ▶ Explore Movies Trailers
             </button>
 
             <button
