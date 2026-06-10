@@ -1,10 +1,12 @@
-import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useState, useEffect } from "react";
 
 import {
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 
 import {
@@ -23,58 +25,60 @@ function Login() {
 
 const handleGoogleLogin = async () => {
   try {
-    const result = await signInWithPopup(
+    await signInWithRedirect(
       auth,
       provider
     );
-    console.log("Google Login Success");
-
-const user = result.user;
-
-console.log("User UID:", user.uid);
-
-    
-    console.log("User UID:", user.uid);
-
-
-try {
-await setDoc(
-  doc(db, "users", user.uid),
-  {
-    name: user.displayName,
-    email: user.email,
-    photoURL: user.photoURL,
-
-    watchlistCount: 0,
-    watchedCount: 0,
-    watchHours: 0,
-    aiMatch: 70,
-
-    createdAt: new Date().toISOString(),
-  },
-  { merge: true }
-);
-
-
-} catch (err) {
-  console.error(err);
-  alert(err.message);
-}
-
-
-    console.log("Firestore user created");
-
-    localStorage.setItem(
-      "user",
-      JSON.stringify(user)
-    );
-
-    navigate("/profile");
   } catch (error) {
-    console.error("Firestore Error:", error);
+    console.error(error);
     alert(error.message);
   }
 };
+
+useEffect(() => {
+  const handleRedirectLogin = async () => {
+    try {
+      const result =
+        await getRedirectResult(auth);
+
+      if (!result) return;
+      if (!result.user) return;
+
+      const user = result.user;
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+
+          watchlistCount: 0,
+          watchedCount: 0,
+          watchHours: 0,
+          aiMatch: 70,
+
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(user)
+      );
+
+     navigate("/profile", {
+  replace: true,
+});
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  handleRedirectLogin();
+}, [navigate]);
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
 

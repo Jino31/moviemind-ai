@@ -1,5 +1,5 @@
 import {
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 
@@ -7,12 +7,10 @@ import { auth, provider } from "../firebase";
 
 export const loginWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(
+    await signInWithRedirect(
       auth,
       provider
     );
-
-    return result.user;
   } catch (error) {
     console.error(error);
   }
