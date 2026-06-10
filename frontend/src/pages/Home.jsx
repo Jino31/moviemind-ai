@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-await signOut(auth);
+
 import { useEffect, useState, useRef } from "react";
 
-import { onAuthStateChanged } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 
 function Home() {
 
@@ -208,15 +211,15 @@ function Home() {
 
     {/* Logout */}
     <button
-      onClick={async () => {
-        try {
-          import { signOut } from "firebase/auth";
-          setShowMenu(false);
-          navigate("/login");
-        } catch (error) {
-          console.log(error);
-        }
-      }}
+     onClick={async () => {
+  try {
+    await signOut(auth);
+    setShowMenu(false);
+    navigate("/login");
+  } catch (error) {
+    console.log(error);
+  }
+}}
       className="
         w-full
         text-left
