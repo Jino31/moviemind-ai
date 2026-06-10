@@ -335,7 +335,7 @@ const aiMatch =
           </div>
 
         </div>
-<div className="mt-20 grid md:grid-cols-2 gap-6">
+<div className="mt-20 max-w-3xl mx-auto">
 
   <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
     <h2 className="text-2xl font-bold mb-6">
@@ -357,41 +357,7 @@ const aiMatch =
     </button>
   </div>
 
-  <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-    <h2 className="text-2xl font-bold mb-6">
-      ⚙️ Quick Actions
-    </h2>
-
-    <div className="flex flex-col gap-4">
-      <button
-        onClick={() => navigate("/")}
-        className="text-left p-4 rounded-xl bg-white/5"
-      >
-        🏠 Home
-      </button>
-
-      <button
-        onClick={() => navigate("/movies")}
-        className="text-left p-4 rounded-xl bg-white/5"
-      >
-        🎬 Movies
-      </button>
-
-      <button
-        onClick={() => navigate("/chatbot")}
-        className="text-left p-4 rounded-xl bg-white/5"
-      >
-        🤖 AI Chatbot
-      </button>
-
-      <button
-        onClick={handleLogout}
-        className="text-left p-4 rounded-xl bg-red-500/10 text-red-400"
-      >
-        🚪 Logout
-      </button>
-    </div>
-  </div>
+ 
 
 </div>
          
