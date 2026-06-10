@@ -54,7 +54,7 @@ function Login() {
         console.log("2️⃣ Result:", result);
 
         if (result?.user) {
-          console.log("3️⃣ Redirect success:", result.user.email);
+          console.log("3️⃣ Success:", result.user.email);
           await saveUserToFirestore(result.user);
           navigate("/profile", { replace: true });
           return;
