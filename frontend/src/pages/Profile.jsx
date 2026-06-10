@@ -83,8 +83,7 @@ function Profile() {
     user?.email ||
     "No Email";
 
-  const aiMatch =
-    userData?.aiMatch || 70;
+ 
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative">
@@ -155,34 +154,7 @@ function Profile() {
 
         </div>
 
-        {/* AI Match */}
-
-        <div className="mt-16">
-
-          <div className="flex justify-between mb-3">
-
-            <span className="font-semibold text-lg">
-              AI Taste Match
-            </span>
-
-            <span className="text-pink-400 font-bold">
-              {aiMatch}%
-            </span>
-
-          </div>
-
-          <div className="w-full h-4 rounded-full bg-white/10 overflow-hidden">
-
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-red-500 via-pink-500 to-purple-500"
-              style={{
-                width: `${aiMatch}%`,
-              }}
-            />
-
-          </div>
-
-        </div>
+        
 
         {/* Personal Information */}
 
