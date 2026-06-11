@@ -69,6 +69,7 @@ export default function Movies() {
       const data = await res.json();
       return data.results || [];
     } catch (networkError) {
+      // Intercept DNS/Network drop crashes gracefully
       console.warn("Individual channel fetch blocked or offline:", networkError.message);
       return [];
     }
@@ -105,6 +106,7 @@ export default function Movies() {
       if (trendingData && trendingData.length > 0) {
         setHeroMovie(trendingData[0]);
       } else {
+        // Safe hardcoded offline hero fallback if system connection drops entirely
         setHeroMovie({
           id: "fallback",
           title: "Connection Offline",
@@ -172,7 +174,7 @@ export default function Movies() {
       );
 
       if (trailer) {
-        setHasTrackedCurrent(false); // RESTORED: Resets the gate lock flag for next screening token
+        setHasTrackedCurrent(false); // Reset gate lock flag for next screening token
         setActiveTrailerMovie(movie); 
         setTrailerKey(trailer.key);
       } else {
@@ -228,6 +230,7 @@ export default function Movies() {
       const user = auth.currentUser;
       if (!user) return;
 
+      // Unpack categories maps explicitly matching Taste Radar keys
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
       else if (movie.genre_ids?.includes(28)) primaryGenreField = "genre_action";
