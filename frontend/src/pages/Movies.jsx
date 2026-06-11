@@ -47,13 +47,13 @@ export default function Movies() {
 
   const [trailerKey, setTrailerKey] = useState("");
   const [watchlist, setWatchlist] = useState([]);
-
+  
   // Guard lock to avoid duplicate event calls on ad-block fallbacks
   const [hasTrackedCurrent, setHasTrackedCurrent] = useState(false);
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
 
   // ============================================
-  // FETCH DATA WITH ERR_NAME_NOT_RESOLVED SAFEGUARDS
+  // FETCH DATA WITH ERR_NAME_NOT_RESOLVED SAFEQUARDS
   // ============================================
 
   useEffect(() => {
@@ -69,6 +69,7 @@ export default function Movies() {
       const data = await res.json();
       return data.results || [];
     } catch (networkError) {
+      // Intercept DNS/Network drop crashes gracefully
       console.warn("Individual channel fetch blocked or offline:", networkError.message);
       return [];
     }
@@ -105,12 +106,12 @@ export default function Movies() {
       if (trendingData && trendingData.length > 0) {
         setHeroMovie(trendingData[0]);
       } else {
+        // Safe hardcoded offline hero fallback if system connection drops entirely
         setHeroMovie({
           id: "fallback",
           title: "Connection Offline",
-          overview:
-            "Unable to reach media servers. Please verify your internet connection.",
-          backdrop_path: "",
+          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints or clear your local DNS table configuration.",
+          backdrop_path: ""
         });
       }
     } catch (err) {
@@ -133,7 +134,10 @@ export default function Movies() {
       setSearchResults(data.results || []);
 
       setTimeout(() => {
-        window.scrollTo({ top: 850, behavior: "smooth" });
+        window.scrollTo({
+          top: 850,
+          behavior: "smooth",
+        });
       }, 300);
 
       if (!data.results || data.results.length === 0) {
@@ -141,7 +145,7 @@ export default function Movies() {
       }
     } catch (err) {
       console.log(err);
-      alert("Search failed. Check your connection.");
+      alert("Search failed. Check connection endpoints.");
     }
   };
 
@@ -170,11 +174,11 @@ export default function Movies() {
       );
 
       if (trailer) {
-        setHasTrackedCurrent(false); // Reset gate lock for next trailer
-        setActiveTrailerMovie(movie);
+        setHasTrackedCurrent(false); // Reset gate lock flag for next screening token
+        setActiveTrailerMovie(movie); 
         setTrailerKey(trailer.key);
       } else {
-        alert("No trailer found for this movie");
+        alert("Trailer video stream signature not found");
       }
     } catch (err) {
       console.log(err);
@@ -182,7 +186,7 @@ export default function Movies() {
   };
 
   // ============================================
-  // WATCHLIST & FIRESTORE SYNC
+  // WATCHLIST & AD-BLOCK BACKUP UPDATE LIFECYCLES
   // ============================================
 
   const addToWatchlist = async (movie) => {
@@ -202,16 +206,13 @@ export default function Movies() {
       if (user) {
         const newLogEntry = {
           text: `Added "${movie.title}" to Watchlist`,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          type: "WATCHLIST",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: "WATCHLIST"
         };
 
         await updateDoc(doc(db, "users", user.uid), {
           watchlistCount: increment(1),
-          sessionLogs: arrayUnion(newLogEntry),
+          sessionLogs: arrayUnion(newLogEntry)
         });
       }
     } catch (error) {
@@ -229,6 +230,7 @@ export default function Movies() {
       const user = auth.currentUser;
       if (!user) return;
 
+      // Unpack categories maps explicitly matching Taste Radar keys
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
       else if (movie.genre_ids?.includes(28)) primaryGenreField = "genre_action";
@@ -239,30 +241,25 @@ export default function Movies() {
 
       const newLogEntry = {
         text: `Watched trailer for "${movie.title}"`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        type: "SCREENING",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: "SCREENING"
       };
 
       await updateDoc(doc(db, "users", user.uid), {
         watchedCount: increment(1),
-        watchHours: increment(2),
-        [primaryGenreField]: increment(1),
-        sessionLogs: arrayUnion(newLogEntry),
+        watchHours: increment(2), 
+        [primaryGenreField]: increment(1), 
+        sessionLogs: arrayUnion(newLogEntry)
       });
 
-      console.log(
-        `🔊 Realtime Sync Complete: registered "${movie.title}" under ${primaryGenreField}`
-      );
+      console.log(`🔊 Realtime Sync Complete: registered "${movie.title}" under ${primaryGenreField}`);
     } catch (error) {
-      console.error("Firestore sync error:", error);
+      console.error("Firestore data stream allocation crash:", error);
     }
   };
 
   // ============================================
-  // CAROUSEL ROW COMPONENT
+  // CAROUSEL DISPLAY ROW COMPONENT
   // ============================================
 
   const MovieRow = ({ title, icon, movies }) => {
@@ -283,27 +280,20 @@ export default function Movies() {
         </div>
 
         <button
-          onClick={() =>
-            rowRef.current.scrollBy({ left: -900, behavior: "smooth" })
-          }
+          onClick={() => rowRef.current.scrollBy({ left: -900, behavior: "smooth" })}
           className="absolute left-2 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 backdrop-blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-red-500 flex items-center justify-center text-white"
         >
           <FaChevronLeft className="mx-auto" />
         </button>
 
         <button
-          onClick={() =>
-            rowRef.current.scrollBy({ left: 900, behavior: "smooth" })
-          }
+          onClick={() => rowRef.current.scrollBy({ left: 900, behavior: "smooth" })}
           className="absolute right-2 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 backdrop-blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-red-500 flex items-center justify-center text-white"
         >
           <FaChevronRight className="mx-auto" />
         </button>
 
-        <div
-          ref={rowRef}
-          className="flex gap-5 overflow-x-auto scrollbar-hide px-12 scroll-smooth"
-        >
+        <div ref={rowRef} className="flex gap-5 overflow-x-auto scrollbar-hide px-12 scroll-smooth">
           {movies.map((movie) => (
             <div
               key={movie.id}
@@ -317,9 +307,7 @@ export default function Movies() {
                   className="w-full h-full object-cover transition-all duration-700 group-hover/card:scale-125"
                 />
               ) : (
-                <div className="w-full h-full bg-[#121218] flex items-center justify-center text-white/20 text-xs font-mono">
-                  NO IMAGE
-                </div>
+                <div className="w-full h-full bg-[#121218] flex items-center justify-center text-white/20 text-xs font-mono">NO IMAGE CONTAINER</div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
@@ -328,12 +316,8 @@ export default function Movies() {
               </div>
 
               <div className="absolute bottom-0 left-0 w-full p-5">
-                <h3 className="text-2xl font-bold mb-2 line-clamp-1">
-                  {movie.title}
-                </h3>
-                <p className="text-white/60 text-sm">
-                  {movie.release_date?.split("-")[0] || "Unknown"}
-                </p>
+                <h3 className="text-2xl font-bold mb-2 line-clamp-1">{movie.title}</h3>
+                <p className="text-white/60 text-sm">{movie.release_date?.split("-")[0] || "Unknown"}</p>
               </div>
 
               <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500 bg-black/70 flex flex-col justify-end p-5">
@@ -367,7 +351,7 @@ export default function Movies() {
 
   return (
     <div className="bg-black text-white min-h-screen overflow-x-hidden">
-
+      
       {heroMovie && (
         <div className="relative h-screen">
           {heroMovie.backdrop_path ? (
@@ -383,37 +367,17 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
-          {/* Navigation */}
+          {/* Navigation layout */}
           <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
             <div className="flex items-center justify-between px-10 py-6">
               <div className="flex items-center gap-14">
-                <h1
-                  onClick={() => navigate("/")}
-                  className="text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300"
-                >
+                <h1 onClick={() => navigate("/")} className="text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300">
                   MovieMind AI
                 </h1>
                 <div className="hidden md:flex items-center gap-10 text-lg font-semibold">
-                  <button
-                    onClick={() => navigate("/")}
-                    className="hover:text-red-400 transition-all"
-                  >
-                    Home
-                  </button>
-                  <button
-                    onClick={() => navigate("/movies")}
-                    className="hover:text-red-400 transition-all"
-                  >
-                    Movies
-                  </button>
-                  <button
-                    onClick={() =>
-                      window.scrollTo({ top: 900, behavior: "smooth" })
-                    }
-                    className="hover:text-red-400 transition-all"
-                  >
-                    Trending
-                  </button>
+                  <button onClick={() => navigate("/")} className="hover:text-red-400 transition-all">Home</button>
+                  <button onClick={() => navigate("/movies")} className="hover:text-red-400 transition-all">Movies</button>
+                  <button onClick={() => window.scrollTo({ top: 900, behavior: "smooth" })} className="hover:text-red-400 transition-all">Trending</button>
                   <button
                     onClick={() => {
                       if (watchlist.length === 0) {
@@ -432,11 +396,7 @@ export default function Movies() {
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`overflow-hidden transition-all duration-500 ${
-                      search ? "w-[260px]" : "w-0"
-                    }`}
-                  >
+                  <div className={`overflow-hidden transition-all duration-500 ${search ? "w-[260px]" : "w-0"}`}>
                     <div className="relative">
                       <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40" />
                       <input
@@ -449,23 +409,11 @@ export default function Movies() {
                       />
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (!search) {
-                        setSearch(" ");
-                        return;
-                      }
-                      searchMovies();
-                    }}
-                    className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 font-bold hover:scale-105 active:scale-95 text-sm"
-                  >
+                  <button onClick={() => { if (!search) { setSearch(" "); return; } searchMovies(); }} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 font-bold hover:scale-105 active:scale-95 text-sm">
                     Search
                   </button>
                 </div>
-                <button
-                  onClick={() => navigate("/performance")}
-                  className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 text-sm font-semibold"
-                >
+                <button onClick={() => navigate("/performance")} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 text-sm font-semibold">
                   Dashboard
                 </button>
               </div>
@@ -477,23 +425,13 @@ export default function Movies() {
               <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-500/20 border border-red-500/20 backdrop-blur-xl mb-6 text-sm font-semibold text-red-400">
                 🔥 #1 Trending Worldwide
               </div>
-              <h1 className="text-6xl md:text-7xl font-black leading-tight mb-6">
-                {heroMovie.title}
-              </h1>
-              <p className="text-lg md:text-xl text-white/70 leading-relaxed mb-10 line-clamp-3">
-                {heroMovie.overview}
-              </p>
+              <h1 className="text-6xl md:text-7xl font-black leading-tight mb-6">{heroMovie.title}</h1>
+              <p className="text-lg md:text-xl text-white/70 leading-relaxed mb-10 line-clamp-3">{heroMovie.overview}</p>
               <div className="flex gap-5">
-                <button
-                  onClick={() => openTrailer(heroMovie)}
-                  className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 active:scale-95 shadow-xl"
-                >
+                <button onClick={() => openTrailer(heroMovie)} className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 active:scale-95 shadow-xl">
                   <FaPlay /> Play
                 </button>
-                <button
-                  onClick={() => setSelectedMovie(heroMovie)}
-                  className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105 active:scale-95"
-                >
+                <button onClick={() => setSelectedMovie(heroMovie)} className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105 active:scale-95">
                   More Info
                 </button>
               </div>
@@ -521,52 +459,31 @@ export default function Movies() {
       {selectedMovie && (
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-10">
           <div className="relative w-full max-w-6xl rounded-[40px] overflow-hidden bg-[#0c0c12] border border-white/10 shadow-2xl">
-            <button
-              onClick={() => setSelectedMovie(null)}
-              className="absolute top-6 right-6 z-30 w-14 h-14 rounded-full bg-black/60 flex items-center justify-center text-2xl hover:bg-red-500 hover:rotate-90 transition-all text-white"
-            >
+            <button onClick={() => setSelectedMovie(null)} className="absolute top-6 right-6 z-30 w-14 h-14 rounded-full bg-black/60 flex items-center justify-center text-2xl hover:bg-red-500 hover:rotate-90 transition-all text-white">
               <FaTimes />
             </button>
 
             <div className="relative h-[600px]">
               {selectedMovie.backdrop_path ? (
-                <img
-                  src={`${IMG}${selectedMovie.backdrop_path}`}
-                  alt={selectedMovie.title}
-                  className="w-full h-full object-cover"
-                />
+                <img src={`${IMG}${selectedMovie.backdrop_path}`} alt={selectedMovie.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-[#0c0c12]" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c12] via-transparent to-transparent"></div>
 
               <div className="absolute bottom-12 left-12 max-w-4xl z-10">
-                <h1 className="text-5xl md:text-6xl font-black mb-4 tracking-tight">
-                  {selectedMovie.title}
-                </h1>
+                <h1 className="text-5xl md:text-6xl font-black mb-4 tracking-tight">{selectedMovie.title}</h1>
                 <div className="flex items-center gap-6 mb-4 text-sm font-semibold">
-                  <span className="text-emerald-400 text-xl font-bold">
-                    {selectedMovie.vote_average?.toFixed(1) || "0.0"} Rating
-                  </span>
-                  <span className="text-white/50 text-lg">
-                    {selectedMovie.release_date || "Unknown date"}
-                  </span>
+                  <span className="text-emerald-400 text-xl font-bold">{selectedMovie.vote_average?.toFixed(1) || "0.0"} Rating</span>
+                  <span className="text-white/50 text-lg">{selectedMovie.release_date || "Unknown date"}</span>
                 </div>
-                <p className="text-base md:text-lg text-white/70 leading-relaxed mb-8 line-clamp-3">
-                  {selectedMovie.overview}
-                </p>
-
+                <p className="text-base md:text-lg text-white/70 leading-relaxed mb-8 line-clamp-3">{selectedMovie.overview}</p>
+                
                 <div className="flex gap-4">
-                  <button
-                    onClick={() => openTrailer(selectedMovie)}
-                    className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 active:scale-95 shadow-lg"
-                  >
+                  <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 active:scale-95 shadow-lg">
                     <FaPlay /> Play Trailer
                   </button>
-                  <button
-                    onClick={() => addToWatchlist(selectedMovie)}
-                    className="px-8 py-4 rounded-xl bg-red-500/20 border border-red-500/20 text-lg font-bold text-white hover:bg-red-500 active:scale-95"
-                  >
+                  <button onClick={() => addToWatchlist(selectedMovie)} className="px-8 py-4 rounded-xl bg-red-500/20 border border-red-500/20 text-lg font-bold text-white hover:bg-red-500 active:scale-95">
                     + Watchlist
                   </button>
                 </div>
@@ -576,21 +493,18 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── TRAILER MODAL ── */}
+      {/* ── IMMERSIVE BACKLIGHTING TRAILER MODAL FRAME ── */}
       {trailerKey && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
-
-          {/* Ambient Lighting Layer */}
+          
+          {/* Ambient Lighting Engine Layer */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div className="absolute top-1/4 left-1/4 w-[600px] h-[400px] bg-red-600/20 blur-[130px] rounded-full animate-pulse" />
             <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[400px] bg-pink-600/20 blur-[130px] rounded-full animate-pulse" />
           </div>
 
           <button
-            onClick={() => {
-              setTrailerKey("");
-              setActiveTrailerMovie(null);
-            }}
+            onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }}
             className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all text-white"
           >
             <FaTimes />
@@ -602,40 +516,22 @@ export default function Movies() {
               opts={{
                 width: "100%",
                 height: "100%",
-                playerVars: {
+                playerVars: { 
                   autoplay: 1,
                   modestbranding: 1,
                   rel: 0,
-                  // FIX 1: enablejsapi is required for postMessage communication
-                  // between the YouTube iframe and the parent window.
-                  // Without this, the origin mismatch warning appears in console.
-                  enablejsapi: 1,
-                  // FIX 2: origin must match the page's actual origin so YouTube
-                  // knows which domain is allowed to control the player via JS.
-                  origin: window.location.origin,
+                  origin: window.location.origin
                 },
               }}
               className="w-full h-full"
-
-              // onPlay: fires when user presses play or autoplay starts.
-              // Primary trigger for markAsWatched — works in most browsers
-              // without ad blockers interfering.
+              
+              // Ad blocker bypass fallback execution strategy 
               onPlay={() => {
                 if (activeTrailerMovie) {
                   markAsWatched(activeTrailerMovie);
                 }
               }}
-
-              // FIX 3: onStateChange is the most reliable tracking fallback.
-              // YouTube player state 1 = playing. This fires even when ad blockers
-              // suppress the onPlay event, because it uses the YouTube IFrame API
-              // directly rather than DOM event listeners.
-              onStateChange={(e) => {
-                if (e.data === 1 && activeTrailerMovie) {
-                  markAsWatched(activeTrailerMovie);
-                }
-              }}
-
+              
               onEnd={() => {
                 if (activeTrailerMovie) {
                   markAsWatched(activeTrailerMovie);
