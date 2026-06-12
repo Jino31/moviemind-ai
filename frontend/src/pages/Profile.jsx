@@ -1,8 +1,11 @@
+// src/pages/Profile.jsx
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { FaUser, FaEnvelope, FaCamera, FaArrowLeft, FaCalendarAlt } from "react-icons/fa";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -65,15 +68,15 @@ export default function Profile() {
     window.addEventListener("resize", resizeCanvas);
 
     const particlesArray = [];
-    const numberOfParticles = 40;
+    const numberOfParticles = 45;
 
     class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
         this.size = Math.random() * 2 + 1;
-        this.speedX = (Math.random() - 0.5) * 0.4;
-        this.speedY = (Math.random() - 0.5) * 0.4;
+        this.speedX = (Math.random() - 0.5) * 0.35;
+        this.speedY = (Math.random() - 0.5) * 0.35;
         this.opacity = Math.random() * 0.5 + 0.2;
       }
       update() {
@@ -106,7 +109,7 @@ export default function Profile() {
           let distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < maxDistance) {
-            let opacity = (1 - distance / maxDistance) * 0.15;
+            let opacity = (1 - distance / maxDistance) * 0.18;
             ctx.strokeStyle = `rgba(239, 68, 68, ${opacity})`;
             ctx.lineWidth = 0.8;
             ctx.beginPath();
@@ -198,9 +201,9 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+      <div className="min-h-screen bg-[#040408] flex flex-col items-center justify-center text-white gap-4">
         <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm tracking-widest animate-pulse">LOADING PROFILE...</p>
+        <p className="text-gray-500 text-xs tracking-widest font-mono animate-pulse">LOADING PROFILE MODULE...</p>
       </div>
     );
   }
@@ -213,7 +216,7 @@ export default function Profile() {
     : "Recently Joined";
 
   return (
-    <div className="min-h-screen bg-black text-white relative font-sans antialiased overflow-x-hidden selection:bg-pink-500 selection:text-white">
+    <div className="min-h-screen bg-[#040408] text-white relative font-sans antialiased overflow-x-hidden selection:bg-pink-500 selection:text-white">
       
       <input 
         type="file"
@@ -223,22 +226,24 @@ export default function Profile() {
         className="hidden"
       />
 
+      {/* Cinematic Starfield Canvas Layout */}
       {!isEditing && (
         <canvas 
           ref={canvasRef} 
-          className="absolute inset-0 z-0 pointer-events-none mix-blend-screen opacity-70"
+          className="absolute inset-0 z-0 pointer-events-none mix-blend-screen opacity-60"
         />
       )}
 
+      {/* Immersive Deep Corner Ambient Light Bleed Glow Engine */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 left-0 w-[700px] h-[700px] bg-red-600/15 blur-[180px] animate-[pulse_8s_infinite_alternate]" />
-        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-purple-600/15 blur-[180px] animate-[pulse_10s_infinite_alternate]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-red-600/[0.07] blur-[140px] animate-[pulse_8s_infinite_alternate]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[55vw] h-[55vw] rounded-full bg-purple-600/[0.08] blur-[140px] animate-[pulse_10s_infinite_alternate]" />
         <div
-          className="absolute inset-0 opacity-5 animate-[scrolling-grid_60s_linear_infinite]"
+          className="absolute inset-0 opacity-[0.03] animate-[scrolling-grid_80s_linear_infinite]"
           style={{
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+            backgroundSize: "65px 65px",
           }}
         />
       </div>
@@ -250,90 +255,101 @@ export default function Profile() {
         }
       `}</style>
 
-      {/* Header */}
-      <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/40 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <h1 onClick={() => navigate("/")} className="text-3xl md:text-5xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight cursor-pointer">
+      {/* Fixed Immersive Translucent Top Bar Layout Header */}
+      <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-10 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-14">
+            <h1 onClick={() => navigate("/")} className="text-4xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight cursor-pointer hover:opacity-80 transition-all">
               MovieMind AI
             </h1>
-            <p className="text-gray-400 mt-2 text-sm md:text-base">
-              AI Powered Movie Discovery Platform
-            </p>
+            <div className="hidden md:flex items-center gap-10 text-lg font-semibold text-gray-400">
+              <button onClick={() => navigate("/")} className="hover:text-white transition-all">Home</button>
+              <button onClick={() => navigate("/movies")} className="hover:text-white transition-all">Movies</button>
+              <button onClick={() => navigate("/performance")} className="hover:text-white transition-all">Dashboard</button>
+            </div>
           </div>
+
+          <button 
+            onClick={() => navigate("/")} 
+            className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 transition-all text-sm font-semibold flex items-center gap-2"
+          >
+            <FaArrowLeft className="text-xs" /> Back
+          </button>
         </div>
       </div>
 
-      {/* Content */}
+      {/* Profiles Workspace Sub-Layout */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 pt-44 pb-24">
         
         {!isEditing ? (
           <div className="flex flex-col items-center text-center">
-            <div className="relative group cursor-pointer" onClick={triggerFileSelect}>
-              <div className="absolute inset-[-6px] bg-gradient-to-tr from-red-500 via-pink-500 to-purple-600 rounded-full blur-sm opacity-50 group-hover:opacity-90 transition-all duration-300" />
+            {/* Immersive Profile Orb Frame */}
+            <div className="relative group cursor-pointer mb-2" onClick={triggerFileSelect}>
+              <div className="absolute inset-[-6px] bg-gradient-to-tr from-red-500 via-pink-500 to-purple-600 rounded-full blur-md opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
               <img
                 src={userPhoto}
                 alt="profile"
-                className={`w-44 h-44 rounded-full object-cover border-4 border-pink-500 shadow-[0_0_40px_rgba(255,0,100,0.3)] relative z-10 ${updating ? 'animate-pulse' : ''}`}
+                className={`w-44 h-44 rounded-full object-cover border-[4px] border-black relative z-10 ${updating ? 'animate-pulse' : ''}`}
               />
-              <div className="absolute bottom-2 right-2 bg-pink-500 hover:bg-pink-600 border border-white/20 text-white p-3 rounded-full z-20 shadow-xl transition-all transform hover:scale-110">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+              <div className="absolute bottom-2 right-2 bg-pink-500 border border-white/10 text-white p-3 rounded-full z-20 shadow-2xl transition-all transform hover:scale-110">
+                <FaCamera className="text-sm" />
               </div>
             </div>
 
-            <h1 className="mt-8 text-5xl md:text-7xl font-black bg-gradient-to-r from-white to-pink-500 bg-clip-text text-transparent tracking-tight">
+            <h1 className="mt-8 text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
               {userName}
             </h1>
 
-            <p className="text-lg md:text-2xl text-gray-400 mt-4 font-medium tracking-wide">
+            <p className="text-md md:text-lg text-gray-400 font-mono font-medium tracking-wide mt-2">
               {userEmail}
             </p>
 
             <button
               onClick={() => setIsEditing(true)}
-              className="mt-8 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold tracking-wide hover:opacity-95 transform active:scale-95 transition-all flex items-center gap-2"
+              className="mt-8 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-bold text-sm tracking-wide shadow-[0_0_30px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              ✏️ Edit Profile
+              <span>✏️</span> Edit Profile
             </button>
           </div>
         ) : (
           /* Profile Edit Mode Form View */
-          <div className="max-w-xl mx-auto bg-white/5 border border-white/10 rounded-[32px] p-8 backdrop-blur-xl shadow-2xl">
-            <h2 className="text-3xl font-black mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <div className="max-w-xl mx-auto bg-[#0d0d16]/80 border border-white/10 rounded-[36px] p-8 backdrop-blur-2xl shadow-2xl animate-fade-in">
+            <h2 className="text-3xl font-black mb-2 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
               Update Identity
             </h2>
-            <p className="text-gray-400 text-sm mb-8">Modify your display configurations below</p>
+            <p className="text-gray-400 text-xs mb-8 font-medium">Modify your application profile variables</p>
 
             <form onSubmit={handleSaveChanges} className="space-y-6">
               
               <div className="flex flex-col items-center mb-4">
                 <div className="relative group cursor-pointer" onClick={triggerFileSelect}>
+                  <div className="absolute inset-[-4px] bg-gradient-to-r from-pink-500 to-red-500 rounded-full blur opacity-40 group-hover:opacity-80 transition-opacity" />
                   <img 
                     src={editPhoto || userPhoto} 
                     alt="Preview" 
-                    className="w-24 h-24 rounded-full object-cover border-2 border-pink-500/60 group-hover:opacity-80 transition-opacity"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-black relative z-10"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-opacity">
-                    <span className="text-[11px] font-bold tracking-wider text-white">UPLOAD</span>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full z-20 transition-opacity">
+                    <span className="text-[10px] font-black tracking-widest text-white">CHANGE</span>
                   </div>
                 </div>
-                <p className="text-xs text-white/40 mt-2">Click image avatar preview to change picture file</p>
+                <p className="text-[11px] text-gray-500 mt-3 font-medium">Click avatar snapshot disk to replace file resource</p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Display Name</label>
-                <input
-                  type="text"
-                  required
-                  disabled={updating}
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-black/60 rounded-2xl px-5 py-4 text-white outline-none border border-white/10 focus:border-pink-500/50 transition-colors disabled:opacity-50"
-                  placeholder="Enter custom handle"
-                />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2.5">Display Name</label>
+                <div className="relative flex items-center bg-black/40 border border-white/10 rounded-2xl focus-within:border-pink-500/50 transition-all">
+                  <FaUser className="absolute left-5 text-gray-500" />
+                  <input
+                    type="text"
+                    required
+                    disabled={updating}
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-transparent pl-14 pr-5 py-4 text-white outline-none text-sm font-medium disabled:opacity-50"
+                    placeholder="Enter custom handle"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-4 pt-4 border-t border-white/5">
@@ -352,7 +368,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={updating || !editName.trim()}
-                  className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
                 >
                   {updating ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -363,27 +379,39 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Account Details */}
-        <div className="mt-16 space-y-8 max-w-2xl mx-auto">
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span>👤</span> Account Identification
+        {/* Dynamic Account Credentials Content Grid */}
+        <div className="mt-16 max-w-2xl mx-auto">
+          <div className="bg-[#0b0b14]/50 border border-white/[0.06] rounded-[32px] p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-pink-500/[0.03] to-transparent blur-xl rounded-bl-full pointer-events-none" />
+            
+            <h2 className="text-xl font-bold mb-8 flex items-center gap-3 border-b border-white/5 pb-4">
+              <span className="p-2 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm flex items-center justify-center text-pink-400">👤</span>
+              <span>Account Identification</span>
             </h2>
 
             <div className="space-y-6">
-              <div className="border-b border-white/5 pb-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</p>
-                <p className="text-xl font-semibold mt-1 text-white/90">{userName}</p>
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Full Name</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaUser className="text-gray-500 text-sm" />
+                  <p className="text-sm font-semibold text-white/90">{userName}</p>
+                </div>
               </div>
 
-              <div className="border-b border-white/5 pb-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email Address</p>
-                <p className="text-xl font-semibold mt-1 text-white/90">{userEmail}</p>
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Email Address</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaEnvelope className="text-gray-500 text-sm" />
+                  <p className="text-sm font-medium font-mono text-white/90">{userEmail}</p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">System Joining Point</p>
-                <p className="text-xl font-semibold mt-1 text-white/90">{joinedDate}</p>
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">System Joining Point</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaCalendarAlt className="text-gray-500 text-sm" />
+                  <p className="text-sm font-semibold text-white/90">{joinedDate}</p>
+                </div>
               </div>
             </div>
           </div>
