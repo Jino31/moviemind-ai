@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import FindYourMovie from "./pages/FindYourMovie";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -60,6 +61,7 @@ function App() {
         path="/settings"
         element={<Settings />}
       />
+      <Route path="/find-your-movie" element={<FindYourMovie />} />
 
     </Routes>
   );
