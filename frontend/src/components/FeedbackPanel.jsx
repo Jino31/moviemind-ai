@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { FaCommentAlt, FaTimes, FaPaperPlane, FaSync } from "react-icons/fa";
 
 export default function FeedbackPanel() {
@@ -13,7 +14,7 @@ export default function FeedbackPanel() {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsUserLoggedIn(!!user);
     });
     return () => unsubscribe();
@@ -31,14 +32,14 @@ export default function FeedbackPanel() {
     setSubmitting(true);
 
     try {
-      // 🚀 Dispatching payload directly into your Firebase Admin Console tree
+      // 🚀 Real-time stream injection directly to your cloud collection segment
       await addDoc(collection(db, "feedback"), {
         uid: auth.currentUser.uid,
-        userName: auth.currentUser.displayName || "Anonymous User",
+        userName: auth.currentUser.displayName || "Anonymous Explorer",
         userEmail: auth.currentUser.email,
         category: category,
         message: message.trim(),
-        timestamp: serverTimestamp(),
+        timestamp: serverTimestamp(), // Syncs Google server time parameters
       });
 
       alert("✨ Ticket Transmitted: Thank you! Your feedback has been routed directly to the developer console.");
@@ -68,7 +69,7 @@ export default function FeedbackPanel() {
 
       {/* ── IMMERSIVE GLASSMORPHISM SUPPORT DRAWER PANEL ── */}
       {isOpen && (
-        <div className="w-96 rounded-3xl border border-white/[0.08] bg-[#090911]/95 backdrop-blur-2xl p-6 shadow-2xl animate-fade-in relative overflow-hidden">
+        <div className="w-96 rounded-3xl border border-white/[0.08] bg-[#090911]/95 backdrop-blur-2xl p-6 shadow-2xl relative overflow-hidden animate-fade-in">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-pink-500/[0.03] to-transparent blur-xl pointer-events-none" />
           
           {/* Header Panel */}
@@ -87,7 +88,7 @@ export default function FeedbackPanel() {
             </button>
           </div>
 
-          {/* Form Engine Row Chassis */}
+          {/* Form Engine */}
           <form onSubmit={handleSubmitFeedback} className="space-y-4">
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Select Category</label>
@@ -125,7 +126,7 @@ export default function FeedbackPanel() {
             <button
               type="submit"
               disabled={submitting || !message.trim() || !isUserLoggedIn}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all active:scale-98 disabled:from-white/5 disabled:to-transparent disabled:text-white/10 disabled:border-white/5 border border-transparent disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all active:scale-98 border border-transparent disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {submitting ? <FaSync className="animate-spin text-[10px]" /> : <FaPaperPlane className="text-[10px]" />}
               {submitting ? "Transmitting Fields..." : "Transmit Ticket To Developer"}
