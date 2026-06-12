@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { FaPaperPlane, FaRobot, FaUser, FaSync, FaTrashAlt, FaArrowLeft, FaHistory, FaTimes } from "react-icons/fa";
+import { FaPaperPlane, FaRobot, FaUser, FaSync, FaTrashAlt, FaArrowLeft, FaHistory, FaTimes, FaPlus } from "react-icons/fa";
 import MessageActions from "../components/MessageActions";
 
 const GROQ_API_KEY   = import.meta.env.VITE_GROQ_API_KEY;
@@ -14,7 +14,6 @@ const TAVILY_API_KEY = import.meta.env.VITE_TAVILY_API_KEY;
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// ── TMDB Discover Endpoint Pipeline ──────────────────────────────────────────
 async function fetchTamilMovies(year = null) {
   let url = `/tmdb/discover/movie?with_original_language=ta&sort_by=popularity.desc&api_key=${TMDB_API_KEY}`;
   if (year) url += `&primary_release_year=${year}`;
@@ -41,7 +40,6 @@ function formatTmdbResults(movies, year) {
   return `Tamil Movies${label}  |  Source: TMDB (live)\n\n${list}`;
 }
 
-// ── Tavily Web Analytics Crawler ─────────────────────────────────────────────
 async function tavilySearch(query) {
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
@@ -58,7 +56,6 @@ async function tavilySearch(query) {
   return res.json();
 }
 
-// ── LLM Prompt Matrix Parameters ─────────────────────────────────────────────
 const SYSTEM_PROMPT = `
 You are MovieMind AI — an expert movie assistant covering all world cinema.
 Expertise: Hollywood, Bollywood, Tamil (Kollywood), Telugu, Malayalam, Korean cinema.
@@ -94,7 +91,6 @@ async function callGroq(msgs, systemExtra = "", retries = 3, backoff = 2000) {
       });
 
       if (res.status === 429 && attempt < retries - 1) {
-        console.warn(`Rate limit triggered. Retrying attempt ${attempt + 1} in ${backoff}ms...`);
         await delay(backoff);
         backoff *= 2; 
         continue;
@@ -156,11 +152,9 @@ export default function Chatbot() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
   
-  // New States for Search History Management Panels
   const [searchHistory, setSearchHistory] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Synchronize chat logs and history nodes on auth changed loop
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -187,22 +181,38 @@ export default function Chatbot() {
         setMessages(snapshot.docs.map(d => ({ role: d.data().role, content: d.data().content })));
       }
     } catch (err) {
-      console.error("Failed to load conversation history indices:", err);
+      console.error("Failed to load conversation history:", err);
     }
   };
 
-  // Realtime Retrieval of Search History Terms
+  // Upgraded: Unique deduplication pipeline to strip duplicate consecutive history queries
   const loadSearchHistory = async (uid) => {
     try {
       const q = query(
         collection(db, "users", uid, "searchHistory"),
         orderBy("timestamp", "desc"),
-        limit(10)
+        limit(25) // Pull slightly more rows to handle unique filtering cleanly
       );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        const historyList = snapshot.docs.map(doc => ({ id: doc.id, query: doc.data().query }));
-        setSearchHistory(historyList);
+        const rawHistory = snapshot.docs.map(doc => ({ id: doc.id, query: doc.data().query }));
+        
+        // Remove duplicate items from tracking layout rows
+        const uniqueHistory = [];
+        const seenQueries = new Set();
+        
+        for (const item of rawHistory) {
+          const normalQuery = item.query.trim().toLowerCase();
+          if (!seenQueries.has(normalQuery)) {
+            seenQueries.add(normalQuery);
+            uniqueHistory.push(item);
+          }
+          if (uniqueHistory.length >= 10) break; // Keep top 10 unique items
+        }
+        
+        setSearchHistory(uniqueHistory);
+      } else {
+        setSearchHistory([]);
       }
     } catch (err) {
       console.error("Failed to read search history vectors:", err);
@@ -219,13 +229,51 @@ export default function Chatbot() {
   };
 
   // ============================================
-  // UNIFIED SECURE CHAT DEPLOYMENT ENGINE
+  // NEW CHAT WIPE TRIGGERS
   // ============================================
+  const handleNewChatInit = async () => {
+    if (loading) return;
+    
+    // Clear out screen rendering context instantly
+    setMessages([{ role: "assistant", content: WELCOME }]);
+    setInput("");
+    
+    // If authenticated, we clear out their past logs from Firestore to give them a completely clean chat context session
+    if (isUserAuthenticated && auth.currentUser) {
+      try {
+        const uid = auth.currentUser.uid;
+        const snapshot = await getDocs(collection(db, "users", uid, "chats"));
+        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        console.log("🧼 Chat collection database wiped cleanly.");
+      } catch (err) {
+        console.error("Failed to clear conversational db trees:", err);
+      }
+    }
+  };
+
+  // ============================================
+  // INDIVIDUAL SEARCH ITEM TERMINATION ACTION
+  // ============================================
+  const handleDeleteSingleSearch = async (e, itemId) => {
+    e.stopPropagation(); // Avoid triggering search click event on underlying text row card
+    if (!isUserAuthenticated || !auth.currentUser) return;
+
+    try {
+      const uid = auth.currentUser.uid;
+      await deleteDoc(doc(db, "users", uid, "searchHistory", itemId));
+      
+      // Refresh local state arrays seamlessly
+      setSearchHistory(prev => prev.filter(item => item.id !== itemId));
+    } catch (err) {
+      console.error("Error drop targeting document entry index:", err);
+    }
+  };
+
   const sendMessage = async (text) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
-    // 🔒 STRICT SECURITY INTERCEPTOR ACCESS WALL
     if (!isUserAuthenticated) {
       const anonymousChatCount = parseInt(localStorage.getItem("anon_chat_count") || "0", 10);
 
@@ -254,25 +302,21 @@ export default function Chatbot() {
 
     setMessages(updatedMessages);
 
-    // Save prompt path and search keyword history loops to Firestore if authenticated
     if (isUserAuthenticated && auth.currentUser) {
       try {
         const uid = auth.currentUser.uid;
         
-        // Log deep conversation node
         await addDoc(collection(db, "users", uid, "chats"), {
           role: "user",
           content: userText,
           createdAt: serverTimestamp()
         });
 
-        // Log search keyword history node
         await addDoc(collection(db, "users", uid, "searchHistory"), {
           query: userText,
           timestamp: serverTimestamp()
         });
 
-        // Refresh sidebar history feed dynamically
         loadSearchHistory(uid);
       } catch (err) {
         console.error("Firestore sync write failed:", err);
@@ -376,16 +420,10 @@ export default function Chatbot() {
     }
   };
 
-  const clearChatCanvas = () => {
-    setMessages([{ role: "assistant", content: WELCOME }]);
-    localStorage.removeItem("anon_chat_count");
-  };
-
   return (
     <div className="min-h-screen bg-[#04040a] text-white relative overflow-hidden font-sans antialiased flex">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#7f1d1d,transparent_35%),radial-gradient(circle_at_bottom_right,#4c1d95,transparent_35%)] opacity-50 pointer-events-none z-0" />
       
-      {/* ── CENTRAL CONSOLE CHAT VIEW LAYOUT CONTAINER ── */}
       <div className="relative z-10 flex flex-col h-screen w-full transition-all duration-500">
         
         {/* Navigation Control Header */}
@@ -402,28 +440,28 @@ export default function Chatbot() {
             </div>
           </div>
           <div className="flex gap-3">
+            {/* ➕ UPGRADE: Interactive New Chat Engine Action Hook Button */}
+            <button onClick={handleNewChatInit} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2 text-white/80 hover:text-white">
+              <FaPlus className="text-[10px] text-pink-400" /> New Chat
+            </button>
             {isUserAuthenticated && (
               <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2 text-white/80">
                 <FaHistory className="text-[11px]" /> {isSidebarOpen ? "Close History" : "Search History"}
               </button>
             )}
-            <button onClick={clearChatCanvas} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2 text-white/80 hover:text-white">
-              <FaTrashAlt className="text-[10px]" /> Clear Matrix
-            </button>
             <button onClick={() => navigate("/")} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 font-bold text-xs shadow-lg hover:opacity-95 transition flex items-center gap-2">
               <FaArrowLeft className="text-[9px]" /> Back
             </button>
           </div>
         </div>
 
-        {/* Realtime Conversational Stream Area */}
+        {/* Chat message column */}
         <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 scrollbar-hide bg-black/10">
           <div className="max-w-4xl mx-auto space-y-6 pb-12">
             
             {messages.map((msg, i) => (
               <div key={i} className="space-y-6">
                 
-                {/* Embedded Inline Quick Action Prompt Chips */}
                 {i === 0 && messages.length <= 1 && (
                   <div className="w-full animate-fade-in my-2">
                     <div className="rounded-[28px] border border-white/[0.06] bg-[#0b0b14]/60 p-6 backdrop-blur-xl shadow-xl relative overflow-hidden">
@@ -442,7 +480,6 @@ export default function Chatbot() {
                   </div>
                 )}
 
-                {/* Chat Bubble Layout Grid */}
                 <div className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`flex gap-4 max-w-[85%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                     
@@ -515,7 +552,7 @@ export default function Chatbot() {
 
       </div>
 
-      {/* ── PREMIUM REUSABLE SLIDE-OUT SEARCH HISTORY SIDEBAR CONTAINER ── */}
+      {/* ── UPGRADED SLIDE-OUT HISTORY SIDEBAR WITH INDIVIDUAL DELETIONS ── */}
       <div className={`fixed top-0 right-0 h-full w-80 bg-[#07070f] border-l border-white/[0.06] shadow-2xl z-50 transform transition-transform duration-500 backdrop-blur-2xl bg-opacity-95 ${
         isSidebarOpen ? "translate-x-0" : "translate-x-full"
       }`}>
@@ -533,16 +570,25 @@ export default function Chatbot() {
           <div className="flex-1 overflow-y-auto space-y-2.5 scrollbar-hide pr-1">
             {searchHistory.length === 0 ? (
               <div className="text-center py-10 text-xs font-mono text-white/30 tracking-widest uppercase">
-                No past search vectors logged.
+                No past unique search vectors.
               </div>
             ) : (
               searchHistory.map((historyItem) => (
                 <div 
                   key={historyItem.id}
                   onClick={() => { sendMessage(historyItem.query); setIsSidebarOpen(false); }}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs font-medium text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-red-500/10 hover:to-pink-500/10 hover:border-pink-500/20 text-left transition cursor-pointer truncate"
+                  className="group/item relative w-full px-4 py-3.5 rounded-xl bg-white/[0.01] border border-white/[0.04] text-xs font-medium text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-red-500/10 hover:to-pink-500/10 hover:border-pink-500/20 text-left transition cursor-pointer flex items-center justify-between overflow-hidden"
                 >
-                  🔍  {historyItem.query}
+                  <span className="truncate pr-4">🔍 {historyItem.query}</span>
+                  
+                  {/* 🗑️ Inline Trash/Delete Action Node */}
+                  <button
+                    onClick={(e) => handleDeleteSingleSearch(e, historyItem.id)}
+                    className="opacity-0 group-hover/item:opacity-100 p-2 text-white/40 hover:text-red-400 rounded-lg hover:bg-white/5 transition duration-300 shrink-0"
+                    title="Delete item"
+                  >
+                    <FaTimes className="text-[10px]" />
+                  </button>
                 </div>
               ))
             )}
