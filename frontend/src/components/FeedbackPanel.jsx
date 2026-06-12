@@ -13,7 +13,6 @@ export default function FeedbackPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
-  // 🤖 AUTOMATIC COMMENT PLACEHOLDERS CONFIGURATION MATRIX
   const placeholders = {
     "Feedback": "What do you like about MovieMind AI? (e.g., 'The interface is beautiful, and I love the cinematic styling!')",
     "Bug Report": "What went wrong? Please include steps to reproduce. (e.g., 'The Find Your Movie poster image fails to load when I upload a high-res PNG file.')",
@@ -105,7 +104,6 @@ export default function FeedbackPanel() {
                     type="button"
                     onClick={() => {
                       setCategory(cat);
-                      // Clear the manual text box if it's completely empty so the placeholder switches naturally
                       if (!message.trim()) setMessage(""); 
                     }}
                     className={`py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer ${
@@ -125,7 +123,6 @@ export default function FeedbackPanel() {
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                // ✅ DYNAMICALLY INJECTED PLACEHOLDER COMMENTS KEYED TO ACTIVE TAB
                 placeholder={isUserLoggedIn ? placeholders[category] : "Please log in to submit your support logs..."}
                 disabled={submitting || !isUserLoggedIn}
                 rows={4}
@@ -134,13 +131,23 @@ export default function FeedbackPanel() {
               />
             </div>
 
+            {/* ── 🔥 NEW ULTRA-PREMIUM INTERACTIVE SUBMIT BUTTON BLOCK ── */}
             <button
               type="submit"
               disabled={submitting || !message.trim() || !isUserLoggedIn}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all active:scale-98 border border-transparent disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-red-500 via-pink-500 to-fuchsia-500 text-white font-extrabold text-sm tracking-wide transition-all duration-300 transform border border-white/10 shadow-[0_0_25px_rgba(236,72,153,0.3)] hover:shadow-[0_0_35px_rgba(236,72,153,0.5)] hover:scale-[1.02] active:scale-[0.98] disabled:from-white/5 disabled:to-transparent disabled:text-white/10 disabled:border-white/5 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
-              {submitting ? <FaSync className="animate-spin text-[10px]" /> : <FaPaperPlane className="text-[10px]" />}
-              {submitting ? "Transmitting Fields..." : "Transmit Ticket To Developer"}
+              {submitting ? (
+                <>
+                  <FaSync className="animate-spin text-xs" />
+                  <span>TRANSMITTING TICKET...</span>
+                </>
+              ) : (
+                <>
+                  <FaPaperPlane className="text-xs transition-transform group-hover:translate-x-1" />
+                  <span>Transmit Ticket To Developer</span>
+                </>
+              )}
             </button>
           </form>
 
