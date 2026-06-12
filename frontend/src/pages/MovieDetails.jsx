@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, updateDoc, increment, arrayUnion } from "firebase/firestore";
 import { 
-  FaPlay, FaArrowLeft, FaTv, FaSpacer, FaSpinner, FaStar, 
+  FaPlay, FaArrowLeft, FaTv, FaSpinner, FaStar, 
   FaCalendarAlt, FaExclamationTriangle 
 } from "react-icons/fa";
 
@@ -163,7 +163,6 @@ export default function MovieDetails() {
                 allowFullScreen
                 scrolling="no"
                 allow="autoplay; encrypted-media; picture-in-picture"
-                // ✅ FIXED: Corrected 'allow-popups' flag ensures parsing compiler processes link smoothly
                 sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation"
               />
             </div>
