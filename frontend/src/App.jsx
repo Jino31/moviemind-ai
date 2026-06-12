@@ -1,3 +1,5 @@
+// frontend/src/App.jsx
+
 import { Routes, Route } from "react-router-dom";
 import FindYourMovie from "./pages/FindYourMovie";
 import FeedbackPanel from "./components/FeedbackPanel";
@@ -13,65 +15,42 @@ import Settings from "./pages/Settings";
 
 function App() {
   return (
-    <Routes>
-
-      {/* Home */}
-      <Route
-        path="/"
-        element={<Home />}
-      />
-
-      {/* Login */}
-      <Route
-        path="/login"
-        element={<Login />}
-      />
-
-      {/* AI Chatbot */}
-      <Route
-        path="/chatbot"
-        element={<Chatbot />}
-      />
-
-      {/* Movies */}
-      <Route
-        path="/movies"
-        element={<Movies />}
-      />
-
-      {/* Movie Details */}
-      <Route
-        path="/movie/:id"
-        element={<MovieDetails />}
-      />
-
-      {/* Profile */}
-      <Route
-        path="/profile"
-        element={<Profile />}
-      />
-
-      {/* Performance Dashboard */}
-      <Route
-        path="/performance"
-        element={<Performance />}
-      />
-
-      {/* Settings */}
-      <Route
-        path="/settings"
-        element={<Settings />}
-      />
-      <Route path="/find-your-movie" element={<FindYourMovie />} />
+    <div className="relative min-h-screen bg-black text-white">
+      
+      {/* ── CORE ROUTING MATRIX ENGINE ── */}
       <Routes>
-        {/* Your current route trees */}
+        {/* Home */}
+        <Route path="/" element={<Home />} />
+
+        {/* Login */}
+        <Route path="/login" element={<Login />} />
+
+        {/* AI Chatbot */}
+        <Route path="/chatbot" element={<Chatbot />} />
+
+        {/* Movies */}
+        <Route path="/movies" element={<Movies />} />
+
+        {/* Movie Details */}
+        <Route path="/movie/:id" element={<MovieDetails />} />
+
+        {/* Profile */}
+        <Route path="/profile" element={<Profile />} />
+
+        {/* Performance Dashboard */}
+        <Route path="/performance" element={<Performance />} />
+
+        {/* Settings */}
+        <Route path="/settings" element={<Settings />} />
+
+        {/* Vision AI Reverse Frame Finder */}
+        <Route path="/find-your-movie" element={<FindYourMovie />} />
       </Routes>
       
-      {/* 📥 Drop it right here at the base layout layer */}
+      {/* 📥 PLACED SAFELY OUTSIDE ROUTES: Universally overlays all active pages */}
       <FeedbackPanel />
-    
-
-    </Routes>
+      
+    </div>
   );
 }
 
