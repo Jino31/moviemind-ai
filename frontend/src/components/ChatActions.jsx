@@ -1,10 +1,11 @@
+// src/components/ChatActions.jsx
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "firebase/firestore";
-import { FaPaperPlane, FaRobot, FaUser, FaLock, FaSync } from "react-icons/fa";
+import { FaPaperPlane, FaRobot, FaUser, FaSync } from "react-icons/fa";
 
-// Immersive styling helpers for chat streams
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -24,12 +25,10 @@ export default function ChatActions() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Auto-scroll anchor stream tracker
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Sync existing database history loops if authenticated on initialization
   useEffect(() => {
     if (auth.currentUser) {
       loadChatHistory();
@@ -53,37 +52,36 @@ export default function ChatActions() {
   };
 
   // ============================================
-  // GATED CHAT ACTION DISPATCH INTERCEPTOR
+  // GATED QUERY INTERCEPTOR (STRICT 2-PROMPT WALL)
   // ============================================
-
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
     const userPrompt = input.trim();
-    setInput(""); // Clear immediately for snappy UI feel
 
-    // 1. Strict Authentication Validation Interception Layer
+    // Check auth state
     const isLoggedIn = auth.currentUser;
 
     if (!isLoggedIn) {
-      // Pull anonymous tracking count integers from local disk storage memory
+      // Pull chat submission value from disk storage memory
       const anonymousChatCount = parseInt(localStorage.getItem("anon_chat_count") || "0", 10);
 
-      // Block prompt evaluation if the 2 free queries have been spent
+      // STRIKE THREE GATEWAY RULE: Block and route if count is equal or greater than 2
       if (anonymousChatCount >= 2) {
-        alert("🔒 Strict Security Gate: You've reached your free preview limit of 2 AI queries. Please log in with your email profile to unlock infinite AI recommendations!");
+        alert("🔒 Strict Security Gate: You've reached your free preview limit of 2 AI chatbot queries. Please log in with your email profile to unlock infinite AI recommendations!");
         navigate("/login");
         return;
       }
 
-      // Increment visitor token log parameters
+      // Increment visitor log token parameter
       const updatedCount = anonymousChatCount + 1;
       localStorage.setItem("anon_chat_count", updatedCount.toString());
       console.warn(`⚠️ Guest Chat Warning: Dispatched ${updatedCount}/2 free preview queries.`);
     }
 
-    // 2. Append User Prompt locally to layout
+    // Process UI stream display
+    setInput(""); 
     const userMessage = {
       role: "user",
       content: userPrompt,
@@ -92,7 +90,6 @@ export default function ChatActions() {
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
 
-    // Save prompt to user document profile history matrix dynamically if authenticated
     if (isLoggedIn) {
       try {
         await addDoc(collection(db, "users", auth.currentUser.uid, "chats"), {
@@ -105,7 +102,6 @@ export default function ChatActions() {
       }
     }
 
-    // 3. Request LLM completion logic from Groq Core Pipeline APIs
     try {
       const response = await fetch(API_URL, {
         method: "POST",
@@ -116,7 +112,7 @@ export default function ChatActions() {
         body: JSON.stringify({
           model: "mixtral-8x7b-32768",
           messages: [
-            { role: "system", content: "You are MovieMind AI, an expert cinematic analytical data model specializing in film structure, screenwriting insights, and personalized curation vectors." },
+            { role: "system", content: "You are MovieMind AI, an expert cinematic analytical data model." },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: "user", content: userPrompt }
           ],
@@ -128,7 +124,7 @@ export default function ChatActions() {
       if (!response.ok) throw new Error("Server engine returned an invalid authentication context token.");
       
       const data = await response.json();
-      const assistantReply = data.choices[0]?.message?.content || "I ran into a problem tracking that movie dataset signature. Please try again.";
+      const assistantReply = data.choices[0]?.message?.content || "Error compiling recommendation matrix.";
 
       const botMessage = {
         role: "assistant",
@@ -138,7 +134,6 @@ export default function ChatActions() {
 
       setMessages((prev) => [...prev, botMessage]);
 
-      // Sync reply entry back into Firestore context parameters if authenticated
       if (isLoggedIn) {
         await addDoc(collection(db, "users", auth.currentUser.uid, "chats"), {
           role: "assistant",
@@ -148,12 +143,12 @@ export default function ChatActions() {
       }
 
     } catch (apiError) {
-      console.error("Groq AI infrastructure crash pipeline fallback:", apiError);
+      console.error("Groq AI pipeline error:", apiError);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "❌ System Connection Error: Unable to query Groq deep intelligence matrices. Verify VITE_GROQ_API_KEY integration tokens.",
+          content: "❌ System Connection Error: Unable to query deep intelligence matrices.",
           createdAt: new Date()
         }
       ]);
@@ -165,14 +160,14 @@ export default function ChatActions() {
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] w-full max-w-4xl mx-auto bg-[#0a0a10]/90 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative backdrop-blur-2xl">
       
-      {/* Dynamic Status Indicator Header */}
+      {/* Header Status Bar */}
       <div className="bg-white/[0.02] border-b border-white/5 px-6 py-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
           <div>
             <h3 className="font-bold text-md tracking-tight flex items-center gap-2">
               MovieMind Assistant 
-              {!auth.currentUser && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 border border-amber-500/20 rounded-md uppercase tracking-wider font-mono">Guest Mode</span>}
+              {!auth.currentUser && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 border border-amber-500/20 rounded-md uppercase tracking-wider font-mono">2 Prompts Left</span>}
             </h3>
             <p className="text-xs text-white/40">Powered by Groq Intelligence Systems</p>
           </div>
@@ -182,14 +177,13 @@ export default function ChatActions() {
         </button>
       </div>
 
-      {/* Realtime Conversational Stream Feed Row Container */}
+      {/* Message List */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.map((msg, index) => (
           <div
             key={msg.id || index}
             className={`flex gap-4 w-full max-w-3xl ${msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
           >
-            {/* Context Character Avatars */}
             <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-md ${
               msg.role === "user" 
                 ? "bg-pink-500/10 border-pink-500/20 text-pink-400" 
@@ -198,7 +192,6 @@ export default function ChatActions() {
               {msg.role === "user" ? <FaUser className="text-xs" /> : <FaRobot className="text-sm" />}
             </div>
 
-            {/* Markdown Messaging Bubble Chassis */}
             <div className={`rounded-2xl p-4 text-sm leading-relaxed max-w-xl shadow-lg border ${
               msg.role === "user"
                 ? "bg-gradient-to-br from-red-600/20 to-pink-600/20 border-pink-500/10 text-white/90"
@@ -209,7 +202,6 @@ export default function ChatActions() {
           </div>
         ))}
 
-        {/* Dynamic Matrix Processing Frame Loader */}
         {loading && (
           <div className="flex gap-4 mr-auto animate-pulse">
             <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
@@ -223,7 +215,7 @@ export default function ChatActions() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Prompt Construction Form Block */}
+      {/* Input Form */}
       <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 relative z-10">
         <div className="relative flex items-center bg-white/[0.04] border border-white/5 focus-within:border-pink-500/40 rounded-2xl transition-all p-1.5">
           <input

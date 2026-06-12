@@ -48,13 +48,8 @@ export default function Movies() {
   const [trailerKey, setTrailerKey] = useState("");
   const [watchlist, setWatchlist] = useState([]);
   
-  // Guard lock to avoid duplicate event calls on ad-block fallbacks
   const [hasTrackedCurrent, setHasTrackedCurrent] = useState(false);
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
-
-  // ============================================
-  // FETCH DATA WITH ERR_NAME_NOT_RESOLVED SAFEGUARDS
-  // ============================================
 
   useEffect(() => {
     loadMovies();
@@ -108,7 +103,7 @@ export default function Movies() {
         setHeroMovie({
           id: "fallback",
           title: "Connection Offline",
-          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints or clear your local DNS table configuration in your settings dashboard panels.",
+          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints.",
           backdrop_path: ""
         });
       }
@@ -118,33 +113,11 @@ export default function Movies() {
   };
 
   // ============================================
-  // STRICT INTERCEPTOR SEARCH GATEWAY
+  // OPEN ACCESS SEARCH BAR (GUEST FRIENDLY)
   // ============================================
-
   const searchMovies = async () => {
     if (!search.trim()) return;
 
-    // 1. Check if user is logged in
-    const isLoggedIn = auth.currentUser;
-
-    if (!isLoggedIn) {
-      // Get previous search limit counter from local storage
-      const currentSearchCount = parseInt(localStorage.getItem("anon_search_count") || "0", 10);
-
-      // If they have already used up their 2 free searches, block and force login
-      if (currentSearchCount >= 2) {
-        alert("🔒 Strict Security Guard: You have reached your limit of 2 free searches. Please log in with your email to continue exploring MovieMind AI!");
-        navigate("/login");
-        return;
-      }
-
-      // Otherwise, update and increment their tracking counter
-      const newCount = currentSearchCount + 1;
-      localStorage.setItem("anon_search_count", newCount.toString());
-      console.log(`⚠️ Guest Warning: Used ${newCount}/2 free preview searches.`);
-    }
-
-    // 2. Execute actual API Search if validation passes
     try {
       const res = await fetch(
         `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${search}`
@@ -175,11 +148,18 @@ export default function Movies() {
   };
 
   // ============================================
-  // TRAILER WINDOW
+  // STRICT GATED TRAILER VERIFICATION
   // ============================================
-
   const openTrailer = async (movie) => {
     if (movie.id === "fallback") return;
+
+    // RULE 1: Verify Active User Registration Session
+    if (!auth.currentUser) {
+      alert("🔒 Strict Security Guard: Cinematic playback is reserved for community accounts. Please log in with your email to watch trailers!");
+      navigate("/login");
+      return;
+    }
+
     try {
       const res = await fetch(
         `https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${API_KEY}`
@@ -205,11 +185,9 @@ export default function Movies() {
   };
 
   // ============================================
-  // WATCHLIST & TRACKING LOGIC UPDATES
+  // WATCHLIST PROTECTION GATEWAY
   // ============================================
-
   const addToWatchlist = async (movie) => {
-    // Force registration gate if guest tries to alter Watchlists
     if (!auth.currentUser) {
       alert("🔒 Authentication Required: Please log in to create or modify your custom Watchlist.");
       navigate("/login");
@@ -217,7 +195,6 @@ export default function Movies() {
     }
 
     const exists = watchlist.find((m) => m.id === movie.id);
-
     if (exists) {
       alert("Already in watchlist");
       return;
@@ -254,7 +231,7 @@ export default function Movies() {
 
     try {
       const user = auth.currentUser;
-      if (!user) return; // Silent return if they are just a preview guest watching trailers
+      if (!user) return;
 
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
@@ -276,20 +253,13 @@ export default function Movies() {
         [primaryGenreField]: increment(1), 
         sessionLogs: arrayUnion(newLogEntry)
       });
-
-      console.log(`🔊 Realtime Sync Complete: registered "${movie.title}" under ${primaryGenreField}`);
     } catch (error) {
-      console.error("Firestore data stream allocation crash:", error);
+      console.error("Firestore tracking stream crash:", error);
     }
   };
 
-  // ============================================
-  // CAROUSEL DISPLAY ROW COMPONENT
-  // ============================================
-
   const MovieRow = ({ title, icon, movies }) => {
     const rowRef = useRef();
-
     if (!movies || movies.length === 0) return null;
 
     return (
@@ -299,9 +269,6 @@ export default function Movies() {
             <span className="text-red-500 text-4xl">{icon}</span>
             <h2 className="text-5xl font-black">{title}</h2>
           </div>
-          <button className="text-pink-400 text-lg hover:text-white transition-all duration-300">
-            View All →
-          </button>
         </div>
 
         <button
@@ -332,7 +299,7 @@ export default function Movies() {
                   className="w-full h-full object-cover transition-all duration-700 group-hover/card:scale-125"
                 />
               ) : (
-                <div className="w-full h-full bg-[#121218] flex items-center justify-center text-white/20 text-xs font-mono">NO IMAGE CONTAINER</div>
+                <div className="w-full h-full bg-[#121218] flex items-center justify-center text-white/20 text-xs font-mono">NO IMAGE</div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
@@ -354,7 +321,7 @@ export default function Movies() {
                     }}
                     className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 text-sm"
                   >
-                    <FaPlay /> Play
+                    <FaPlay /> Watch Trailer
                   </button>
                   <button
                     onClick={(e) => {
@@ -457,7 +424,7 @@ export default function Movies() {
               <p className="text-lg md:text-xl text-white/70 leading-relaxed mb-10 line-clamp-3">{heroMovie.overview}</p>
               <div className="flex gap-5">
                 <button onClick={() => openTrailer(heroMovie)} className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 active:scale-95 shadow-xl">
-                  <FaPlay /> Play
+                  <FaPlay /> Watch Trailer
                 </button>
                 <button onClick={() => setSelectedMovie(heroMovie)} className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105 active:scale-95">
                   More Info
@@ -476,7 +443,7 @@ export default function Movies() {
 
       <div className="relative z-20 -mt-20 pb-32">
         <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
-        <MovieRow title="Top Rated" icon={<FaCrown />} movies={trending} />
+        <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
         <MovieRow title="Action Movies" icon={"🎬"} movies={actionMovies} />
         <MovieRow title="Sci-Fi Movies" icon={"🚀"} movies={sciFiMovies} />
         <MovieRow title="Horror Movies" icon={"👻"} movies={horrorMovies} />
@@ -509,7 +476,7 @@ export default function Movies() {
                 
                 <div className="flex gap-4">
                   <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 active:scale-95 shadow-lg">
-                    <FaPlay /> Play Trailer
+                    <FaPlay /> Watch Trailer
                   </button>
                   <button onClick={() => addToWatchlist(selectedMovie)} className="px-8 py-4 rounded-xl bg-red-500/20 border border-red-500/20 text-lg font-bold text-white hover:bg-red-500 active:scale-95">
                     + Watchlist
@@ -524,14 +491,9 @@ export default function Movies() {
       {/* ── TRAILER MODAL ── */}
       {trailerKey && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-1/4 left-1/4 w-[600px] h-[400px] bg-red-600/20 blur-[130px] rounded-full animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[400px] bg-pink-600/20 blur-[130px] rounded-full animate-pulse" />
-          </div>
-
           <button
             onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }}
-            className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all text-white"
+            className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 transition-all text-white"
           >
             <FaTimes />
           </button>
