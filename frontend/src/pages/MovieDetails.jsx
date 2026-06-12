@@ -163,7 +163,8 @@ export default function MovieDetails() {
                 allowFullScreen
                 scrolling="no"
                 allow="autoplay; encrypted-media; picture-in-picture"
-                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation"
+                // 🔓 OPTIMIZED RUNTIME FLAGS: Grants permission parameters required for streaming video initializations
+                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-downloads"
               />
             </div>
           </div>
