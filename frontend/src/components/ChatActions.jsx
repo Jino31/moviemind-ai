@@ -37,7 +37,7 @@ export default function ChatActions({
         text-xs
         "
       >
-        ✏️ Edit
+        ✏️ 
       </button>
 
       <button
@@ -51,7 +51,7 @@ export default function ChatActions({
         text-xs
         "
       >
-        {copied ? "✅ Copied" : "📋 Copy"}
+        {copied ? "✅ Copied" : "📋 "}
       </button>
 
     </div>
