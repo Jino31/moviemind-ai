@@ -109,8 +109,8 @@ export default function MovieDetails() {
     );
   }
 
-  // 🎬 MOVIE ENGINE TARGET URL RESOLVER
-  const streamingUrl = `https://vidsrc.xyz/embed/movie/${movie.id}`;
+  // 🎬 MOVIE ENGINE TARGET URL RESOLVER (vidsrc.cc high-availability endpoint)
+  const streamingUrl = `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
 
   return (
     <div className="min-h-screen bg-[#04040a] text-white font-sans antialiased relative pb-24 overflow-x-hidden">
