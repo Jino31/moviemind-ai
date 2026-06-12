@@ -1,13 +1,10 @@
-// src/pages/Login.jsx
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, provider, db } from "../firebase";
 import {
-  signInWithRedirect,
+  signInWithPopup,
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  getRedirectResult,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -41,35 +38,27 @@ function Login() {
     }
   };
 
-  // Safe redirect verification parser - sends user back to where they got blocked
-  const routeUserToIntendedDestination = () => {
-    const redirectTarget = localStorage.getItem("auth_redirect_target");
-    
-    if (redirectTarget) {
-      localStorage.removeItem("auth_redirect_target"); // Wipe tracking token
-      navigate(redirectTarget, { replace: true });
-    } else {
-      navigate("/profile", { replace: true }); // Default fallback
+  // Modern Popup Auth Flow — cleaner and avoids cookie isolation issues
+  const handleGoogleLogin = async () => {
+    try {
+      setError("");
+      setAuthActionLoading(true);
+      
+      const result = await signInWithPopup(auth, provider);
+      if (result?.user) {
+        console.log("🚀 Google Auth Success:", result.user.email);
+        await saveUserToFirestore(result.user);
+        navigate("/profile", { replace: true });
+      }
+    } catch (error) {
+      console.error("❌ Google Auth Error:", error);
+      setError(error.message);
+    } finally {
+      setAuthActionLoading(false);
     }
   };
 
-  // Catch the response back from the Google Redirect flow
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          console.log("🚀 Google Redirect Login Success:", result.user.email);
-          await saveUserToFirestore(result.user);
-          routeUserToIntendedDestination();
-        }
-      })
-      .catch((err) => {
-        console.error("❌ Redirect Authentication Failure:", err);
-        setError("Secure login handshake failed. Please try again.");
-      });
-  }, [navigate]);
-
-  // Handle Email form submit configuration
+  // Connected Email and Password Sign In Form Submission
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) {
@@ -82,12 +71,12 @@ function Login() {
       setAuthActionLoading(true);
       const result = await signInWithEmailAndPassword(auth, email, password);
       if (result?.user) {
-        console.log("🚀 Email Login Success:", result.user.email);
-        routeUserToIntendedDestination();
+        console.log("🚀 Email Auth Success:", result.user.email);
+        navigate("/profile", { replace: true });
       }
     } catch (error) {
       console.error("❌ Email Auth Error:", error);
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
         setError("Invalid email or password combination.");
       } else {
         setError(error.message);
@@ -97,25 +86,11 @@ function Login() {
     }
   };
 
-  // Handle Google trigger configuration
-  const handleGoogleLogin = async () => {
-    try {
-      setError("");
-      setAuthActionLoading(true);
-      await signInWithRedirect(auth, provider);
-    } catch (error) {
-      console.error("❌ Google Redirect Trigger Failure:", error);
-      setError(error.message);
-      setAuthActionLoading(false);
-    }
-  };
-
-  // Track global auth change loops
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("👥 Global Auth State Changed:", user?.email ?? "no user available");
       if (user) {
-        routeUserToIntendedDestination();
+        navigate("/profile", { replace: true });
       } else {
         setLoading(false);
       }
@@ -129,7 +104,7 @@ function Login() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm font-mono tracking-widest">CONNECTING MATRIX SECURE GATE...</p>
+          <p className="text-gray-400 text-sm">Checking authentication status...</p>
         </div>
       </div>
     );
@@ -138,10 +113,14 @@ function Login() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <div className="w-full max-w-xl bg-zinc-900 border border-white/10 rounded-[40px] p-10 shadow-2xl">
+
         <h1 className="text-5xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent mb-6">
           Welcome Back
         </h1>
-        <p className="text-gray-400 text-xl mb-10">Login to MovieMind AI</p>
+
+        <p className="text-gray-400 text-xl mb-10">
+          Login to MovieMind AI
+        </p>
 
         {error && (
           <div className="w-full bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-4 mb-6">
@@ -158,6 +137,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -166,12 +146,13 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
           <button 
             type="submit"
             disabled={authActionLoading}
             className="w-full py-5 rounded-3xl font-bold text-xl text-white bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-3"
           >
-            {authActionLoading && email ? (
+            {authActionLoading && !email.includes('@') ? (
               <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
             ) : "Login"}
           </button>
@@ -186,20 +167,25 @@ function Login() {
         <button
           onClick={handleGoogleLogin}
           disabled={authActionLoading}
-          className="w-full py-4 rounded-3xl bg-white text-black font-bold text-lg flex items-center justify-center gap-3 hover:bg-gray-100 transition-colors disabled:opacity-60"
+          className="w-full py-4 rounded-3xl bg-white text-black font-bold text-lg flex items-center justify-center gap-3 hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {authActionLoading && !email ? (
+          {authActionLoading && email.includes('@') === false ? (
             <>
               <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              Redirecting securely...
+              Connecting secure window...
             </>
           ) : (
             <>
-              <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" alt="google" className="w-6 h-6" />
+              <img
+                src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png"
+                alt="google"
+                className="w-6 h-6"
+              />
               Continue with Google
             </>
           )}
         </button>
+
       </div>
     </div>
   );
