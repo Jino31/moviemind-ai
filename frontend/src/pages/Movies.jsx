@@ -23,6 +23,7 @@ import {
   FaChevronRight,
   FaTrashAlt,
   FaHistory,
+  FaEllipsisV, // 💡 Imported 3-dot utility icon
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -320,7 +321,10 @@ export default function Movies() {
 
         <div ref={rowRef} className="flex gap-5 overflow-x-auto scrollbar-hide px-12 scroll-smooth">
           {movies.map((movie) => (
-            <div key={movie.id} onClick={() => setSelectedMovie(movie)} className="group/card relative min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(255,0,100,0.5)]">
+            <div 
+              key={movie.id} 
+              className="group/card relative min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(255,0,100,0.5)] bg-zinc-900"
+            >
               {movie.backdrop_path ? (
                 <img src={`${IMG}${movie.backdrop_path}`} alt={movie.title} className="w-full h-full object-cover transition-all duration-700 group-hover/card:scale-125" />
               ) : (
@@ -328,13 +332,31 @@ export default function Movies() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
-              <div className="absolute top-4 left-4 px-4 py-2 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-2 text-sm shadow-md"><FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}</div>
+              {/* Top Layout Controls Row */}
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-30">
+                <div className="px-4 py-2 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-2 text-sm shadow-md">
+                  <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
+                </div>
+
+                {/* ── NEW FEATURE: 3-DOT INTERACTIVE MORE INFO CHIP TRIGGER ── */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Block default bubble layers
+                    setSelectedMovie(movie); // Instantly dispatch standard information modal
+                  }}
+                  className="w-9 h-9 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition-all duration-300 shadow-lg active:scale-90"
+                  title="More Info"
+                >
+                  <FaEllipsisV className="text-xs" />
+                </button>
+              </div>
 
               <div className="absolute bottom-0 left-0 w-full p-5">
                 <h3 className="text-2xl font-bold mb-2 line-clamp-1">{movie.title}</h3>
                 <p className="text-white/60 text-sm">{movie.release_date?.split("-")[0] || "Unknown"}</p>
               </div>
 
+              {/* Hover Actions Drawer Overlay */}
               <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500 bg-black/70 flex flex-col justify-end p-5">
                 <div className="flex gap-3">
                   <button onClick={(e) => { e.stopPropagation(); openTrailer(movie); }} className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 text-sm"><FaPlay /> Watch Trailer</button>
@@ -369,7 +391,7 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
-          {/* Navigation Layout */}
+          {/* Navigation layout */}
           <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
             <div className="flex items-center justify-between px-10 py-6">
               <div className="flex items-center gap-14">
@@ -397,7 +419,6 @@ export default function Movies() {
                     Watchlist
                   </button>
                   
-                  {/* ── NEW WATCH HISTORY HEADER NAVIGATION BUTTON ── */}
                   <button
                     onClick={() => {
                       if (!auth.currentUser) {
@@ -445,7 +466,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* Render Lists */}
+      {/* Lists */}
       <div className="relative z-20 -mt-20 pb-32">
         
         {searchResults.length > 0 && activeViewFilter === "all" && (
