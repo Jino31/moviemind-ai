@@ -13,10 +13,30 @@ export default function FeedbackPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
+  // 🤖 CONFIGURATION: AUTOMATIC PLACEHOLDER DICTIONARY
   const placeholders = {
     "Feedback": "What do you like about MovieMind AI? (e.g., 'The interface is beautiful, and I love the cinematic styling!')",
     "Bug Report": "What went wrong? Please include steps to reproduce. (e.g., 'The Find Your Movie poster image fails to load when I upload a high-res PNG file.')",
     "Get Help": "How can the developer assist you? (e.g., 'I am unable to see my search history panel. Can you please verify my account data stream sync?')"
+  };
+
+  // ⚡ CONFIGURATION: PRE-FIXED QUICK COMMENTS KEYED PER ROUTE BUTTON
+  const quickComments = {
+    "Feedback": [
+      { label: "Excellent UI 🌟", text: "The streaming platform interface is absolutely beautiful and clean!" },
+      { label: "AI is Amazing 🤖", text: "The movie recommendation outputs are incredibly accurate and smart." },
+      { label: "Love the Theme 🎬", text: "The dark cinematic background aura fits perfectly for movie geeks." }
+    ],
+    "Bug Report": [
+      { label: "Broken Asset 🖼️", text: "Found a missing or broken poster image resource string in the application." },
+      { label: "Shield Block 🛡️", text: "Brave shields are intercepting database write networks on my client build." },
+      { label: "Page Crash ⚠️", text: "The screen turned completely black during specific internal routing changes." }
+    ],
+    "Get Help": [
+      { label: "History Missing 📊", text: "I cannot see my previous reverse-image search items in the sidebar panel." },
+      { label: "Auth Barrier 🔒", text: "Stuck at the profile authentication wall. Requesting manual stream validation." },
+      { label: "Slow Sync ⏳", text: "The simulated machine learning processing loop is taking too long to populate." }
+    ]
   };
 
   useEffect(() => {
@@ -72,15 +92,16 @@ export default function FeedbackPanel() {
         </button>
       )}
 
-      {/* ── IMMERSIVE GLASSMORPHISM SUPPORT DRAWER PANEL ── */}
+      {/* ── IMMERSIVE LARGER UPGRADED GLASSMORPHISM SUPPORT PANEL ── */}
       {isOpen && (
-        <div className="w-96 rounded-3xl border border-white/[0.08] bg-[#090911]/95 backdrop-blur-2xl p-6 shadow-2xl relative overflow-hidden animate-fade-in">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-pink-500/[0.03] to-transparent blur-xl pointer-events-none" />
+        // ✅ CHANGED: Expanded width class from w-96 to max-w-xl w-[460px] for better text visibility
+        <div className="w-[460px] max-w-xl rounded-[32px] border border-white/[0.08] bg-[#090911]/95 backdrop-blur-2xl p-7 shadow-2xl relative overflow-hidden animate-fade-in transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-pink-500/[0.04] to-transparent blur-2xl pointer-events-none" />
           
           {/* Header Panel */}
           <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] mb-5">
             <div>
-              <h3 className="text-md font-black tracking-tight bg-gradient-to-r from-red-400 to-pink-500 bg-clip-text text-transparent">
+              <h3 className="text-lg font-black tracking-tight bg-gradient-to-r from-red-400 to-pink-500 bg-clip-text text-transparent">
                 Developer Support Console
               </h3>
               <p className="text-[10px] text-white/40 tracking-wider font-mono uppercase mt-0.5">Direct Developer Pipeline</p>
@@ -94,7 +115,9 @@ export default function FeedbackPanel() {
           </div>
 
           {/* Form Engine */}
-          <form onSubmit={handleSubmitFeedback} className="space-y-4">
+          <form onSubmit={handleSubmitFeedback} className="space-y-5">
+            
+            {/* Category Select Buttons */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Select Category</label>
               <div className="grid grid-cols-3 gap-2">
@@ -104,9 +127,9 @@ export default function FeedbackPanel() {
                     type="button"
                     onClick={() => {
                       setCategory(cat);
-                      if (!message.trim()) setMessage(""); 
+                      setMessage(""); // Reset input when switching categories to avoid overlap
                     }}
-                    className={`py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+                    className={`py-2.5 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer ${
                       category === cat
                         ? "bg-gradient-to-r from-red-500/20 to-pink-500/20 border-pink-500/40 text-pink-400 shadow-md"
                         : "bg-white/[0.02] border-white/[0.05] text-white/60 hover:bg-white/[0.05]"
@@ -118,6 +141,25 @@ export default function FeedbackPanel() {
               </div>
             </div>
 
+            {/* ✅ NEW: PRE-FIXED AUTOMATIC COMMENT CLICKABLE TAGS SECTION */}
+            <div>
+              <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Quick Comments</label>
+              <div className="flex flex-wrap gap-2">
+                {quickComments[category].map((item, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    disabled={!isUserLoggedIn}
+                    onClick={() => setMessage(item.text)}
+                    className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-pink-500/30 hover:bg-pink-500/5 text-[11px] text-white/70 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input Message Text Area */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Your Message</label>
               <textarea
@@ -131,7 +173,7 @@ export default function FeedbackPanel() {
               />
             </div>
 
-            {/* ── 🔥 NEW ULTRA-PREMIUM INTERACTIVE SUBMIT BUTTON BLOCK ── */}
+            {/* Premium Submit Action Trigger */}
             <button
               type="submit"
               disabled={submitting || !message.trim() || !isUserLoggedIn}
@@ -144,7 +186,7 @@ export default function FeedbackPanel() {
                 </>
               ) : (
                 <>
-                  <FaPaperPlane className="text-xs transition-transform group-hover:translate-x-1" />
+                  <FaPaperPlane className="text-xs" />
                   <span>Transmit Ticket To Developer</span>
                 </>
               )}
