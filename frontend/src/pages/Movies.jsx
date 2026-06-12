@@ -9,7 +9,6 @@ import {
   updateDoc,
   increment,
   arrayUnion,
-  arrayRemove,
 } from "firebase/firestore";
 
 import {
@@ -23,6 +22,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaTrashAlt,
+  FaHistory,
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -50,7 +50,7 @@ export default function Movies() {
 
   const [trailerKey, setTrailerKey] = useState("");
   const [watchlist, setWatchlist] = useState([]);
-  const [watchedHistory, setWatchedHistory] = useState([]); // Array layout for explicit history deletions
+  const [watchedHistory, setWatchedHistory] = useState([]); 
   
   const [hasTrackedCurrent, setHasTrackedCurrent] = useState(false);
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
@@ -62,7 +62,6 @@ export default function Movies() {
     const savedWatchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
     setWatchlist(savedWatchlist);
 
-    // Sync mock structural fallback history tracking parameters inside internal storage
     const savedHistory = JSON.parse(localStorage.getItem("watched_history")) || [];
     setWatchedHistory(savedHistory);
 
@@ -106,7 +105,6 @@ export default function Movies() {
       setHorrorMovies(horrorData);
       setRomanceMovies(romanceData);
 
-      // Populate history with initial values if empty to show data rows cleanly
       const localHistory = JSON.parse(localStorage.getItem("watched_history")) || [];
       if (localHistory.length === 0 && trendingData?.length > 0) {
         const mockInitialHistory = trendingData.slice(0, 5);
@@ -221,11 +219,8 @@ export default function Movies() {
     alert("Added to watchlist");
   };
 
-  // ============================================
-  // 🔥 EXTENSION NEW FEATURE: REMOVE FROM WATCHLIST
-  // ============================================
   const removeFromWatchlist = async (e, movie) => {
-    e.stopPropagation(); // Stop opening details popup
+    e.stopPropagation(); 
     if (!auth.currentUser) return;
 
     const updated = watchlist.filter((m) => m.id !== movie.id);
@@ -248,9 +243,6 @@ export default function Movies() {
     }
   };
 
-  // ============================================
-  // 🔥 EXTENSION NEW FEATURE: REMOVE FROM HISTORY LOG
-  // ============================================
   const removeFromHistoryLog = async (e, movie) => {
     e.stopPropagation();
     if (!auth.currentUser) return;
@@ -279,7 +271,6 @@ export default function Movies() {
     if (hasTrackedCurrent) return;
     setHasTrackedCurrent(true);
 
-    // Save tracking instance item to internal arrays dynamically
     const historyLog = JSON.parse(localStorage.getItem("watched_history")) || [];
     if (!historyLog.find(m => m.id === movie.id)) {
       const updatedHistory = [movie, ...historyLog].slice(0, 10);
@@ -311,7 +302,6 @@ export default function Movies() {
     }
   };
 
-  // Upgraded custom components layout mapping variables type tags
   const MovieRow = ({ title, icon, movies, isGatedDeleteView = null }) => {
     const rowRef = useRef();
     if (!movies || movies.length === 0) return null;
@@ -349,7 +339,6 @@ export default function Movies() {
                 <div className="flex gap-3">
                   <button onClick={(e) => { e.stopPropagation(); openTrailer(movie); }} className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 text-sm"><FaPlay /> Watch Trailer</button>
                   
-                  {/* DYNAMIC OPERATION TERMINATION BUTTON TOGGLE SWITCH ACCORDING TO VIEW */}
                   {isGatedDeleteView === "watchlist" ? (
                     <button onClick={(e) => removeFromWatchlist(e, movie)} className="w-14 rounded-2xl bg-red-600/30 border border-red-500/30 flex items-center justify-center transition-all hover:bg-red-600 text-white" title="Remove from watchlist"><FaTrashAlt /></button>
                   ) : isGatedDeleteView === "watched" ? (
@@ -380,7 +369,7 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
-          {/* Navigation layout */}
+          {/* Navigation Layout */}
           <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
             <div className="flex items-center justify-between px-10 py-6">
               <div className="flex items-center gap-14">
@@ -403,9 +392,26 @@ export default function Movies() {
                         window.scrollTo({ top: 900, behavior: "smooth" });
                       }
                     }}
-                    className="hover:text-red-400 transition-all"
+                    className={`transition-all ${activeViewFilter === "watchlist" ? "text-red-500" : "hover:text-red-400"}`}
                   >
                     Watchlist
+                  </button>
+                  
+                  {/* ── NEW WATCH HISTORY HEADER NAVIGATION BUTTON ── */}
+                  <button
+                    onClick={() => {
+                      if (!auth.currentUser) {
+                        alert("🔒 Please log in to view your Watch History.");
+                        localStorage.setItem("auth_redirect_target", "/movies");
+                        navigate("/login");
+                      } else {
+                        setActiveViewFilter("watched");
+                        window.scrollTo({ top: 900, behavior: "smooth" });
+                      }
+                    }}
+                    className={`transition-all flex items-center gap-2 ${activeViewFilter === "watched" ? "text-red-500" : "hover:text-red-400"}`}
+                  >
+                    <FaHistory className="text-sm" /> History
                   </button>
                 </div>
               </div>
@@ -439,9 +445,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* EXPLICIT UPDATED FILTER BLOCK RENDERING ROUTINES */}
-      {/* ============================================================ */}
+      {/* Render Lists */}
       <div className="relative z-20 -mt-20 pb-32">
         
         {searchResults.length > 0 && activeViewFilter === "all" && (
@@ -450,7 +454,7 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Gated Filter State A: Watchlist Exclusive with Delete Mapping */}
+        {/* Watchlist Filter */}
         {activeViewFilter === "watchlist" && (
           <div className="pt-24 min-h-[50vh]">
             <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} isGatedDeleteView="watchlist" />
@@ -460,7 +464,7 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Gated Filter State B: Watched History Exclusive with Delete Mapping */}
+        {/* Watched History Filter */}
         {activeViewFilter === "watched" && (
           <div className="pt-24 min-h-[50vh]">
             <MovieRow title="Your Watched Movie History" icon={"👁️"} movies={watchedHistory} isGatedDeleteView="watched" />
@@ -470,7 +474,7 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Gated Filter State C: Standard Layout Rows */}
+        {/* Default View */}
         {activeViewFilter === "all" && (
           <>
             <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
