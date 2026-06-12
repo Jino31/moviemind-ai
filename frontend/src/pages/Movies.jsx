@@ -118,12 +118,33 @@ export default function Movies() {
   };
 
   // ============================================
-  // SEARCH
+  // STRICT INTERCEPTOR SEARCH GATEWAY
   // ============================================
 
   const searchMovies = async () => {
     if (!search.trim()) return;
 
+    // 1. Check if user is logged in
+    const isLoggedIn = auth.currentUser;
+
+    if (!isLoggedIn) {
+      // Get previous search limit counter from local storage
+      const currentSearchCount = parseInt(localStorage.getItem("anon_search_count") || "0", 10);
+
+      // If they have already used up their 2 free searches, block and force login
+      if (currentSearchCount >= 2) {
+        alert("🔒 Strict Security Guard: You have reached your limit of 2 free searches. Please log in with your email to continue exploring MovieMind AI!");
+        navigate("/login");
+        return;
+      }
+
+      // Otherwise, update and increment their tracking counter
+      const newCount = currentSearchCount + 1;
+      localStorage.setItem("anon_search_count", newCount.toString());
+      console.log(`⚠️ Guest Warning: Used ${newCount}/2 free preview searches.`);
+    }
+
+    // 2. Execute actual API Search if validation passes
     try {
       const res = await fetch(
         `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${search}`
@@ -188,6 +209,13 @@ export default function Movies() {
   // ============================================
 
   const addToWatchlist = async (movie) => {
+    // Force registration gate if guest tries to alter Watchlists
+    if (!auth.currentUser) {
+      alert("🔒 Authentication Required: Please log in to create or modify your custom Watchlist.");
+      navigate("/login");
+      return;
+    }
+
     const exists = watchlist.find((m) => m.id === movie.id);
 
     if (exists) {
@@ -226,7 +254,7 @@ export default function Movies() {
 
     try {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) return; // Silent return if they are just a preview guest watching trailers
 
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
@@ -377,7 +405,10 @@ export default function Movies() {
                   <button onClick={() => window.scrollTo({ top: 900, behavior: "smooth" })} className="hover:text-red-400 transition-all">Trending</button>
                   <button
                     onClick={() => {
-                      if (watchlist.length === 0) {
+                      if (!auth.currentUser) {
+                        alert("🔒 Please log in to view your Watchlist.");
+                        navigate("/login");
+                      } else if (watchlist.length === 0) {
                         alert("Watchlist is empty");
                       } else {
                         setSearchResults(watchlist);
@@ -410,7 +441,6 @@ export default function Movies() {
                     Search
                   </button>
                 </div>
-                {/* REPLACED: Dashboard with dynamic Back action navigation vector linking straight home */}
                 <button onClick={() => navigate("/")} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 text-sm font-semibold whitespace-nowrap">
                   Back
                 </button>
@@ -446,7 +476,7 @@ export default function Movies() {
 
       <div className="relative z-20 -mt-20 pb-32">
         <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
-        <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
+        <MovieRow title="Top Rated" icon={<FaCrown />} movies={trending} />
         <MovieRow title="Action Movies" icon={"🎬"} movies={actionMovies} />
         <MovieRow title="Sci-Fi Movies" icon={"🚀"} movies={sciFiMovies} />
         <MovieRow title="Horror Movies" icon={"👻"} movies={horrorMovies} />
@@ -491,11 +521,9 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── IMMERSIVE BACKLIGHTING TRAILER MODAL FRAME ── */}
+      {/* ── TRAILER MODAL ── */}
       {trailerKey && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
-          
-          {/* Ambient Lighting Engine Layer */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div className="absolute top-1/4 left-1/4 w-[600px] h-[400px] bg-red-600/20 blur-[130px] rounded-full animate-pulse" />
             <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[400px] bg-pink-600/20 blur-[130px] rounded-full animate-pulse" />
@@ -522,14 +550,11 @@ export default function Movies() {
                 },
               }}
               className="w-full h-full"
-              
-              // Ad blocker bypass fallback execution strategy 
               onPlay={() => {
                 if (activeTrailerMovie) {
                   markAsWatched(activeTrailerMovie);
                 }
               }}
-              
               onEnd={() => {
                 if (activeTrailerMovie) {
                   markAsWatched(activeTrailerMovie);
