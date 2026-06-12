@@ -13,6 +13,13 @@ export default function FeedbackPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
+  // 🤖 AUTOMATIC COMMENT PLACEHOLDERS CONFIGURATION MATRIX
+  const placeholders = {
+    "Feedback": "What do you like about MovieMind AI? (e.g., 'The interface is beautiful, and I love the cinematic styling!')",
+    "Bug Report": "What went wrong? Please include steps to reproduce. (e.g., 'The Find Your Movie poster image fails to load when I upload a high-res PNG file.')",
+    "Get Help": "How can the developer assist you? (e.g., 'I am unable to see my search history panel. Can you please verify my account data stream sync?')"
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsUserLoggedIn(!!user);
@@ -32,14 +39,13 @@ export default function FeedbackPanel() {
     setSubmitting(true);
 
     try {
-      // 🚀 Real-time stream injection directly to your cloud collection segment
       await addDoc(collection(db, "feedback"), {
         uid: auth.currentUser.uid,
         userName: auth.currentUser.displayName || "Anonymous Explorer",
         userEmail: auth.currentUser.email,
         category: category,
         message: message.trim(),
-        timestamp: serverTimestamp(), // Syncs Google server time parameters
+        timestamp: serverTimestamp(),
       });
 
       alert("✨ Ticket Transmitted: Thank you! Your feedback has been routed directly to the developer console.");
@@ -47,7 +53,7 @@ export default function FeedbackPanel() {
       setIsOpen(false);
     } catch (err) {
       console.error("Developer contact pipeline crash:", err);
-      alert("❌ Submission Failure: Verification layer blocked writing to database. Check security rules.");
+      alert("❌ Submission Failure: Permissions layer blocked writing to database. Check security rules.");
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +103,11 @@ export default function FeedbackPanel() {
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setCategory(cat)}
+                    onClick={() => {
+                      setCategory(cat);
+                      // Clear the manual text box if it's completely empty so the placeholder switches naturally
+                      if (!message.trim()) setMessage(""); 
+                    }}
                     className={`py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer ${
                       category === cat
                         ? "bg-gradient-to-r from-red-500/20 to-pink-500/20 border-pink-500/40 text-pink-400 shadow-md"
@@ -115,10 +125,11 @@ export default function FeedbackPanel() {
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={isUserLoggedIn ? "Describe your issue, suggestion, or comment clearly..." : "Please log in to submit your support logs..."}
+                // ✅ DYNAMICALLY INJECTED PLACEHOLDER COMMENTS KEYED TO ACTIVE TAB
+                placeholder={isUserLoggedIn ? placeholders[category] : "Please log in to submit your support logs..."}
                 disabled={submitting || !isUserLoggedIn}
                 rows={4}
-                className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.05] focus:border-pink-500/40 outline-none p-4 text-xs text-white placeholder-white/20 transition-all resize-none leading-relaxed h-28"
+                className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.05] focus:border-pink-500/40 outline-none p-4 text-xs text-white placeholder-white/30 transition-all resize-none leading-relaxed h-28 focus:bg-white/[0.01]"
                 maxLength={1000}
               />
             </div>
