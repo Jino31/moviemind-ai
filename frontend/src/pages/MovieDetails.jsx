@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, updateDoc, increment, arrayUnion } from "firebase/firestore";
 import { 
-  FaPlay, FaArrowLeft, FaTv, FaSpinner, FaStar, 
+  FaPlay, FaArrowLeft, FaTv, FaSpacer, FaSpinner, FaStar, 
   FaCalendarAlt, FaExclamationTriangle 
 } from "react-icons/fa";
 
@@ -110,7 +110,6 @@ export default function MovieDetails() {
   }
 
   // 🎬 MOVIE ENGINE TARGET URL RESOLVER
-  // vidsrc.xyz supports native numeric TMDB IDs straight out of the box
   const streamingUrl = `https://vidsrc.xyz/embed/movie/${movie.id}`;
 
   return (
@@ -164,8 +163,8 @@ export default function MovieDetails() {
                 allowFullScreen
                 scrolling="no"
                 allow="autoplay; encrypted-media; picture-in-picture"
-                // Sandboxing blocks aggressive redirect chains and popup ad payloads from breaking layout frame flow
-                sandbox="allow-forms allow-popper-menus allow-same-origin allow-scripts allow-top-navigation"
+                // ✅ FIXED: Corrected 'allow-popups' flag ensures parsing compiler processes link smoothly
+                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation"
               />
             </div>
           </div>
