@@ -23,7 +23,7 @@ import {
   FaChevronRight,
   FaTrashAlt,
   FaHistory,
-  FaEllipsisV, // 💡 Imported 3-dot utility icon
+  FaEllipsisV,
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -323,6 +323,8 @@ export default function Movies() {
           {movies.map((movie) => (
             <div 
               key={movie.id} 
+              // ✅ CHANGED: Card wrapper click event maps route paths seamlessly to /movie/:id details page
+              onClick={() => movie.id !== "fallback" && navigate(`/movie/${movie.id}`)}
               className="group/card relative min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(255,0,100,0.5)] bg-zinc-900"
             >
               {movie.backdrop_path ? (
@@ -338,11 +340,10 @@ export default function Movies() {
                   <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
                 </div>
 
-                {/* ── NEW FEATURE: 3-DOT INTERACTIVE MORE INFO CHIP TRIGGER ── */}
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Block default bubble layers
-                    setSelectedMovie(movie); // Instantly dispatch standard information modal
+                    e.stopPropagation(); // Stops navigation behavior when clicking More Info button
+                    setSelectedMovie(movie); 
                   }}
                   className="w-9 h-9 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition-all duration-300 shadow-lg active:scale-90"
                   title="More Info"
@@ -357,16 +358,32 @@ export default function Movies() {
               </div>
 
               {/* Hover Actions Drawer Overlay */}
-              <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500 bg-black/70 flex flex-col justify-end p-5">
+              <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500 bg-black/70 flex flex-col justify-end p-5 z-20">
                 <div className="flex gap-3">
-                  <button onClick={(e) => { e.stopPropagation(); openTrailer(movie); }} className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 text-sm"><FaPlay /> Watch Trailer</button>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); // Stops page navigation when clicking the trailer button
+                      openTrailer(movie); 
+                    }} 
+                    className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 text-sm"
+                  >
+                    <FaPlay /> Watch Trailer
+                  </button>
                   
                   {isGatedDeleteView === "watchlist" ? (
                     <button onClick={(e) => removeFromWatchlist(e, movie)} className="w-14 rounded-2xl bg-red-600/30 border border-red-500/30 flex items-center justify-center transition-all hover:bg-red-600 text-white" title="Remove from watchlist"><FaTrashAlt /></button>
                   ) : isGatedDeleteView === "watched" ? (
                     <button onClick={(e) => removeFromHistoryLog(e, movie)} className="w-14 rounded-2xl bg-red-600/30 border border-red-500/30 flex items-center justify-center transition-all hover:bg-red-600 text-white" title="Wipe from history log"><FaTrashAlt /></button>
                   ) : (
-                    <button onClick={(e) => { e.stopPropagation(); addToWatchlist(movie); }} className="w-14 rounded-2xl bg-red-500/20 border border-red-500/20 flex items-center justify-center transition-all hover:bg-red-500 text-white"><FaPlus /></button>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); // Stops page navigation when clicking the plus button
+                        addToWatchlist(movie); 
+                      }} 
+                      className="w-14 rounded-2xl bg-red-500/20 border border-red-500/20 flex items-center justify-center transition-all hover:bg-red-500 text-white"
+                    >
+                      <FaPlus />
+                    </button>
                   )}
                 </div>
               </div>
@@ -458,8 +475,19 @@ export default function Movies() {
               <h1 className="text-6xl md:text-7xl font-black leading-tight mb-6">{heroMovie.title}</h1>
               <p className="text-lg md:text-xl text-white/70 leading-relaxed mb-10 line-clamp-3">{heroMovie.overview}</p>
               <div className="flex gap-5">
-                <button onClick={() => openTrailer(heroMovie)} className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 shadow-xl"><FaPlay /> Watch Trailer</button>
-                <button onClick={() => setSelectedMovie(heroMovie)} className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105">More Info</button>
+                <button 
+                  onClick={() => openTrailer(heroMovie)} 
+                  className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 shadow-xl"
+                >
+                  <FaPlay /> Watch Trailer
+                </button>
+                {/* ✅ CHANGED: Hero section details button now routes to the active details streaming URL */}
+                <button 
+                  onClick={() => heroMovie.id !== "fallback" && navigate(`/movie/${heroMovie.id}`)} 
+                  className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105"
+                >
+                  Watch Now
+                </button>
               </div>
             </div>
           </div>
@@ -475,7 +503,6 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Watchlist Filter */}
         {activeViewFilter === "watchlist" && (
           <div className="pt-24 min-h-[50vh]">
             <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} isGatedDeleteView="watchlist" />
@@ -485,7 +512,6 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Watched History Filter */}
         {activeViewFilter === "watched" && (
           <div className="pt-24 min-h-[50vh]">
             <MovieRow title="Your Watched Movie History" icon={"👁️"} movies={watchedHistory} isGatedDeleteView="watched" />
@@ -495,7 +521,6 @@ export default function Movies() {
           </div>
         )}
 
-        {/* Default View */}
         {activeViewFilter === "all" && (
           <>
             <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
@@ -508,7 +533,7 @@ export default function Movies() {
         )}
       </div>
 
-      {/* ── SELECTION MODAL ── */}
+      {/* Selection Modal */}
       {selectedMovie && (
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-10">
           <div className="relative w-full max-w-6xl rounded-[40px] overflow-hidden bg-[#0c0c12] border border-white/10 shadow-2xl">
@@ -525,7 +550,16 @@ export default function Movies() {
                 <p className="text-base md:text-lg text-white/70 leading-relaxed mb-8 line-clamp-3">{selectedMovie.overview}</p>
                 <div className="flex gap-4">
                   <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 shadow-lg"><FaPlay /> Watch Trailer</button>
-                  <button onClick={() => addToWatchlist(selectedMovie)} className="px-8 py-4 rounded-xl bg-red-500/20 border border-red-500/20 text-lg font-bold text-white hover:bg-red-500">+ Watchlist</button>
+                  {/* ✅ CHANGED: Modal secondary trigger button routes user to play full screen video frame */}
+                  <button 
+                    onClick={() => {
+                      setSelectedMovie(null);
+                      navigate(`/movie/${selectedMovie.id}`);
+                    }}
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-lg font-bold text-white hover:scale-105 transition-transform"
+                  >
+                    Play Full Movie
+                  </button>
                 </div>
               </div>
             </div>
@@ -533,7 +567,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── TRAILER MODAL ── */}
+      {/* Trailer Modal */}
       {trailerKey && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
           <button onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }} className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 text-white"><FaTimes /></button>
