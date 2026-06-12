@@ -147,7 +147,9 @@ const WELCOME = "Hi! I'm MovieMind AI 🎬\n\nAsk me anything:\n• Tamil, Hindi
 
 export default function Chatbot() {
   const navigate = useNavigate();
-  const messagesEndRef = useRef(null);
+  
+  // FIXED: Standardized to chatEndRef to match the JSX layout ref call perfectly
+  const chatEndRef = useRef(null);
 
   const [messages, setMessages] = useState([{ role: "assistant", content: WELCOME }]);
   const [input, setInput]       = useState("");
@@ -156,7 +158,7 @@ export default function Chatbot() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
 
-  // Synchronize Firestore history log structures on initialization
+  // Synchronize historical message matrices on authentication load
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -184,8 +186,9 @@ export default function Chatbot() {
     return () => unsubscribe();
   }, []);
 
+  // FIXED: Pointed anchor effect track explicitly to chatEndRef
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const addMsg = (role, content) =>
@@ -197,14 +200,11 @@ export default function Chatbot() {
     setEditingIndex(null);
   };
 
-  // ============================================
-  // UNIFIED SECURE CHAT DEPLOYMENT ENGINE
-  // ============================================
   const sendMessage = async (text) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
-    // 🔒 STRICT SECURITY INTERCEPTOR ACCESS WALL
+    // 🔒 RE-VERIFIED SECURITY WALL ENFORCEMENT
     if (!isUserAuthenticated) {
       const anonymousChatCount = parseInt(localStorage.getItem("anon_chat_count") || "0", 10);
 
@@ -233,7 +233,6 @@ export default function Chatbot() {
 
     setMessages(updatedMessages);
 
-    // Save prompt path values directly to user's db tree if authenticated
     if (isUserAuthenticated && auth.currentUser) {
       try {
         await addDoc(collection(db, "users", auth.currentUser.uid, "chats"), {
@@ -242,7 +241,7 @@ export default function Chatbot() {
           createdAt: serverTimestamp()
         });
       } catch (err) {
-        console.error("Firestore user log failed:", err);
+        console.error("Firestore sync write failed:", err);
       }
     }
 
@@ -253,7 +252,6 @@ export default function Chatbot() {
     const isFutureYear = year && parseInt(year) >= new Date().getFullYear();
 
     try {
-      // Channel 1: Primary TMDB Database Pipeline 
       if (isTamilQuery && !isFutureYear) {
         setStatus("Fetching from TMDB matrix fields...");
         const movies = await fetchTamilMovies(year);
@@ -272,7 +270,6 @@ export default function Chatbot() {
         }
       }
 
-      // Channel 2: Advanced Web Crawling Context Interpolation
       if (TAVILY_API_KEY) {
         setStatus("Crawling web layers...");
         const yr = year ?? new Date().getFullYear();
@@ -302,7 +299,6 @@ export default function Chatbot() {
         return;
       }
 
-      // Baseline Channel Fallback
       setStatus("Analyzing cinema branches...");
       const reply = await callGroq(updatedMessages);
       addMsg("assistant", reply);
@@ -337,7 +333,6 @@ export default function Chatbot() {
 
   return (
     <div className="min-h-screen bg-[#04040a] text-white relative overflow-hidden font-sans antialiased">
-      {/* Cinematic Deep Aura Background Vectors */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#7f1d1d,transparent_35%),radial-gradient(circle_at_bottom_right,#4c1d95,transparent_35%)] opacity-50 pointer-events-none z-0" />
       
       <div className="relative z-10 flex flex-col h-screen w-full">
@@ -365,14 +360,14 @@ export default function Chatbot() {
           </div>
         </div>
 
-        {/* Realtime Conversational Stream Component Area (Height Optimized) */}
+        {/* Realtime Conversational Stream Feed Row Container */}
         <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 scrollbar-hide bg-black/10">
           <div className="max-w-4xl mx-auto space-y-6 pb-12">
             
             {messages.map((msg, i) => (
               <div key={i} className="space-y-6">
                 
-                {/* Unified Contextual Chip Matrix Inserted Inside Message Order Flow */}
+                {/* Embedded Inline Micro Action Cards */}
                 {i === 0 && messages.length <= 1 && (
                   <div className="w-full animate-fade-in my-2">
                     <div className="rounded-[28px] border border-white/[0.06] bg-[#0b0b14]/60 p-6 backdrop-blur-xl shadow-xl relative overflow-hidden">
@@ -391,11 +386,10 @@ export default function Chatbot() {
                   </div>
                 )}
 
-                {/* Chat Bubble Structures */}
+                {/* Chat Bubble Layout Grid */}
                 <div className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`flex gap-4 max-w-[85%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                     
-                    {/* Circle Identity Icons */}
                     <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-md ${
                       msg.role === "user" 
                         ? "bg-pink-500/10 border-pink-500/20 text-pink-400" 
@@ -404,7 +398,6 @@ export default function Chatbot() {
                       {msg.role === "user" ? <FaUser className="text-xs" /> : <FaRobot className="text-sm" />}
                     </div>
 
-                    {/* Text chassis bubble container */}
                     <div className={`rounded-2xl px-5 py-4 text-[14.5px] leading-relaxed shadow-xl border ${
                       msg.role === "user" 
                         ? "bg-gradient-to-br from-red-600/15 to-pink-600/15 border-pink-500/10 text-white/90" 
@@ -425,7 +418,7 @@ export default function Chatbot() {
               </div>
             ))}
 
-            {/* Micro Processing Matrix Frame Loader */}
+            {/* Micro Processing Loader */}
             {loading && (
               <div className="flex justify-start gap-4 max-w-xl animate-pulse">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
@@ -436,11 +429,13 @@ export default function Chatbot() {
                 </div>
               </div>
             )}
+            
+            {/* FIXED: Core Reference Element Binding */}
             <div ref={chatEndRef} />
           </div>
         </div>
 
-        {/* Input Control Console Block Drawer */}
+        {/* Input Console Area */}
         <div className="border-t border-white/[0.06] p-5 backdrop-blur-3xl bg-black/40 shrink-0">
           <div className="max-w-4xl mx-auto">
             <div className="relative flex items-center bg-white/[0.03] border border-white/[0.05] focus-within:border-pink-500/40 rounded-2xl transition-all p-1.5 shadow-inner">
