@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
+// ✅ CHANGED: Imported 'ai' instance right alongside auth and db configurations
+import { auth, db, ai } from "../firebase"; 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { FaArrowLeft, FaPaperPlane, FaSync, FaHeadset } from "react-icons/fa";
@@ -14,14 +15,12 @@ export default function SupportConsole() {
   const [submitting, setSubmitting] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
-  // 🤖 CONFIGURATION: AUTOMATIC PLACEHOLDER DICTIONARY
   const placeholders = {
-    "Feedback": "What do you like about MovieMind AI? (e.g., 'The interface is beautiful, and I love the cinematic styling!')",
-    "Bug Report": "What went wrong? Please include steps to reproduce. (e.g., 'The Find Your Movie poster image fails to load when I upload a high-res PNG file.')",
-    "Get Help": "How can the developer assist you? (e.g., 'I am unable to see my search history panel. Can you please verify my account data stream sync?')"
+    "Feedback": "What do you like about MovieMind AI? (e.g., 'The interface is beautiful!')",
+    "Bug Report": "What went wrong? (e.g., 'The search page crashes when typing too quickly.')",
+    "Get Help": "How can the developer assist you? (e.g., 'I am unable to see my previous search history items.')"
   };
 
-  // ⚡ CONFIGURATION: PRE-FIXED QUICK COMMENTS KEYED PER ROUTE BUTTON
   const quickComments = {
     "Feedback": [
       { label: "Excellent UI 🌟", text: "The streaming platform interface is absolutely beautiful and clean!" },
@@ -59,18 +58,50 @@ export default function SupportConsole() {
     setSubmitting(true);
 
     try {
+      let autonomousReply = "Thank you for your submission. Our development team has logged your ticket.";
+      
+      // 🧠 STEP A: Fire up the AI model to analyze the user's issue text stream
+      try {
+        const systemInstruction = 
+          "You are the autonomous AI support engineer for MovieMind AI, a premium movie discovery platform. " +
+          "Your job is to read user complaints or feedback and write an empathetic, professional, and definitive response. " +
+          "If it is a Bug Report, explain that the team is looking into it and advise clearing browser cache. " +
+          "If it is a Feedback message, express deep gratitude for support. " +
+          "Keep responses under 4 sentences and sign off as 'MovieMind Autonomous AI Core Support'.";
+
+        const aiResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: `User Name: ${auth.currentUser.displayName || "User"}\nCategory: ${category}\nMessage: "${message.trim()}"`,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.3,
+          }
+        });
+
+        if (aiResponse && aiResponse.text) {
+          autonomousReply = aiResponse.text;
+        }
+      } catch (aiErr) {
+        console.warn("AI generation failed, defaulting to backup message wrapper:", aiErr);
+      }
+
+      // 📤 STEP B: Save everything safely to Firestore in a single write operation
       await addDoc(collection(db, "feedback"), {
         uid: auth.currentUser.uid,
         userName: auth.currentUser.displayName || "Anonymous Explorer",
         userEmail: auth.currentUser.email,
         category: category,
         message: message.trim(),
+        status: "Reviewed By AI Engine",
+        autoReply: autonomousReply, // The AI response is now saved directly alongside the user's message
         timestamp: serverTimestamp(),
       });
 
-      alert("✨ Ticket Transmitted: Thank you! Your feedback has been routed directly to the developer console.");
+      // 💬 STEP C: Show the user the AI's response immediately inside the web client view alert box
+      alert(`✨ Ticket Transmitted!\n\n🤖 Message from Auto-Support:\n"${autonomousReply}"`);
+      
       setMessage("");
-      navigate(-1); // Automatically send user back to previous page view context node
+      navigate(-1);
     } catch (err) {
       console.error("Developer contact pipeline crash:", err);
       alert("❌ Submission Failure: Permissions layer blocked writing to database. Check security rules.");
@@ -81,10 +112,9 @@ export default function SupportConsole() {
 
   return (
     <div className="min-h-screen bg-[#04040a] text-white relative overflow-hidden font-sans antialiased flex flex-col justify-between">
-      {/* Immersive Background Cinematic Aura Gradients */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,#4c1d95,transparent_45%),radial-gradient(circle_at_bottom_left,#7f1d1d,transparent_45%)] opacity-40 pointer-events-none z-0" />
 
-      {/* Top Application Navigation Bar */}
+      {/* Top Navigation Bar */}
       <div className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/[0.06] backdrop-blur-2xl bg-black/20">
         <div className="flex items-center gap-3">
           <FaHeadset className="text-xl text-pink-500 animate-pulse" />
@@ -99,20 +129,17 @@ export default function SupportConsole() {
         </div>
         <button
           onClick={() => navigate(-1)}
-          className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 font-bold text-xs transition flex items-center gap-2 cursor-pointer active:scale-95"
+          className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 font-bold text-xs transition flex items-center gap-2 cursor-pointer"
         >
           <FaArrowLeft className="text-[9px]" /> Back
         </button>
       </div>
 
-      {/* Main Workspace Frame Panel */}
+      {/* Main Form workspace block */}
       <div className="relative z-10 flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl bg-[#0b0b14]/60 border border-white/[0.06] rounded-[36px] p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-pink-500/[0.04] to-transparent blur-2xl pointer-events-none" />
-
+          
           <form onSubmit={handleSubmitFeedback} className="space-y-6">
-            
-            {/* Category Select Buttons */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2.5">Select Category</label>
               <div className="grid grid-cols-3 gap-3">
@@ -136,7 +163,6 @@ export default function SupportConsole() {
               </div>
             </div>
 
-            {/* Quick Comment Clickable Tags */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Quick Comments</label>
               <div className="flex flex-wrap gap-2">
@@ -146,7 +172,7 @@ export default function SupportConsole() {
                     type="button"
                     disabled={!isUserLoggedIn}
                     onClick={() => setMessage(item.text)}
-                    className="px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-pink-500/30 hover:bg-pink-500/5 text-xs text-white/70 hover:text-white transition-all duration-200 cursor-pointer active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-pink-500/30 hover:bg-pink-500/5 text-xs text-white/70 hover:text-white transition-all duration-200 cursor-pointer"
                   >
                     {item.label}
                   </button>
@@ -154,30 +180,28 @@ export default function SupportConsole() {
               </div>
             </div>
 
-            {/* Input message row */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-widest text-white/40 mb-2">Your Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={isUserLoggedIn ? placeholders[category] : "Please log in to submit your support logs..."}
+                placeholder={isUserLoggedIn ? placeholders[category] : "Please log in to submit logs..."}
                 disabled={submitting || !isUserLoggedIn}
                 rows={6}
-                className="w-full rounded-2xl bg-white/[0.02] border border-white/[0.05] focus:border-pink-500/40 outline-none p-5 text-sm text-white placeholder-white/30 transition-all resize-none leading-relaxed h-40 focus:bg-white/[0.01]"
+                className="w-full rounded-2xl bg-white/[0.02] border border-white/[0.05] focus:border-pink-500/40 outline-none p-5 text-sm text-white placeholder-white/30 transition-all h-40"
                 maxLength={1000}
               />
             </div>
 
-            {/* Premium Submit Action Trigger */}
             <button
               type="submit"
               disabled={submitting || !message.trim() || !isUserLoggedIn}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-red-500 via-pink-500 to-fuchsia-500 text-white font-extrabold text-sm tracking-wide transition-all duration-300 transform border border-white/10 shadow-[0_0_25px_rgba(236,72,153,0.3)] hover:shadow-[0_0_35px_rgba(236,72,153,0.5)] hover:scale-[1.01] active:scale-[0.99] disabled:from-white/5 disabled:to-transparent disabled:text-white/10 disabled:border-white/5 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-red-500 via-pink-500 to-fuchsia-500 text-white font-extrabold text-sm tracking-wide transition-all duration-300 transform shadow-[0_0_25px_rgba(236,72,153,0.3)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-20 flex items-center justify-center gap-2 cursor-pointer"
             >
               {submitting ? (
                 <>
                   <FaSync className="animate-spin text-xs" />
-                  <span>TRANSMITTING TICKET...</span>
+                  <span>AI IS THINKING & TRANSMITTING...</span>
                 </>
               ) : (
                 <>
@@ -190,7 +214,6 @@ export default function SupportConsole() {
         </div>
       </div>
 
-      {/* Footer System Status Strip */}
       <div className="relative z-10 text-center py-4 border-t border-white/[0.03] bg-black/10 text-[11px] text-white/20 font-mono tracking-widest uppercase">
         MovieMind AI Core Client Support © 2026
       </div>
