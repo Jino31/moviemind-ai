@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import FindYourMovie from "./pages/FindYourMovie";
+import FeedbackPanel from "./components/FeedbackPanel";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -62,6 +63,13 @@ function App() {
         element={<Settings />}
       />
       <Route path="/find-your-movie" element={<FindYourMovie />} />
+      <Routes>
+        {/* Your current route trees */}
+      </Routes>
+      
+      {/* 📥 Drop it right here at the base layout layer */}
+      <FeedbackPanel />
+    
 
     </Routes>
   );
