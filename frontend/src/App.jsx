@@ -3,6 +3,7 @@
 import { Routes, Route } from "react-router-dom";
 import FindYourMovie from "./pages/FindYourMovie";
 import FeedbackPanel from "./components/FeedbackPanel";
+import SupportConsole from "./pages/SupportConsole"; // ✅ Added stand-alone console import
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -45,6 +46,9 @@ function App() {
 
         {/* Vision AI Reverse Frame Finder */}
         <Route path="/find-your-movie" element={<FindYourMovie />} />
+
+        {/* ✅ FIXED FULL SCREEN ENTRY: Full standalone page routing point handler */}
+        <Route path="/support-console" element={<SupportConsole />} />
       </Routes>
       
       {/* 📥 PLACED SAFELY OUTSIDE ROUTES: Universally overlays all active pages */}
