@@ -1,5 +1,3 @@
-// src/pages/Movies.jsx
-
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -148,12 +146,12 @@ export default function Movies() {
   };
 
   // ============================================
-  // STRICT GATED TRAILER VERIFICATION
+  // CRITICAL GATED TRAILER VERIFICATION (GLOBAL INTERCEPT)
   // ============================================
   const openTrailer = async (movie) => {
-    if (movie.id === "fallback") return;
+    if (!movie || movie.id === "fallback") return;
 
-    // RULE 1: Verify Active User Registration Session
+    // 🔒 STRICT SECURITY GATEWAY INTERCEPT
     if (!auth.currentUser) {
       alert("🔒 Strict Security Guard: Cinematic playback is reserved for community accounts. Please log in with your email to watch trailers!");
       navigate("/login");
