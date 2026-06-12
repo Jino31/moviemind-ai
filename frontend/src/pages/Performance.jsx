@@ -10,7 +10,6 @@ export default function Performance() {
   const canvasRef = useRef(null);
   const radarCanvasRef = useRef(null);
   
-  // Sparkline references
   const sparklineRef1 = useRef(null);
   const sparklineRef2 = useRef(null);
   const sparklineRef3 = useRef(null);
@@ -18,7 +17,6 @@ export default function Performance() {
 
   const [loading, setLoading] = useState(true);
   
-  // Standard metric parameters
   const [stats, setStats] = useState({
     watchlistCount: 0,
     watchedCount: 0,
@@ -38,7 +36,6 @@ export default function Performance() {
 
   const [logs, setLogs] = useState([]);
 
-  // ── FIREBASE REALTIME ON-SNAPSHOT STREAM PIPELINE ──
   useEffect(() => {
     let unsubscribeSnapshot = () => {};
 
@@ -48,7 +45,6 @@ export default function Performance() {
         return;
       }
 
-      // Establish open listening connection pipeline directly to user document reference
       unsubscribeSnapshot = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
@@ -66,7 +62,6 @@ export default function Performance() {
             completionRate: computedCompletion
           });
 
-          // Unpack explicit category counter flags natively matching movie data outputs
           setGenres({
             genre_scifi: Number(data.genre_scifi) || 0,
             genre_action: Number(data.genre_action) || 0,
@@ -76,7 +71,6 @@ export default function Performance() {
             genre_adventure: Number(data.genre_adventure) || 0
           });
 
-          // Unpack user history streams array
           if (data.sessionLogs && Array.isArray(data.sessionLogs)) {
             setLogs(data.sessionLogs.slice(-4).reverse()); 
           } else {
@@ -95,7 +89,6 @@ export default function Performance() {
     };
   }, [navigate]);
 
-  // 1. Particle Flow Background Animation Loop
   useEffect(() => {
     if (loading) return;
     const canvas = canvasRef.current;
@@ -141,7 +134,6 @@ export default function Performance() {
     };
   }, [loading]);
 
-  // 2. High-Precision Variable Radar Canvas Drawing Loop (Guarantees Re-rendering)
   useEffect(() => {
     if (!radarCanvasRef.current) return;
     const canvas = radarCanvasRef.current;
@@ -153,7 +145,6 @@ export default function Performance() {
     const maxRadius = 55;
     const totalSides = 6;
     
-    // Web grid layout rings
     [25, 50, 100].forEach((lvl) => {
       ctx.beginPath();
       const r = (lvl / 100) * maxRadius;
@@ -180,11 +171,9 @@ export default function Performance() {
     
     const maxGenreValue = Math.max(...valuesArray, 0);
 
-    // Draw active user metric shape plot
     ctx.beginPath();
     valuesArray.forEach((val, i) => {
       const angle = (i * 2 * Math.PI) / totalSides - Math.PI / 2;
-      // Fixed layout ratio equation to avoid zero coordinate clipping artifacts
       const scaleFactor = maxGenreValue > 0 ? (val / maxGenreValue) * 0.70 + 0.30 : 0.30;
       const r = scaleFactor * maxRadius;
       const x = centerX + r * Math.cos(angle);
@@ -197,9 +186,8 @@ export default function Performance() {
     ctx.strokeStyle = "#f43f5e"; 
     ctx.lineWidth = 2; 
     ctx.stroke();
-  }, [genres, loading]); // Dependency updates force canvas clear and redraw execution maps
+  }, [genres, loading]);
 
-  // 3. Sparkline trend graph plotting
   const drawSparkline = (canvas, dataPoints, strokeColor) => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -248,7 +236,6 @@ export default function Performance() {
           </h1>
           <p className="text-neutral-500 text-xs mt-0.5">Live visualization tracking updates from your watchlist and bot conversations.</p>
         </div>
-        {/* ACTION: Handles navigation safely back into application layout */}
         <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold text-neutral-200 hover:bg-white/[0.08] cursor-pointer active:scale-95 transition shadow-lg">
           ← Back to App
         </button>
@@ -279,13 +266,12 @@ export default function Performance() {
 
         <div className="space-y-3">
           {[
-            { t: "Dynamic Preference Engine", d: "Changes shapes on taste radar instantly based on watched movies.", icon: "👁️", path: "/movies" },
-            { t: "Live Sync Active", d: "Linked natively using open Firestore Snapshot pipelines.", icon: "🎯", path: "/chatbot" }
+            { t: "Dynamic Preference Engine", d: "Changes shapes on taste radar instantly based on watched movies.", icon: "👁️", targetState: { filter: "all" } },
+            { t: "Live Sync Active", d: "Linked natively using open Firestore Snapshot pipelines.", icon: "🎯", targetState: { filter: "chatbot" } }
           ].map((item, idx) => (
-            /* ACTION: Links cards text natively directly onto features to execute navigation actions smoothly */
             <div 
               key={idx} 
-              onClick={() => navigate(item.path)} 
+              onClick={() => item.targetState.filter === "chatbot" ? navigate("/chatbot") : navigate("/movies", { state: item.targetState })} 
               className="flex items-center gap-3 text-xs bg-white/[0.01] hover:bg-white/[0.04] p-2 border border-transparent hover:border-white/5 rounded-2xl cursor-pointer transition-all duration-300"
             >
               <span className="p-2 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm">{item.icon}</span>
@@ -301,15 +287,15 @@ export default function Performance() {
       {/* Top Cards Sparklines Row */}
       <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-4 my-2">
         {[
-          { label: "Watchlist", val: stats.watchlistCount, ref: sparklineRef1, path: "/movies" },
-          { label: "Watched", val: stats.watchedCount, ref: sparklineRef2, path: "/movies" },
-          { label: "Watch Time", val: `${stats.watchHours}h`, ref: sparklineRef3, path: "/movies" },
-          { label: "Completion Rate", val: `${stats.completionRate}%`, ref: sparklineRef4, path: "/movies" }
+          // UPGRADED: Explicit state passing properties mapped directly to custom filtering flags
+          { label: "Watchlist", val: stats.watchlistCount, ref: sparklineRef1, targetState: { filter: "watchlist" } },
+          { label: "Watched History", val: stats.watchedCount, ref: sparklineRef2, targetState: { filter: "watched" } },
+          { label: "Watch Time", val: `${stats.watchHours}h`, ref: sparklineRef3, targetState: { filter: "all" } },
+          { label: "Completion Rate", val: `${stats.completionRate}%`, ref: sparklineRef4, targetState: { filter: "watchlist" } }
         ].map((m, idx) => (
-          /* ACTION: Hover actions provide route-mapping directly back into core panels */
           <div 
             key={idx} 
-            onClick={() => navigate(m.path)}
+            onClick={() => navigate("/movies", { state: m.targetState })}
             className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-rose-500/20 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-md cursor-pointer transition-all duration-300 group"
           >
             <div>
@@ -321,11 +307,11 @@ export default function Performance() {
         ))}
       </div>
 
-      {/* Grid Layout Containers split workspace */}
+      {/* Grid Layout Containers */}
       <div className="relative z-10 flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-2 min-h-0">
         
-        {/* Panel A: Dynamic Taste Radar Map Canvas */}
-        <div onClick={() => navigate("/movies")} className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-rose-500/20 transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between relative backdrop-blur-md cursor-pointer group">
+        {/* Panel A: Radar Grid */}
+        <div onClick={() => navigate("/movies", { state: { filter: "all" } })} className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-rose-500/20 transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between relative backdrop-blur-md cursor-pointer group">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5 group-hover:text-rose-400 transition">
               <span>🕸️</span> Taste Radar
@@ -344,7 +330,7 @@ export default function Performance() {
           </div>
         </div>
 
-        {/* Panel B: Profile Summary List */}
+        {/* Panel B: Summary */}
         <div onClick={() => navigate("/chatbot")} className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-purple-500/20 transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md cursor-pointer group">
           <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2 group-hover:text-purple-400 transition">
             <span>🧠</span> AI Profile Summary
@@ -364,7 +350,7 @@ export default function Performance() {
           </div>
         </div>
 
-        {/* Panel C: Session Logs History Array */}
+        {/* Panel C: Active Log */}
         <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md">
           <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2">
             <span>📊</span> Active Session Log
@@ -384,7 +370,7 @@ export default function Performance() {
           </div>
         </div>
 
-        {/* Panel D: Achievement Badges */}
+        {/* Panel D: Badges */}
         <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
@@ -393,15 +379,15 @@ export default function Performance() {
           </div>
           <div className="grid grid-cols-2 gap-2 flex-1 items-center my-2">
             {[
-              { n: "Explorer", t: stats.watchedCount >= 3 ? "Legendary" : "Common", icon: "🌌", color: "from-purple-500/10 to-transparent border-purple-500/20 text-purple-400" },
-              { n: "Collector", t: stats.watchlistCount >= 3 ? "Epic" : "Common", icon: "📦", color: "from-blue-500/10 to-transparent border-blue-500/20 text-blue-400" },
-              { n: "AI Fan", t: stats.aiMatch >= 80 ? "Rare" : "Common", icon: "🤖", color: "from-pink-500/10 to-transparent border-pink-500/20 text-pink-400" },
-              { n: "Active Core", t: "Verified", icon: "🔥", color: "from-amber-500/10 to-transparent border-amber-500/20 text-amber-400" }
+              { n: "Explorer", t: stats.watchedCount >= 3 ? "Legendary" : "Common", icon: "🌌", targetFilter: "watched" },
+              { n: "Collector", t: stats.watchlistCount >= 3 ? "Epic" : "Common", icon: "📦", targetFilter: "watchlist" },
+              { n: "AI Fan", t: stats.aiMatch >= 80 ? "Rare" : "Common", icon: "🤖", targetFilter: "chatbot" },
+              { n: "Active Core", t: "Verified", icon: "🔥", targetFilter: "all" }
             ].map((ach, i) => (
               <div 
                 key={i} 
-                onClick={() => navigate(ach.n === "AI Fan" ? "/chatbot" : "/movies")}
-                className={`p-2 bg-gradient-to-br ${ach.color} border rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[72px] shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300`}
+                onClick={() => ach.targetFilter === "chatbot" ? navigate("/chatbot") : navigate("/movies", { state: { filter: ach.targetFilter } })}
+                className="p-2 bg-gradient-to-br from-neutral-500/5 to-transparent border border-white/5 hover:border-rose-500/30 rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[72px] shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300"
               >
                 <div className="text-xl">{ach.icon}</div>
                 <h4 className="text-[11px] font-black text-neutral-200 mt-1">{ach.n}</h4>
@@ -413,7 +399,7 @@ export default function Performance() {
 
       </div>
 
-      {/* Footer Status Overlay Line */}
+      {/* Footer Status Overlay */}
       <div className="relative z-10 rounded-2xl border border-white/[0.06] p-4 flex items-center gap-4 overflow-hidden shadow-2xl bg-gradient-to-r from-[#0d0d16] via-[#121223] to-[#08080f] backdrop-blur-xl">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold whitespace-nowrap animate-pulse">
           ✨ Real-Time Pipeline Safe

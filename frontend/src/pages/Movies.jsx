@@ -1,5 +1,7 @@
+// src/pages/Movies.jsx
+
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../firebase";
 
 import {
@@ -28,6 +30,7 @@ const IMG = "https://image.tmdb.org/t/p/original";
 
 export default function Movies() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [heroMovie, setHeroMovie] = useState(null);
 
@@ -49,11 +52,27 @@ export default function Movies() {
   const [hasTrackedCurrent, setHasTrackedCurrent] = useState(false);
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
 
+  // Core tracking state hook variable for Dashboard Filter handovers
+  const [activeViewFilter, setActiveViewFilter] = useState("all");
+
   useEffect(() => {
     loadMovies();
     const saved = JSON.parse(localStorage.getItem("watchlist")) || [];
     setWatchlist(saved);
-  }, []);
+
+    // Intercept and load routing parameters passed down from Performance page buttons
+    if (location.state && location.state.filter) {
+      setActiveViewFilter(location.state.filter);
+      
+      // Auto smooth-scroll to the filtered row grid viewport area
+      setTimeout(() => {
+        window.scrollTo({
+          top: 850,
+          behavior: "smooth",
+        });
+      }, 500);
+    }
+  }, [location.state]);
 
   const fetchMovies = async (url) => {
     try {
@@ -122,6 +141,7 @@ export default function Movies() {
       );
       const data = await res.json();
       setSearchResults(data.results || []);
+      setActiveViewFilter("all"); // Reset filter locks upon manual text lookups
 
       setTimeout(() => {
         window.scrollTo({
@@ -154,6 +174,7 @@ export default function Movies() {
     // 🔒 STRICT SECURITY GATEWAY INTERCEPT
     if (!auth.currentUser) {
       alert("🔒 Strict Security Guard: Cinematic playback is reserved for community accounts. Please log in with your email to watch trailers!");
+      localStorage.setItem("auth_redirect_target", "/movies"); // Save path context token
       navigate("/login");
       return;
     }
@@ -188,6 +209,7 @@ export default function Movies() {
   const addToWatchlist = async (movie) => {
     if (!auth.currentUser) {
       alert("🔒 Authentication Required: Please log in to create or modify your custom Watchlist.");
+      localStorage.setItem("auth_redirect_target", "/movies"); // Save path context token
       navigate("/login");
       return;
     }
@@ -361,22 +383,24 @@ export default function Movies() {
           <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
             <div className="flex items-center justify-between px-10 py-6">
               <div className="flex items-center gap-14">
-                <h1 onClick={() => navigate("/")} className="text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300">
+                <h1 onClick={() => { setActiveViewFilter("all"); navigate("/movies"); }} className="text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300">
                   MovieMind AI
                 </h1>
                 <div className="hidden md:flex items-center gap-10 text-lg font-semibold">
-                  <button onClick={() => navigate("/")} className="hover:text-red-400 transition-all">Home</button>
-                  <button onClick={() => navigate("/movies")} className="hover:text-red-400 transition-all">Movies</button>
-                  <button onClick={() => window.scrollTo({ top: 900, behavior: "smooth" })} className="hover:text-red-400 transition-all">Trending</button>
+                  <button onClick={() => { setActiveViewFilter("all"); navigate("/"); }} className="hover:text-red-400 transition-all">Home</button>
+                  <button onClick={() => { setActiveViewFilter("all"); navigate("/movies"); }} className="hover:text-red-400 transition-all">Movies</button>
+                  <button onClick={() => { setActiveViewFilter("all"); window.scrollTo({ top: 900, behavior: "smooth" }); }} className="hover:text-red-400 transition-all">Trending</button>
                   <button
                     onClick={() => {
                       if (!auth.currentUser) {
                         alert("🔒 Please log in to view your Watchlist.");
+                        localStorage.setItem("auth_redirect_target", "/movies");
                         navigate("/login");
                       } else if (watchlist.length === 0) {
                         alert("Watchlist is empty");
                       } else {
                         setSearchResults(watchlist);
+                        setActiveViewFilter("watchlist");
                         window.scrollTo({ top: 900, behavior: "smooth" });
                       }
                     }}
@@ -433,19 +457,47 @@ export default function Movies() {
         </div>
       )}
 
-      {searchResults.length > 0 && (
-        <div className="-mt-16 relative z-20">
-          <MovieRow title="Search Results" icon={<FaSearch />} movies={searchResults} />
-        </div>
-      )}
-
+      {/* ============================================================ */}
+      {/* FILTER INTEGRATION RENDER PIPELINES */}
+      {/* ============================================================ */}
       <div className="relative z-20 -mt-20 pb-32">
-        <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
-        <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
-        <MovieRow title="Action Movies" icon={"🎬"} movies={actionMovies} />
-        <MovieRow title="Sci-Fi Movies" icon={"🚀"} movies={sciFiMovies} />
-        <MovieRow title="Horror Movies" icon={"👻"} movies={horrorMovies} />
-        <MovieRow title="Romance Movies" icon={"❤️"} movies={romanceMovies} />
+        
+        {/* State A: Global Search Results Frame */}
+        {searchResults.length > 0 && activeViewFilter === "all" && (
+          <div className="-mt-16 mb-16">
+            <MovieRow title="Search Results" icon={<FaSearch />} movies={searchResults} />
+          </div>
+        )}
+
+        {/* State B: Isolate Watchlist View Context */}
+        {activeViewFilter === "watchlist" && (
+          <div className="pt-24 min-h-[50vh]">
+            <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} />
+            {watchlist.length === 0 && (
+              <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your Watchlist is empty.</p>
+            )}
+          </div>
+        )}
+
+        {/* State C: Isolate Watched History View Context */}
+        {activeViewFilter === "watched" && (
+          <div className="pt-24 min-h-[50vh]">
+            {/* Pulls from trending matrix datasets as a mock tracking log baseline */}
+            <MovieRow title="Your Streamed History" icon={"👁️"} movies={trending.slice(0, 5)} />
+          </div>
+        )}
+
+        {/* State D: Standard Homepage Rows (Default View) */}
+        {activeViewFilter === "all" && (
+          <>
+            <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
+            <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
+            <MovieRow title="Action Movies" icon={"🎬"} movies={actionMovies} />
+            <MovieRow title="Sci-Fi Movies" icon={"🚀"} movies={sciFiMovies} />
+            <MovieRow title="Horror Movies" icon={"👻"} movies={horrorMovies} />
+            <MovieRow title="Romance Movies" icon={"❤️"} movies={romanceMovies} />
+          </>
+        )}
       </div>
 
       {/* ── SELECTION MODAL ── */}
