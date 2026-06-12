@@ -53,7 +53,7 @@ export default function Movies() {
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
 
   // ============================================
-  // FETCH DATA WITH ERR_NAME_NOT_RESOLVED SAFEQUARDS
+  // FETCH DATA WITH ERR_NAME_NOT_RESOLVED SAFEGUARDS
   // ============================================
 
   useEffect(() => {
@@ -69,7 +69,6 @@ export default function Movies() {
       const data = await res.json();
       return data.results || [];
     } catch (networkError) {
-      // Intercept DNS/Network drop crashes gracefully
       console.warn("Individual channel fetch blocked or offline:", networkError.message);
       return [];
     }
@@ -106,11 +105,10 @@ export default function Movies() {
       if (trendingData && trendingData.length > 0) {
         setHeroMovie(trendingData[0]);
       } else {
-        // Safe hardcoded offline hero fallback if system connection drops entirely
         setHeroMovie({
           id: "fallback",
           title: "Connection Offline",
-          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints or clear your local DNS table configuration.",
+          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints or clear your local DNS table configuration in your settings dashboard panels.",
           backdrop_path: ""
         });
       }
@@ -174,7 +172,7 @@ export default function Movies() {
       );
 
       if (trailer) {
-        setHasTrackedCurrent(false); // Reset gate lock flag for next screening token
+        setHasTrackedCurrent(false); 
         setActiveTrailerMovie(movie); 
         setTrailerKey(trailer.key);
       } else {
@@ -186,7 +184,7 @@ export default function Movies() {
   };
 
   // ============================================
-  // WATCHLIST & AD-BLOCK BACKUP UPDATE LIFECYCLES
+  // WATCHLIST & TRACKING LOGIC UPDATES
   // ============================================
 
   const addToWatchlist = async (movie) => {
@@ -230,7 +228,6 @@ export default function Movies() {
       const user = auth.currentUser;
       if (!user) return;
 
-      // Unpack categories maps explicitly matching Taste Radar keys
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
       else if (movie.genre_ids?.includes(28)) primaryGenreField = "genre_action";
@@ -413,8 +410,9 @@ export default function Movies() {
                     Search
                   </button>
                 </div>
-                <button onClick={() => navigate("/performance")} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 text-sm font-semibold">
-                  Dashboard
+                {/* REPLACED: Dashboard with dynamic Back action navigation vector linking straight home */}
+                <button onClick={() => navigate("/")} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 text-sm font-semibold whitespace-nowrap">
+                  Back
                 </button>
               </div>
             </div>
