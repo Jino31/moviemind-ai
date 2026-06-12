@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { FaPaperPlane, FaRobot, FaUser, FaSync, FaTrashAlt, FaArrowLeft } from "react-icons/fa";
+import { FaPaperPlane, FaRobot, FaUser, FaSync, FaTrashAlt, FaArrowLeft, FaHistory, FaTimes } from "react-icons/fa";
 import MessageActions from "../components/MessageActions";
 
 const GROQ_API_KEY   = import.meta.env.VITE_GROQ_API_KEY;
@@ -147,8 +147,6 @@ const WELCOME = "Hi! I'm MovieMind AI 🎬\n\nAsk me anything:\n• Tamil, Hindi
 
 export default function Chatbot() {
   const navigate = useNavigate();
-  
-  // FIXED: Standardized to chatEndRef to match the JSX layout ref call perfectly
   const chatEndRef = useRef(null);
 
   const [messages, setMessages] = useState([{ role: "assistant", content: WELCOME }]);
@@ -157,39 +155,59 @@ export default function Chatbot() {
   const [statusMsg, setStatus]  = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  
+  // New States for Search History Management Panels
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Synchronize historical message matrices on authentication load
+  // Synchronize chat logs and history nodes on auth changed loop
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setIsUserAuthenticated(true);
-        try {
-          const q = query(
-            collection(db, "users", currentUser.uid, "chats"),
-            orderBy("createdAt", "asc")
-          );
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const history = snapshot.docs.map(doc => ({
-              role: doc.data().role,
-              content: doc.data().content
-            }));
-            setMessages(history);
-          }
-        } catch (err) {
-          console.error("Failed to load historical log indices:", err);
-        }
+        loadChatHistory(currentUser.uid);
+        loadSearchHistory(currentUser.uid);
       } else {
         setIsUserAuthenticated(false);
+        setSearchHistory([]);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // FIXED: Pointed anchor effect track explicitly to chatEndRef
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const loadChatHistory = async (uid) => {
+    try {
+      const q = query(collection(db, "users", uid, "chats"), orderBy("createdAt", "asc"));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        setMessages(snapshot.docs.map(d => ({ role: d.data().role, content: d.data().content })));
+      }
+    } catch (err) {
+      console.error("Failed to load conversation history indices:", err);
+    }
+  };
+
+  // Realtime Retrieval of Search History Terms
+  const loadSearchHistory = async (uid) => {
+    try {
+      const q = query(
+        collection(db, "users", uid, "searchHistory"),
+        orderBy("timestamp", "desc"),
+        limit(10)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const historyList = snapshot.docs.map(doc => ({ id: doc.id, query: doc.data().query }));
+        setSearchHistory(historyList);
+      }
+    } catch (err) {
+      console.error("Failed to read search history vectors:", err);
+    }
+  };
 
   const addMsg = (role, content) =>
     setMessages((prev) => [...prev, { role, content }]);
@@ -200,11 +218,14 @@ export default function Chatbot() {
     setEditingIndex(null);
   };
 
+  // ============================================
+  // UNIFIED SECURE CHAT DEPLOYMENT ENGINE
+  // ============================================
   const sendMessage = async (text) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
-    // 🔒 RE-VERIFIED SECURITY WALL ENFORCEMENT
+    // 🔒 STRICT SECURITY INTERCEPTOR ACCESS WALL
     if (!isUserAuthenticated) {
       const anonymousChatCount = parseInt(localStorage.getItem("anon_chat_count") || "0", 10);
 
@@ -233,13 +254,26 @@ export default function Chatbot() {
 
     setMessages(updatedMessages);
 
+    // Save prompt path and search keyword history loops to Firestore if authenticated
     if (isUserAuthenticated && auth.currentUser) {
       try {
-        await addDoc(collection(db, "users", auth.currentUser.uid, "chats"), {
+        const uid = auth.currentUser.uid;
+        
+        // Log deep conversation node
+        await addDoc(collection(db, "users", uid, "chats"), {
           role: "user",
           content: userText,
           createdAt: serverTimestamp()
         });
+
+        // Log search keyword history node
+        await addDoc(collection(db, "users", uid, "searchHistory"), {
+          query: userText,
+          timestamp: serverTimestamp()
+        });
+
+        // Refresh sidebar history feed dynamically
+        loadSearchHistory(uid);
       } catch (err) {
         console.error("Firestore sync write failed:", err);
       }
@@ -319,6 +353,22 @@ export default function Chatbot() {
     }
   };
 
+  const clearSearchHistory = async () => {
+    if (!isUserAuthenticated || !auth.currentUser) return;
+    if (window.confirm("Are you sure you want to completely clear your search history log?")) {
+      try {
+        const uid = auth.currentUser.uid;
+        const snapshot = await getDocs(collection(db, "users", uid, "searchHistory"));
+        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        setSearchHistory([]);
+        alert("Search history cleared successfully 🧼");
+      } catch (err) {
+        console.error("Failed to drop history tree entries:", err);
+      }
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -332,10 +382,11 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="min-h-screen bg-[#04040a] text-white relative overflow-hidden font-sans antialiased">
+    <div className="min-h-screen bg-[#04040a] text-white relative overflow-hidden font-sans antialiased flex">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#7f1d1d,transparent_35%),radial-gradient(circle_at_bottom_right,#4c1d95,transparent_35%)] opacity-50 pointer-events-none z-0" />
       
-      <div className="relative z-10 flex flex-col h-screen w-full">
+      {/* ── CENTRAL CONSOLE CHAT VIEW LAYOUT CONTAINER ── */}
+      <div className="relative z-10 flex flex-col h-screen w-full transition-all duration-500">
         
         {/* Navigation Control Header */}
         <div className="flex items-center justify-between px-8 py-5 border-b border-white/[0.06] backdrop-blur-2xl bg-black/20 shrink-0">
@@ -351,6 +402,11 @@ export default function Chatbot() {
             </div>
           </div>
           <div className="flex gap-3">
+            {isUserAuthenticated && (
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2 text-white/80">
+                <FaHistory className="text-[11px]" /> {isSidebarOpen ? "Close History" : "Search History"}
+              </button>
+            )}
             <button onClick={clearChatCanvas} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2 text-white/80 hover:text-white">
               <FaTrashAlt className="text-[10px]" /> Clear Matrix
             </button>
@@ -360,14 +416,14 @@ export default function Chatbot() {
           </div>
         </div>
 
-        {/* Realtime Conversational Stream Feed Row Container */}
+        {/* Realtime Conversational Stream Area */}
         <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 scrollbar-hide bg-black/10">
           <div className="max-w-4xl mx-auto space-y-6 pb-12">
             
             {messages.map((msg, i) => (
               <div key={i} className="space-y-6">
                 
-                {/* Embedded Inline Micro Action Cards */}
+                {/* Embedded Inline Quick Action Prompt Chips */}
                 {i === 0 && messages.length <= 1 && (
                   <div className="w-full animate-fade-in my-2">
                     <div className="rounded-[28px] border border-white/[0.06] bg-[#0b0b14]/60 p-6 backdrop-blur-xl shadow-xl relative overflow-hidden">
@@ -418,7 +474,6 @@ export default function Chatbot() {
               </div>
             ))}
 
-            {/* Micro Processing Loader */}
             {loading && (
               <div className="flex justify-start gap-4 max-w-xl animate-pulse">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
@@ -430,7 +485,6 @@ export default function Chatbot() {
               </div>
             )}
             
-            {/* FIXED: Core Reference Element Binding */}
             <div ref={chatEndRef} />
           </div>
         </div>
@@ -451,7 +505,7 @@ export default function Chatbot() {
               <button
                 disabled={loading || !input.trim()}
                 onClick={() => sendMessage()}
-                className="absolute right-2.5 p-3.5 bg-gradient-to-r from-red-500 to-pink-500 disabled:from-white/5 disabled:to-transparent disabled:text-white/10 text-white rounded-xl active:scale-95 transition-all shadow-md"
+                className="absolute right-2.5 p-3.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl active:scale-95 transition-all shadow-md"
               >
                 <FaPaperPlane className="text-xs" />
               </button>
@@ -460,6 +514,52 @@ export default function Chatbot() {
         </div>
 
       </div>
+
+      {/* ── PREMIUM REUSABLE SLIDE-OUT SEARCH HISTORY SIDEBAR CONTAINER ── */}
+      <div className={`fixed top-0 right-0 h-full w-80 bg-[#07070f] border-l border-white/[0.06] shadow-2xl z-50 transform transition-transform duration-500 backdrop-blur-2xl bg-opacity-95 ${
+        isSidebarOpen ? "translate-x-0" : "translate-x-full"
+      }`}>
+        <div className="p-6 flex flex-col h-full">
+          
+          <div className="flex items-center justify-between pb-5 border-b border-white/[0.06] mb-5">
+            <div className="flex items-center gap-2 text-md font-bold tracking-wide">
+              <FaHistory className="text-pink-400 text-sm" /> Recent Searches
+            </div>
+            <button onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition text-white">
+              <FaTimes className="text-xs" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2.5 scrollbar-hide pr-1">
+            {searchHistory.length === 0 ? (
+              <div className="text-center py-10 text-xs font-mono text-white/30 tracking-widest uppercase">
+                No past search vectors logged.
+              </div>
+            ) : (
+              searchHistory.map((historyItem) => (
+                <div 
+                  key={historyItem.id}
+                  onClick={() => { sendMessage(historyItem.query); setIsSidebarOpen(false); }}
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs font-medium text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-red-500/10 hover:to-pink-500/10 hover:border-pink-500/20 text-left transition cursor-pointer truncate"
+                >
+                  🔍  {historyItem.query}
+                </div>
+              ))
+            )}
+          </div>
+
+          {searchHistory.length > 0 && (
+            <button 
+              onClick={clearSearchHistory}
+              className="mt-4 w-full py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2"
+            >
+              <FaTrashAlt className="text-[10px]" /> Wipe Search Logs
+            </button>
+          )}
+
+        </div>
+      </div>
+
     </div>
   );
 }
