@@ -1,18 +1,16 @@
-// frontend/src/pages/Profile.jsx
+// src/pages/Profile.jsx
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { 
-  FaUser, FaEnvelope, FaCamera, FaArrowLeft, FaCalendarAlt,
-  FaFilm, FaHeart, FaClock, FaTrophy, FaCheckCircle
-} from "react-icons/fa";
+import { FaUser, FaEnvelope, FaCamera, FaArrowLeft, FaCalendarAlt } from "react-icons/fa";
 
 export default function Profile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +29,7 @@ export default function Profile() {
         return;
       }
 
+      user;
       setUser(currentUser);
 
       try {
@@ -52,6 +51,93 @@ export default function Profile() {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  // Premium Background Particle Animation Effect
+  useEffect(() => {
+    if (loading || isEditing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animationFrameId;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    const particlesArray = [];
+    const numberOfParticles = 45;
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 1;
+        this.speedX = (Math.random() - 0.5) * 0.35;
+        this.speedY = (Math.random() - 0.5) * 0.35;
+        this.opacity = Math.random() * 0.5 + 0.2;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        if (this.x > canvas.width) this.x = 0;
+        else if (this.x < 0) this.x = canvas.width;
+        if (this.y > canvas.height) this.y = 0;
+        else if (this.y < 0) this.y = canvas.height;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(236, 72, 153, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < numberOfParticles; i++) {
+      particlesArray.push(new Particle());
+    }
+
+    const connectParticles = () => {
+      let maxDistance = 180;
+      for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+          let dx = particlesArray[a].x - particlesArray[b].x;
+          let dy = particlesArray[a].y - particlesArray[b].y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < maxDistance) {
+            let opacity = (1 - distance / maxDistance) * 0.18;
+            ctx.strokeStyle = `rgba(239, 68, 68, ${opacity})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particlesArray.forEach((particle) => {
+        particle.update();
+        particle.draw();
+      });
+      connectParticles();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [loading, isEditing]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -116,8 +202,8 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#030305] flex flex-col items-center justify-center text-white gap-4">
-        <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#040408] flex flex-col items-center justify-center text-white gap-4">
+        <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-500 text-xs tracking-widest font-mono animate-pulse">LOADING PROFILE MODULE...</p>
       </div>
     );
@@ -128,10 +214,10 @@ export default function Profile() {
   const userEmail = userData?.email || user?.email || "No Email";
   const joinedDate = userData?.createdAt 
     ? new Date(userData.createdAt).toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' }) 
-    : "12 June 2026";
+    : "Recently Joined";
 
   return (
-    <div className="min-h-screen bg-[#030305] text-white relative font-sans antialiased pb-24 overflow-x-hidden selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#040408] text-white relative font-sans antialiased overflow-x-hidden selection:bg-pink-500 selection:text-white">
       
       <input 
         type="file"
@@ -141,226 +227,192 @@ export default function Profile() {
         className="hidden"
       />
 
-      {/* ── BACKGROUND MISC DECORATION ELEMENTS ── */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
-        {/* Soft Red Vignette Spotlight Glows */}
-        <div className="absolute top-0 left-0 w-[50vw] h-[40vh] rounded-full bg-red-950/[0.15] blur-[150px]" />
-        <div className="absolute top-[20%] right-0 w-[40vw] h-[40vh] rounded-full bg-red-900/[0.08] blur-[130px]" />
-        
-        {/* Left Film Reel Decorative Shape */}
-        <div className="absolute left-[-5%] top-[25%] opacity-[0.15] mix-blend-screen scale-75 md:scale-100 transition-all duration-500">
-          <div className="w-[340px] h-[340px] rounded-full border-[12px] border-dashed border-white/80 flex items-center justify-center animate-[spin_60s_linear_infinite]">
-            <div className="w-[260px] h-[260px] rounded-full border-[6px] border-white/60 flex items-center justify-center" />
-          </div>
-        </div>
+      {/* Cinematic Starfield Canvas Layout */}
+      {!isEditing && (
+        <canvas 
+          ref={canvasRef} 
+          className="absolute inset-0 z-0 pointer-events-none mix-blend-screen opacity-60"
+        />
+      )}
 
-        {/* Right Backlit Stage Light Beam Overlay */}
-        <div className="absolute right-[5%] top-[15%] opacity-[0.15] mix-blend-screen hidden md:block">
-          <div className="w-44 h-44 bg-zinc-800 rounded-2xl border border-white/10 relative flex items-center justify-center">
-            <div className="w-32 h-32 bg-amber-100 rounded-full shadow-[0_0_90px_rgba(251,191,36,0.5)]" />
-          </div>
-        </div>
+      {/* Immersive Deep Corner Ambient Light Bleed Glow Engine */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-red-600/[0.07] blur-[140px] animate-[pulse_8s_infinite_alternate]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[55vw] h-[55vw] rounded-full bg-purple-600/[0.08] blur-[140px] animate-[pulse_10s_infinite_alternate]" />
+        <div
+          className="absolute inset-0 opacity-[0.03] animate-[scrolling-grid_80s_linear_infinite]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundSize: "65px 65px",
+          }}
+        />
       </div>
 
-      {/* ── 🛡️ CLEAN CORNER-ONLY HEADER NAVBAR ── */}
-      <div className="absolute top-0 left-0 w-full z-50 bg-transparent">
-        <div className="w-full px-8 md:px-16 py-8 flex items-center justify-between">
-          
-          {/* Branded Logo Anchor (Flush Left) */}
-          <div onClick={() => navigate("/")} className="flex items-center gap-3 cursor-pointer select-none">
-            <span className="text-2xl">🎬</span>
-            <h1 className="text-2xl font-black tracking-tight text-white font-sans">
-              MovieMind <span className="text-red-600">AI</span>
-            </h1>
-          </div>
+      <style>{`
+        @keyframes scrolling-grid {
+          0% { background-position: 0px 0px; }
+          100% { background-position: 0px 1000px; }
+        }
+      `}</style>
 
-          {/* Action Back Hook Button (Flush Right) */}
+      {/* ── 🛡️ FIXED FULL-WIDTH TRANS TRADING CORNER HEADER ── */}
+      <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
+        <div className="w-full px-6 md:px-12 py-6 flex items-center justify-between">
+          
+          {/* Branded Vector Anchor pinned flush left */}
+          <h1 onClick={() => navigate("/")} className="text-4xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight cursor-pointer hover:opacity-80 transition-all select-none">
+            MovieMind AI
+          </h1>
+
+          {/* Action Navigation hook pinned flush right */}
           <button 
             onClick={() => navigate(-1)} 
-            className="px-5 py-2.5 rounded-xl bg-[#12121a]/80 border border-white/10 hover:bg-white/10 text-xs font-bold font-mono tracking-wider flex items-center gap-2 transition-all active:scale-95 cursor-pointer shadow-lg"
+            className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 transition-all text-sm font-semibold flex items-center gap-2 cursor-pointer"
           >
-            <FaArrowLeft className="text-[10px]" /> BACK
+            <FaArrowLeft className="text-xs" /> Back
           </button>
           
         </div>
       </div>
 
-      {/* ── MAIN DESIGN GRID CONTAINER ── */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-36">
+      {/* Profiles Workspace Sub-Layout */}
+      <div className="relative z-10 max-w-4xl mx-auto px-6 pt-44 pb-24">
         
-        {/* ── CENTRAL AVATAR PROFILE CONTAINER ── */}
         {!isEditing ? (
-          <div className="flex flex-col items-center text-center mb-14 animate-fade-in">
-            
-            {/* Red Glowing Profile Frame Wrapper */}
-            <div className="relative group cursor-pointer" onClick={triggerFileSelect}>
-              <div className="absolute inset-[-4px] bg-gradient-to-r from-red-600 to-orange-500 rounded-full blur-sm opacity-80" />
+          <div className="flex flex-col items-center text-center">
+            {/* Immersive Profile Orb Frame */}
+            <div className="relative group cursor-pointer mb-2" onClick={triggerFileSelect}>
+              <div className="absolute inset-[-6px] bg-gradient-to-tr from-red-500 via-pink-500 to-purple-600 rounded-full blur-md opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
               <img
                 src={userPhoto}
-                alt="user identity snapshot"
-                className={`w-36 h-36 rounded-full object-cover border-[4px] border-[#030305] relative z-10 ${updating ? 'animate-pulse' : ''}`}
+                alt="profile"
+                className={`w-44 h-44 rounded-full object-cover border-[4px] border-black relative z-10 ${updating ? 'animate-pulse' : ''}`}
               />
-              <div className="absolute bottom-1 right-1 bg-red-600 border border-white/10 text-white p-2.5 rounded-full z-20 shadow-xl">
-                <FaCamera className="text-xs" />
+              <div className="absolute bottom-2 right-2 bg-pink-500 border border-white/10 text-white p-3 rounded-full z-20 shadow-2xl transition-all transform hover:scale-110">
+                <FaCamera className="text-sm" />
               </div>
             </div>
 
-            <h2 className="mt-6 text-4xl md:text-5xl font-black tracking-tight text-white">
+            <h1 className="mt-8 text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
               {userName}
-            </h2>
+            </h1>
 
-            <p className="text-sm text-neutral-400 font-mono mt-1 tracking-wide">
+            <p className="text-md md:text-lg text-gray-400 font-mono font-medium tracking-wide mt-2">
               {userEmail}
             </p>
 
             <button
               onClick={() => setIsEditing(true)}
-              className="mt-6 px-6 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs tracking-wider uppercase transition-all active:scale-95 shadow-lg shadow-red-900/20 cursor-pointer"
+              className="mt-8 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-bold text-sm tracking-wide shadow-[0_0_30px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              Edit Profile
+              <span>✏️</span> Edit Profile
             </button>
           </div>
         ) : (
-          /* Inline Mode Input Form Box */
-          <div className="max-w-xl mx-auto bg-[#0a0a10]/95 border border-white/10 rounded-3xl p-8 shadow-2xl mb-14 animate-fade-in">
-            <h3 className="text-xl font-black mb-1 text-white">Update Core Identity</h3>
-            <p className="text-neutral-400 text-xs mb-6">Modify your profile settings</p>
+          /* Profile Edit Mode Form View */
+          <div className="max-w-xl mx-auto bg-[#0d0d16]/80 border border-white/10 rounded-[36px] p-8 backdrop-blur-2xl shadow-2xl animate-fade-in">
+            <h2 className="text-3xl font-black mb-2 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+              Update Identity
+            </h2>
+            <p className="text-gray-400 text-xs mb-8 font-medium">Modify your application profile variables</p>
 
-            <form onSubmit={handleSaveChanges} className="space-y-5">
+            <form onSubmit={handleSaveChanges} className="space-y-6">
+              
+              <div className="flex flex-col items-center mb-4">
+                <div className="relative group cursor-pointer" onClick={triggerFileSelect}>
+                  <div className="absolute inset-[-4px] bg-gradient-to-r from-pink-500 to-red-500 rounded-full blur opacity-40 group-hover:opacity-80 transition-opacity" />
+                  <img 
+                    src={editPhoto || userPhoto} 
+                    alt="Preview" 
+                    className="w-24 h-24 rounded-full object-cover border-2 border-black relative z-10"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full z-20 transition-opacity">
+                    <span className="text-[10px] font-black tracking-widest text-white">CHANGE</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-3 font-medium">Click avatar snapshot disk to replace file resource</p>
+              </div>
+
               <div>
-                <label className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block mb-2">Display Name</label>
-                <div className="relative flex items-center bg-black/40 border border-white/10 rounded-xl focus-within:border-red-500/40 transition-all">
-                  <FaUser className="absolute left-4 text-neutral-500 text-xs" />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2.5">Display Name</label>
+                <div className="relative flex items-center bg-black/40 border border-white/10 rounded-2xl focus-within:border-pink-500/50 transition-all">
+                  <FaUser className="absolute left-5 text-gray-500" />
                   <input
                     type="text"
                     required
                     disabled={updating}
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full bg-transparent pl-11 pr-4 py-3 text-white outline-none text-sm"
+                    className="w-full bg-transparent pl-14 pr-5 py-4 text-white outline-none text-sm font-medium disabled:opacity-50"
+                    placeholder="Enter custom handle"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-4 pt-4 border-t border-white/5">
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white font-bold text-xs uppercase tracking-wider hover:bg-white/5"
+                  disabled={updating}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditName(userName);
+                    setEditPhoto(userPhoto);
+                  }}
+                  className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold text-xs uppercase tracking-wider hover:bg-red-500"
+                  disabled={updating || !editName.trim()}
+                  className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
                 >
-                  Save Profile
+                  {updating ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : "Save Changes"}
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {/* ── 📊 HORIZONTAL METRICS MATRIX SCOREBOARD ROW ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10 max-w-4xl mx-auto">
-          
-          <div className="bg-[#09090f]/90 border border-white/[0.06] p-5 rounded-2xl flex items-center gap-4 hover:border-white/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-lg">
-              <FaFilm />
-            </div>
-            <div>
-              <h4 className="text-2xl font-mono font-black text-white">128</h4>
-              <p className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">Movies Watched</p>
-            </div>
-          </div>
-
-          <div className="bg-[#09090f]/90 border border-white/[0.06] p-5 rounded-2xl flex items-center gap-4 hover:border-white/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-lg">
-              <FaHeart />
-            </div>
-            <div>
-              <h4 className="text-2xl font-mono font-black text-white">45</h4>
-              <p className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">Favorites</p>
-            </div>
-          </div>
-
-          <div className="bg-[#09090f]/90 border border-white/[0.06] p-5 rounded-2xl flex items-center gap-4 hover:border-white/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-lg">
-              <FaClock />
-            </div>
-            <div>
-              <h4 className="text-2xl font-mono font-black text-white">312</h4>
-              <p className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">Hours Watched</p>
-            </div>
-          </div>
-
-          <div className="bg-[#09090f]/90 border border-white/[0.06] p-5 rounded-2xl flex items-center gap-4 hover:border-white/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-lg">
-              <FaTrophy />
-            </div>
-            <div>
-              <h4 className="text-2xl font-mono font-black text-white">12</h4>
-              <p className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">Achievements</p>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 💳 ACCOUNT IDENTIFICATION GRID BLOCK ── */}
-        <div className="bg-[#08080d]/90 border border-red-600/30 rounded-[20px] p-8 relative overflow-hidden max-w-4xl mx-auto shadow-xl">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600" />
-          
-          <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2.5 pb-3 border-b border-white/[0.05]">
-            <span className="text-red-500">👤</span> Account Identification
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+        {/* Dynamic Account Credentials Content Grid */}
+        <div className="mt-16 max-w-2xl mx-auto">
+          <div className="bg-[#0b0b14]/50 border border-white/[0.06] rounded-[32px] p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-pink-500/[0.03] to-transparent blur-xl rounded-bl-full pointer-events-none" />
             
-            <div>
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Full Name</p>
-              <div className="mt-2 rounded-xl border border-white/[0.05] bg-[#0c0c14]/50 p-4 flex items-center gap-3">
-                <FaUser className="text-neutral-500 text-xs" />
-                <p className="text-sm font-semibold text-neutral-200">{userName}</p>
+            <h2 className="text-xl font-bold mb-8 flex items-center gap-3 border-b border-white/5 pb-4">
+              <span className="p-2 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm flex items-center justify-center text-pink-400">👤</span>
+              <span>Account Identification</span>
+            </h2>
+
+            <div className="space-y-6">
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Full Name</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaUser className="text-gray-500 text-sm" />
+                  <p className="text-sm font-semibold text-white/90">{userName}</p>
+                </div>
+              </div>
+
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Email Address</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaEnvelope className="text-gray-500 text-sm" />
+                  <p className="text-sm font-medium font-mono text-white/90">{userEmail}</p>
+                </div>
+              </div>
+
+              <div className="relative">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">System Joining Point</p>
+                <div className="mt-2.5 rounded-xl border border-white/5 bg-black/20 p-4 flex items-center gap-4 group-hover:border-white/10 transition-colors">
+                  <FaCalendarAlt className="text-gray-500 text-sm" />
+                  <p className="text-sm font-semibold text-white/90">{joinedDate}</p>
+                </div>
               </div>
             </div>
-
-            <div>
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">System Joining Point</p>
-              <div className="mt-2 rounded-xl border border-white/[0.05] bg-[#0c0c14]/50 p-4 flex items-center gap-3">
-                <FaCalendarAlt className="text-neutral-500 text-xs" />
-                <p className="text-sm font-semibold text-neutral-200">{joinedDate}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Email Address</p>
-              <div className="mt-2 rounded-xl border border-white/[0.05] bg-[#0c0c14]/50 p-4 flex items-center gap-3">
-                <FaEnvelope className="text-neutral-500 text-xs" />
-                <p className="text-sm font-medium text-neutral-300 font-mono">{userEmail}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Account Status</p>
-              <div className="mt-2 rounded-xl border border-white/[0.05] bg-[#0c0c14]/50 p-4 flex items-center gap-3">
-                <FaCheckCircle className="text-green-500 text-xs" />
-                <span className="px-2.5 py-0.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-400 font-mono text-[10px] font-bold uppercase tracking-wider">
-                  Active
-                </span>
-              </div>
-            </div>
-
           </div>
-        </div>
-
-        {/* ── 📜 PHILOSOPHICAL FOOTER QUOTE ── */}
-        <div className="mt-16 text-center opacity-40 select-none">
-          <p className="text-xs italic text-neutral-400 max-w-md mx-auto leading-relaxed">
-            "Cinema is a mirror by which we often see ourselves."
-          </p>
-          <span className="block text-[10px] font-mono font-bold text-neutral-500 mt-1.5 tracking-widest uppercase">
-            — Alejandro González Iñárritu
-          </span>
         </div>
 
       </div>
