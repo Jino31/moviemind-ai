@@ -29,6 +29,7 @@ export default function Profile() {
         return;
       }
 
+      user;
       setUser(currentUser);
 
       try {
@@ -255,26 +256,23 @@ export default function Profile() {
         }
       `}</style>
 
-      {/* Fixed Immersive Translucent Top Bar Layout Header */}
+      {/* ── 🛡️ FIXED FULL-WIDTH TRANS TRADING CORNER HEADER ── */}
       <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-10 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-14">
-            <h1 onClick={() => navigate("/")} className="text-4xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight cursor-pointer hover:opacity-80 transition-all">
-              MovieMind AI
-            </h1>
-            <div className="hidden md:flex items-center gap-10 text-lg font-semibold text-gray-400">
-              <button onClick={() => navigate("/")} className="hover:text-white transition-all">Home</button>
-              <button onClick={() => navigate("/movies")} className="hover:text-white transition-all">Movies</button>
-              <button onClick={() => navigate("/performance")} className="hover:text-white transition-all">Dashboard</button>
-            </div>
-          </div>
+        <div className="w-full px-6 md:px-12 py-6 flex items-center justify-between">
+          
+          {/* Branded Vector Anchor pinned flush left */}
+          <h1 onClick={() => navigate("/")} className="text-4xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight cursor-pointer hover:opacity-80 transition-all select-none">
+            MovieMind AI
+          </h1>
 
+          {/* Action Navigation hook pinned flush right */}
           <button 
-            onClick={() => navigate("/")} 
-            className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 transition-all text-sm font-semibold flex items-center gap-2"
+            onClick={() => navigate(-1)} 
+            className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 transition-all text-sm font-semibold flex items-center gap-2 cursor-pointer"
           >
             <FaArrowLeft className="text-xs" /> Back
           </button>
+          
         </div>
       </div>
 
