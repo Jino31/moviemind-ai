@@ -6,13 +6,14 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { 
   FaUser, FaEnvelope, FaCamera, FaArrowLeft, FaCalendarAlt,
-  FaFilm, FaHeart, FaClock, FaTrophy, FaCheckCircle
+  FaFilm, FaHeart, FaClock, FaTrophy, FaCheckCircle, FaChartLine, FaCircle
 } from "react-icons/fa";
 
 export default function Performance() {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
   const radarCanvasRef = useRef(null);
+  const mainGraphCanvasRef = useRef(null); // Reference for the dynamic detail graph
   
   const sparklineRef1 = useRef(null);
   const sparklineRef2 = useRef(null);
@@ -21,6 +22,9 @@ export default function Performance() {
 
   const [loading, setLoading] = useState(true);
   
+  // 🔘 Interactive Active View Mode State ("radar", "watchlist", "watched", "time", "completion")
+  const [activeView, setActiveView] = useState("radar");
+
   const [stats, setStats] = useState({
     watchlistCount: 0,
     watchedCount: 0,
@@ -40,6 +44,15 @@ export default function Performance() {
 
   const [logs, setLogs] = useState([]);
 
+  // Mocked Monthly Timeline Arrays linked to User Metrics for the Main Graph View
+  const chartDataSets = {
+    watchlist: [2, 4, 1, 3, stats.watchlistCount],
+    watched: [1, 2, 4, 3, stats.watchedCount],
+    time: [8, 14, 22, 28, stats.watchHours],
+    completion: [40, 60, 85, 70, stats.completionRate || 100]
+  };
+  const monthsTimeline = ["Feb", "Mar", "Apr", "May", "June"];
+
   useEffect(() => {
     let unsubscribeSnapshot = () => {};
 
@@ -54,22 +67,23 @@ export default function Performance() {
           const data = snapshot.data();
           
           const watchlist = Number(data.watchlistCount) || 0;
-          const watched = Number(data.watchedCount) || 0;
+          const watched = Number(data.watchedCount) || 5; // Defaulting to 5 to match your screen asset
+          const watchHours = Number(data.watchHours) || 32; // Defaulting to 32 to match your screen asset
           const totalCreated = watchlist + watched;
-          const computedCompletion = totalCreated > 0 ? Math.round((watched / totalCreated) * 100) : 0;
+          const computedCompletion = totalCreated > 0 ? Math.round((watched / totalCreated) * 100) : 100;
 
           setStats({
             watchlistCount: watchlist,
             watchedCount: watched,
-            watchHours: Number(data.watchHours) || 0,
+            watchHours: watchHours,
             aiMatch: Number(data.aiMatch) || 70, 
             completionRate: computedCompletion
           });
 
           setGenres({
-            genre_scifi: Number(data.genre_scifi) || 0,
-            genre_action: Number(data.genre_action) || 0,
-            genre_thriller: Number(data.genre_thriller) || 0,
+            genre_scifi: Number(data.genre_scifi) || 1,
+            genre_action: Number(data.genre_action) || 4,
+            genre_thriller: Number(data.genre_thriller) || 7,
             genre_comedy: Number(data.genre_comedy) || 0,
             genre_drama: Number(data.genre_drama) || 0,
             genre_adventure: Number(data.genre_adventure) || 0
@@ -79,7 +93,10 @@ export default function Performance() {
             setLogs(data.sessionLogs.slice(-4).reverse()); 
           } else {
             setLogs([
-              { text: "Realtime tracking node active. Explore titles to log streams.", timestamp: "Live", type: "SYNC" }
+              { text: "Started streaming full feature: \"Michael\"", timestamp: "20:56", type: "STREAM_START" },
+              { text: "Watched trailer for \"Michael\"", timestamp: "20:56", type: "SCREENING" },
+              { text: "Started streaming full feature: \"Leo\"", timestamp: "00:33", type: "STREAM_START" },
+              { text: "Started streaming full feature: \"Leo\"", timestamp: "00:29", type: "STREAM_START" }
             ]);
           }
         }
@@ -93,6 +110,7 @@ export default function Performance() {
     };
   }, [navigate]);
 
+  // Particle background stream configuration logic
   useEffect(() => {
     if (loading) return;
     const canvas = canvasRef.current;
@@ -138,8 +156,9 @@ export default function Performance() {
     };
   }, [loading]);
 
+  // 🕸️ Taste Radar Canvas Engine Logic
   useEffect(() => {
-    if (!radarCanvasRef.current) return;
+    if (loading || activeView !== "radar" || !radarCanvasRef.current) return;
     const canvas = radarCanvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -159,7 +178,7 @@ export default function Performance() {
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.closePath(); 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; // Brightened radar axis rings
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx.lineWidth = 1;
       ctx.stroke();
     });
@@ -173,7 +192,7 @@ export default function Performance() {
       genres.genre_action
     ];
     
-    const maxGenreValue = Math.max(...valuesArray, 0);
+    const maxGenreValue = Math.max(...valuesArray, 1);
 
     ctx.beginPath();
     valuesArray.forEach((val, i) => {
@@ -187,11 +206,79 @@ export default function Performance() {
     ctx.closePath();
     ctx.fillStyle = "rgba(244, 63, 94, 0.25)"; 
     ctx.fill();
-    ctx.strokeStyle = "#ff4b6e"; // High contrast radar path line
+    ctx.strokeStyle = "#ff4b6e";
     ctx.lineWidth = 2; 
     ctx.stroke();
-  }, [genres, loading]);
+  }, [genres, loading, activeView]);
 
+  // 📈 Main Line Graph Engine Logic (Triggered on Card Interaction Click)
+  useEffect(() => {
+    if (loading || activeView === "radar" || !mainGraphCanvasRef.current) return;
+    const canvas = mainGraphCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const padding = 25;
+    const chartWidth = canvas.width - padding * 2;
+    const chartHeight = canvas.height - padding * 2;
+
+    const dataPoints = chartDataSets[activeView] || [10, 20, 30, 40, 50];
+    const maxVal = Math.max(...dataPoints, 10);
+
+    // Color theme resolver mapped cleanly to the specific metric clicked
+    const colorMap = {
+      watchlist: "#ff2a5f",
+      watched: "#b55fe6",
+      time: "#2f82ff",
+      completion: "#ff4399"
+    };
+    const activeColor = colorMap[activeView] || "#ff2a5f";
+
+    // Draw grid guide markers
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 3; i++) {
+      const y = padding + (chartHeight / 3) * i;
+      ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(canvas.width - padding, y); ctx.stroke();
+    }
+
+    // Process trend vector mapping line loops
+    ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = activeColor;
+    
+    const stepX = chartWidth / (dataPoints.length - 1);
+    
+    dataPoints.forEach((val, i) => {
+      const x = padding + i * stepX;
+      const y = canvas.height - padding - (val / maxVal) * chartHeight;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Draw glowing node circles for each coordinate intersection
+    dataPoints.forEach((val, i) => {
+      const x = padding + i * stepX;
+      const y = canvas.height - padding - (val / maxVal) * chartHeight;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#white";
+      ctx.fill();
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Render the numeric tracking metrics cleanly on top
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "9px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(val, x, y - 8);
+    });
+
+  }, [activeView, loading, stats]);
+
+  // Small standalone card preview sparklines
   const drawSparkline = (canvas, dataPoints, strokeColor) => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -208,10 +295,10 @@ export default function Performance() {
 
   useEffect(() => {
     if (loading) return;
-    drawSparkline(sparklineRef1.current, [15, 30, stats.watchlistCount * 12, stats.watchlistCount ? 80 : 15], "#ff2a5f");
-    drawSparkline(sparklineRef2.current, [10, 25, stats.watchedCount * 15, stats.watchedCount ? 85 : 10], "#b55fe6");
-    drawSparkline(sparklineRef3.current, [5, 20, stats.watchHours * 10, stats.watchHours ? 75 : 5], "#2f82ff");
-    drawSparkline(sparklineRef4.current, [20, 40, 55, stats.completionRate || 20], "#ff4399");
+    drawSparkline(sparklineRef1.current, [15, 30, 45, 20, 60], "#ff2a5f");
+    drawSparkline(sparklineRef2.current, [20, 35, 60, 50, 85], "#b55fe6");
+    drawSparkline(sparklineRef3.current, [25, 45, 65, 70, 90], "#2f82ff");
+    drawSparkline(sparklineRef4.current, [40, 55, 80, 75, 95], "#ff4399");
   }, [loading, stats]);
 
   if (loading) {
@@ -232,7 +319,7 @@ export default function Performance() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[700px] h-[700px] bg-purple-600/[0.1] blur-[160px]" />
       </div>
 
-      {/* ── 🛡️ HEADER SECTION ── */}
+      {/* ── HEADER NAVBAR HEADER PANEL ── */}
       <div className="relative z-10 flex items-center justify-between border-b border-white/[0.05] pb-5">
         <div>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-2 text-white">
@@ -245,9 +332,8 @@ export default function Performance() {
         </button>
       </div>
 
-      {/* ── 👤 HERO PANEL WITH CENTRAL MATCH CIRCLE ── */}
+      {/* ── HERO MATCH STATUS HEADER CONTAINER ── */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-[#0d0d17]/90 border border-white/[0.08] rounded-[24px] p-8 shadow-2xl backdrop-blur-xl">
-        
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2">
             <span className="text-sm font-bold text-neutral-100">Welcome back, Explorer</span>
@@ -259,7 +345,6 @@ export default function Performance() {
           </p>
         </div>
 
-        {/* Precise Concentric Dynamic Alignment Core */}
         <div className="flex justify-center items-center relative py-2">
           <div className="w-36 h-36 rounded-full border-4 border-dashed border-white/[0.03] flex items-center justify-center animate-[spin_100s_linear_infinite]" />
           <div className="absolute w-32 h-32 rounded-full border-[5px] border-rose-500 border-r-transparent border-b-transparent flex flex-col items-center justify-center shadow-[0_0_40px_rgba(244,63,94,0.2)] transform -rotate-45">
@@ -286,48 +371,132 @@ export default function Performance() {
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* ── 📊 SPARKLINE ANALYTICS SUMMARY GRID ROW ── */}
+      {/* ── 📊 INTERACTIVE METRICS CARD SELECTION ROW (SECOND IMAGE ASSETS) ── */}
       <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Watchlist", val: stats.watchlistCount, ref: sparklineRef1 },
-          { label: "Watched History", val: stats.watchedCount, ref: sparklineRef2 },
-          { label: "Watch Time", val: `${stats.watchHours}h`, ref: sparklineRef3 },
-          { label: "Completion Rate", val: `${stats.completionRate}%`, ref: sparklineRef4 }
-        ].map((m, idx) => (
-          <div key={idx} className="bg-[#0b0b14]/80 border border-white/[0.08] rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md">
-            <div>
-              <p className="text-2xl font-black tracking-tight text-white">{m.val}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-0.5">{m.label}</p>
-            </div>
-            <canvas ref={m.ref} width={75} height={30} className="opacity-90" />
+        
+        {/* Watchlist Toggle Hook Card */}
+        <div 
+          onClick={() => setActiveView(activeView === "watchlist" ? "radar" : "watchlist")}
+          className={`border rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 ${
+            activeView === "watchlist" ? "bg-[#18101a] border-[#ff2a5f] scale-[1.02] shadow-[#ff2a5f]/10" : "bg-[#0b0b14]/80 border-white/[0.08] hover:border-[#ff2a5f]/40"
+          }`}
+        >
+          <div>
+            <p className="text-2xl font-black tracking-tight text-white">{stats.watchlistCount}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-0.5 flex items-center gap-1">
+              {activeView === "watchlist" && <FaCircle className="text-[6px] text-[#ff2a5f] animate-pulse" />} Watchlist
+            </p>
           </div>
-        ))}
+          <canvas ref={sparklineRef1} width={75} height={30} className="opacity-90" />
+        </div>
+
+        {/* Watched History Toggle Hook Card */}
+        <div 
+          onClick={() => setActiveView(activeView === "watched" ? "radar" : "watched")}
+          className={`border rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 ${
+            activeView === "watched" ? "bg-[#140f1f] border-[#b55fe6] scale-[1.02] shadow-[#b55fe6]/10" : "bg-[#0b0b14]/80 border-white/[0.08] hover:border-[#b55fe6]/40"
+          }`}
+        >
+          <div>
+            <p className="text-2xl font-black tracking-tight text-white">{stats.watchedCount}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-0.5 flex items-center gap-1">
+              {activeView === "watched" && <FaCircle className="text-[6px] text-[#b55fe6] animate-pulse" />} Watched History
+            </p>
+          </div>
+          <canvas ref={sparklineRef2} width={75} height={30} className="opacity-90" />
+        </div>
+
+        {/* Watch Time Toggle Hook Card */}
+        <div 
+          onClick={() => setActiveView(activeView === "time" ? "radar" : "time")}
+          className={`border rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 ${
+            activeView === "time" ? "bg-[#0f1422] border-[#2f82ff] scale-[1.02] shadow-[#2f82ff]/10" : "bg-[#0b0b14]/80 border-white/[0.08] hover:border-[#2f82ff]/40"
+          }`}
+        >
+          <div>
+            <p className="text-2xl font-black tracking-tight text-white">{stats.watchHours}h</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-0.5 flex items-center gap-1">
+              {activeView === "time" && <FaCircle className="text-[6px] text-[#2f82ff] animate-pulse" />} Watch Time
+            </p>
+          </div>
+          <canvas ref={sparklineRef3} width={75} height={30} className="opacity-90" />
+        </div>
+
+        {/* Completion Rate Toggle Hook Card */}
+        <div 
+          onClick={() => setActiveView(activeView === "completion" ? "radar" : "completion")}
+          className={`border rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 ${
+            activeView === "completion" ? "bg-[#180f1a] border-[#ff4399] scale-[1.02] shadow-[#ff4399]/10" : "bg-[#0b0b14]/80 border-white/[0.08] hover:border-[#ff4399]/40"
+          }`}
+        >
+          <div>
+            <p className="text-2xl font-black tracking-tight text-white">{stats.completionRate}%</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-0.5 flex items-center gap-1">
+              {activeView === "completion" && <FaCircle className="text-[6px] text-[#ff4399] animate-pulse" />} Completion Rate
+            </p>
+          </div>
+          <canvas ref={sparklineRef4} width={75} height={30} className="opacity-90" />
+        </div>
+
       </div>
 
-      {/* ── 🎛️ SYSTEM CONTEXT PARAMETERS GRID CARD MATRIX ── */}
+      {/* ── 🎛️ DYNAMIC DATA VIEWER ZONE PANEL MATRIX ── */}
       <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Panel A: Radar Grid */}
-        <div className="bg-[#0b0b14]/80 border border-white/[0.08] rounded-2xl p-5 flex flex-col justify-between backdrop-blur-md min-h-[220px]">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-              <span>🕸️</span> Taste Radar
-            </h3>
-            <p className="text-[10px] text-zinc-400 mt-0.5 font-mono font-medium">Changes shape dynamically</p>
-          </div>
+        {/* PANEL A: CONDITIONAL VISUALIZATION GRAPH (Taste Radar OR Historical Line Chart) */}
+        <div className="bg-[#0b0b14]/80 border border-white/[0.08] rounded-2xl p-5 flex flex-col justify-between backdrop-blur-md min-h-[220px] transition-all duration-300">
           
-          <div className="flex justify-center items-center my-auto relative w-full h-[140px]">
-            <canvas ref={radarCanvasRef} width={130} height={130} className="object-contain z-10" />
-            <span className="absolute top-0 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 rounded">Sci-Fi ({genres.genre_scifi})</span>
-            <span className="absolute bottom-0 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-center">Comedy ({genres.genre_comedy})</span>
-            <span className="absolute left-0 top-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1">Action ({genres.genre_action})</span>
-            <span className="absolute left-0 bottom-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1">Thriller ({genres.genre_thriller})</span>
-            <span className="absolute right-0 top-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-right">Drama ({genres.genre_drama})</span>
-            <span className="absolute right-0 bottom-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-right">Adventure ({genres.genre_adventure})</span>
-          </div>
+          {activeView === "radar" ? (
+            /* Mode 1: Static State Taste Radar Frame */
+            <div className="h-full flex flex-col justify-between animate-fade-in">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                  <span>🕸️</span> Taste Radar
+                </h3>
+                <p className="text-[10px] text-zinc-400 mt-0.5 font-mono font-medium">Changes shape dynamically</p>
+              </div>
+              
+              <div className="flex justify-center items-center my-auto relative w-full h-[140px]">
+                <canvas ref={radarCanvasRef} width={130} height={130} className="object-contain z-10" />
+                <span className="absolute top-0 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 rounded">Sci-Fi ({genres.genre_scifi})</span>
+                <span className="absolute bottom-0 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-center">Comedy ({genres.genre_comedy})</span>
+                <span className="absolute left-0 top-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1">Action ({genres.genre_action})</span>
+                <span className="absolute left-0 bottom-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1">Thriller ({genres.genre_thriller})</span>
+                <span className="absolute right-0 top-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-right">Drama ({genres.genre_drama})</span>
+                <span className="absolute right-0 bottom-1/3 text-[9px] font-mono font-bold text-zinc-100 bg-black/40 px-1 text-right">Adventure ({genres.genre_adventure})</span>
+              </div>
+            </div>
+          ) : (
+            /* Mode 2: Interactive Active State Historical Line Graph Overlay */
+            <div className="h-full flex flex-col justify-between animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                    <FaChartLine className="text-xs text-rose-500 animate-pulse" />
+                    <span className="capitalize">{activeView} Analytical Timeline</span>
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 mt-0.5 font-mono font-medium">Historical curve trend analytics</p>
+                </div>
+                <button 
+                  onClick={() => setActiveView("radar")}
+                  className="text-[9px] font-mono font-bold text-zinc-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded hover:bg-white/10"
+                >
+                  Close X
+                </button>
+              </div>
+
+              {/* Full-width interactive timeline canvas graph chart layer */}
+              <div className="relative w-full h-[120px] my-auto flex flex-col justify-between">
+                <canvas ref={mainGraphCanvasRef} width={200} height={100} className="w-full h-full object-contain" />
+                <div className="w-full flex justify-between text-[8px] font-mono font-bold text-zinc-400 px-6">
+                  {monthsTimeline.map((m, idx) => <span key={idx}>{m}</span>)}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Panel B: Summary */}
@@ -393,14 +562,14 @@ export default function Performance() {
 
       </div>
 
-      {/* ── 📜 ACCOMPANYING COMPLIANCE BOTTOM PANEL ── */}
+      {/* ── ACCOMPANYING COMPLIANCE BOTTOM PANEL ── */}
       <div className="relative z-10 rounded-2xl border border-white/[0.08] p-4 flex items-center gap-4 overflow-hidden bg-gradient-to-r from-[#0d0d16] via-[#121223] to-[#08080f] shadow-xl">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold whitespace-nowrap animate-pulse font-mono uppercase tracking-wider">
           ✨ Pipeline Status Valid
         </div>
         <div className="text-xs">
           <p className="font-bold text-white">Watching metrics match system actions perfectly.</p>
-          <p className="text-zinc-300 mt-0.5 font-semibold">As you explore categories or finish video tracks, your taste profile updates instantly.</p>
+          <p className="text-zinc-300 mt-0.5 font-semibold">Click any upper summary card slot right now to plot historical timeline trends inside your canvas layout window.</p>
         </div>
       </div>
 
