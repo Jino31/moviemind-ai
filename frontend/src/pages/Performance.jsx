@@ -212,7 +212,7 @@ export default function Performance() {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const padding = 30;
+    const padding = 35;
     const chartWidth = canvas.width - padding * 2;
     const chartHeight = canvas.height - padding * 2;
 
@@ -227,7 +227,6 @@ export default function Performance() {
     };
     const activeColor = colorMap[activeView] || "#ef4444";
 
-    // Premium Soft Background Gridlines
     ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
     ctx.lineWidth = 1;
     for (let i = 0; i <= 3; i++) {
@@ -237,7 +236,6 @@ export default function Performance() {
 
     const stepX = chartWidth / (dataPoints.length - 1);
 
-    // Dynamic Gradient Area Fill underneath the vector spline line
     const areaGrd = ctx.createLinearGradient(0, padding, 0, canvas.height - padding);
     areaGrd.addColorStop(0, `${activeColor}25`);
     areaGrd.addColorStop(1, `${activeColor}00`);
@@ -254,7 +252,6 @@ export default function Performance() {
     ctx.fillStyle = areaGrd;
     ctx.fill();
 
-    // Smooth Vector Spline Stroke
     ctx.beginPath();
     ctx.lineWidth = 3;
     ctx.strokeStyle = activeColor;
@@ -266,7 +263,6 @@ export default function Performance() {
     });
     ctx.stroke();
 
-    // High Contrast Orb Intersections
     dataPoints.forEach((val, i) => {
       const x = padding + i * stepX;
       const y = canvas.height - padding - (val / maxVal) * chartHeight;
@@ -280,7 +276,7 @@ export default function Performance() {
       ctx.stroke();
 
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "9px monospace";
+      ctx.font = "10px monospace";
       ctx.textAlign = "center";
       ctx.fillText(val, x, y - 10);
     });
@@ -291,7 +287,7 @@ export default function Performance() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath(); ctx.lineWidth = 2; ctx.strokeStyle = strokeColor;
+    ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = strokeColor;
     ctx.lineCap = "round";
     const step = canvas.width / (dataPoints.length - 1);
     dataPoints.forEach((p, i) => {
@@ -320,10 +316,10 @@ export default function Performance() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030306] text-white relative font-sans antialiased overflow-y-auto flex flex-col p-6 md:p-8 select-none space-y-8">
+    /* 🔓 FIX: Switched from h-screen to min-h-screen to let the grid scale dynamically without overflow clipping */
+    <div className="min-h-screen bg-[#030306] text-white relative font-sans antialiased flex flex-col p-6 md:p-10 select-none space-y-8 pb-16">
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0 mix-blend-screen opacity-40" />
 
-      {/* ── BACKGROUND PREMIUM GLOWS ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-red-500/[0.04] blur-[180px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[800px] h-[800px] bg-purple-500/[0.05] blur-[180px]" />
@@ -393,13 +389,13 @@ export default function Performance() {
         <div 
           onClick={() => setActiveView(activeView === "watchlist" ? "radar" : "watchlist")}
           className={`border rounded-2xl p-5 flex items-center justify-between shadow-2xl backdrop-blur-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group ${
-            activeView === "watchlist" ? "bg-[#140b0f] border-red-500/80 scale-[1.02]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-red-500/30"
+            activeView === "watchlist" ? "bg-[#140b0f] border-red-500/80 scale-[1.01]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-red-500/30"
           }`}
         >
           {activeView === "watchlist" && <div className="absolute top-0 left-0 w-full h-[2px] bg-red-500" />}
           <div>
             <p className="text-2xl font-black tracking-tight text-white group-hover:text-red-400 transition-colors">{stats.watchlistCount}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1 flex items-center gap-1.5 font-mono">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-1 flex items-center gap-1.5 font-mono">
               {activeView === "watchlist" && <FaCircle className="text-[5px] text-red-500 animate-pulse" />} Watchlist
             </p>
           </div>
@@ -410,13 +406,13 @@ export default function Performance() {
         <div 
           onClick={() => setActiveView(activeView === "watched" ? "radar" : "watched")}
           className={`border rounded-2xl p-5 flex items-center justify-between shadow-2xl backdrop-blur-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group ${
-            activeView === "watched" ? "bg-[#110b14] border-purple-500/80 scale-[1.02]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-purple-500/30"
+            activeView === "watched" ? "bg-[#110b14] border-purple-500/80 scale-[1.01]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-purple-500/30"
           }`}
         >
           {activeView === "watched" && <div className="absolute top-0 left-0 w-full h-[2px] bg-purple-500" />}
           <div>
             <p className="text-2xl font-black tracking-tight text-white group-hover:text-purple-400 transition-colors">{stats.watchedCount}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1 flex items-center gap-1.5 font-mono">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-1 flex items-center gap-1.5 font-mono">
               {activeView === "watched" && <FaCircle className="text-[5px] text-purple-500 animate-pulse" />} Watched History
             </p>
           </div>
@@ -427,13 +423,13 @@ export default function Performance() {
         <div 
           onClick={() => setActiveView(activeView === "time" ? "radar" : "time")}
           className={`border rounded-2xl p-5 flex items-center justify-between shadow-2xl backdrop-blur-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group ${
-            activeView === "time" ? "bg-[#0b0f14] border-blue-500/80 scale-[1.02]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-blue-500/30"
+            activeView === "time" ? "bg-[#0b0f14] border-blue-500/80 scale-[1.01]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-blue-500/30"
           }`}
         >
           {activeView === "time" && <div className="absolute top-0 left-0 w-full h-[2px] bg-blue-500" />}
           <div>
             <p className="text-2xl font-black tracking-tight text-white group-hover:text-blue-400 transition-colors">{stats.watchHours}h</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1 flex items-center gap-1.5 font-mono">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-1 flex items-center gap-1.5 font-mono">
               {activeView === "time" && <FaCircle className="text-[5px] text-blue-500 animate-pulse" />} Watch Time
             </p>
           </div>
@@ -444,13 +440,13 @@ export default function Performance() {
         <div 
           onClick={() => setActiveView(activeView === "completion" ? "radar" : "completion")}
           className={`border rounded-2xl p-5 flex items-center justify-between shadow-2xl backdrop-blur-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group ${
-            activeView === "completion" ? "bg-[#140b11] border-pink-500/80 scale-[1.02]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-pink-500/30"
+            activeView === "completion" ? "bg-[#140b11] border-pink-500/80 scale-[1.01]" : "bg-[#08080d]/90 border-white/[0.06] hover:border-pink-500/30"
           }`}
         >
           {activeView === "completion" && <div className="absolute top-0 left-0 w-full h-[2px] bg-pink-500" />}
           <div>
             <p className="text-2xl font-black tracking-tight text-white group-hover:text-pink-400 transition-colors">{stats.completionRate}%</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1 flex items-center gap-1.5 font-mono">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300 mt-1 flex items-center gap-1.5 font-mono">
               {activeView === "completion" && <FaCircle className="text-[5px] text-pink-500 animate-pulse" />} Completion Rate
             </p>
           </div>
@@ -459,11 +455,12 @@ export default function Performance() {
 
       </div>
 
-      {/* ── REFACTOR MATRIX DYNAMIC GRAPH SECTOR PANEL ── */}
-      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* ── 🎛️ DYNAMIC PARAMETERS MATRIX GRID ── */}
+      {/* 🔓 FIX: Set grid-cols-1 md:grid-cols-2 lg:grid-cols-4 and removed restricted height variables */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         
-        {/* PANEL A: RADAR INTERACTIVE CONTEXT FRAME CHANGER */}
-        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col justify-between backdrop-blur-2xl min-h-[240px] relative shadow-2xl">
+        {/* PANEL A: RADAR CHANGER */}
+        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col justify-between backdrop-blur-2xl min-h-[260px] relative shadow-2xl">
           {activeView === "radar" ? (
             <div className="h-full flex flex-col justify-between animate-fade-in">
               <div>
@@ -473,7 +470,7 @@ export default function Performance() {
                 <p className="text-[10px] text-zinc-400 mt-0.5 font-mono font-medium">Changes shape dynamically</p>
               </div>
               
-              <div className="flex justify-center items-center my-auto relative w-full h-[140px]">
+              <div className="flex justify-center items-center my-auto relative w-full h-[150px] mt-2">
                 <canvas ref={radarCanvasRef} width={130} height={130} className="object-contain z-10" />
                 <span className="absolute top-0 text-[8px] font-mono font-bold text-white bg-white/[0.04] border border-white/5 px-1.5 py-0.5 rounded shadow-md">Sci-Fi ({genres.genre_scifi})</span>
                 <span className="absolute bottom-0 text-[8px] font-mono font-bold text-white bg-white/[0.04] border border-white/5 px-1.5 py-0.5 rounded shadow-md text-center">Comedy ({genres.genre_comedy})</span>
@@ -501,9 +498,9 @@ export default function Performance() {
                 </button>
               </div>
 
-              <div className="relative w-full h-[120px] my-auto flex flex-col justify-between pt-2">
-                <canvas ref={mainGraphCanvasRef} width={220} height={100} className="w-full h-full object-contain" />
-                <div className="w-full flex justify-between text-[8px] font-mono font-black text-zinc-400 px-6 mt-1">
+              <div className="relative w-full h-[130px] my-auto flex flex-col justify-between pt-3">
+                <canvas ref={mainGraphCanvasRef} width={220} height={105} className="w-full h-full object-contain" />
+                <div className="w-full flex justify-between text-[8px] font-mono font-black text-zinc-400 px-4 mt-2">
                   {monthsTimeline.map((m, idx) => <span key={idx}>{m}</span>)}
                 </div>
               </div>
@@ -512,11 +509,11 @@ export default function Performance() {
         </div>
 
         {/* Panel B: Summary */}
-        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[240px] shadow-2xl">
+        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[260px] shadow-2xl">
           <h3 className="text-xs font-bold uppercase tracking-wider text-white border-b border-white/[0.06] pb-2 mb-4">
             <span>🧠</span> AI Profile Summary
           </h3>
-          <div className="flex-1 flex flex-col justify-center space-y-3.5 text-xs">
+          <div className="flex-1 flex flex-col justify-center space-y-4 text-xs">
             {[
               `Primary preference vectors calibrated dynamically`,
               `Active watchlist threshold: ${stats.watchlistCount} items`,
@@ -532,11 +529,12 @@ export default function Performance() {
         </div>
 
         {/* Panel C: Active Log */}
-        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[240px] shadow-2xl">
+        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[260px] shadow-2xl">
           <h3 className="text-xs font-bold uppercase tracking-wider text-white border-b border-white/[0.06] pb-2 mb-3">
             <span>📊</span> Active Session Log
           </h3>
-          <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 scrollbar-none">
+          {/* 🔓 FIX: Re-allocated maximum log heights to bypass compression clipping at 100% zoom */}
+          <div className="flex-1 overflow-y-auto max-h-[170px] space-y-2.5 pr-1 scrollbar-none">
             {logs.map((log, i) => (
               <div key={i} className="p-2.5 bg-black/40 border border-white/[0.05] rounded-xl flex items-center justify-between text-[11px] text-zinc-100 gap-2 font-medium">
                 <div className="truncate">
@@ -552,7 +550,7 @@ export default function Performance() {
         </div>
 
         {/* Panel D: Badges */}
-        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[240px] shadow-2xl">
+        <div className="bg-[#08080d]/90 border border-white/[0.06] rounded-2xl p-5 flex flex-col backdrop-blur-2xl min-h-[260px] shadow-2xl">
           <h3 className="text-xs font-bold uppercase tracking-wider text-white border-b border-white/[0.06] pb-2 mb-3">
             <span>🏆</span> Achievements
           </h3>
@@ -563,7 +561,7 @@ export default function Performance() {
               { n: "AI Fan", t: stats.aiMatch >= 80 ? "Rare" : "Common", icon: "🤖" },
               { n: "Active Core", t: "Verified", icon: "🔥" }
             ].map((ach, i) => (
-              <div key={i} className="p-2 bg-black/40 border border-white/[0.05] rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[68px] shadow-inner">
+              <div key={i} className="p-2 bg-black/40 border border-white/[0.05] rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[72px] shadow-inner">
                 <div className="text-lg">{ach.icon}</div>
                 <h4 className="text-[10px] font-black text-white mt-0.5">{ach.n}</h4>
                 <p className="text-[7px] font-mono tracking-widest font-bold uppercase text-zinc-400 mt-0.5">{ach.t}</p>
