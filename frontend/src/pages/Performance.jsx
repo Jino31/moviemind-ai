@@ -1,9 +1,13 @@
-// src/pages/Performance.jsx
+// frontend/src/pages/Performance.jsx
 
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { 
+  FaUser, FaEnvelope, FaCamera, FaArrowLeft, FaCalendarAlt,
+  FaFilm, FaHeart, FaClock, FaTrophy, FaCheckCircle
+} from "react-icons/fa";
 
 export default function Performance() {
   const navigate = useNavigate();
@@ -220,7 +224,7 @@ export default function Performance() {
   }
 
   return (
-    <div className="h-screen bg-[#040408] text-white relative font-sans antialiased overflow-hidden flex flex-col justify-between p-6 select-none">
+    <div className="min-h-screen bg-[#040408] text-white relative font-sans antialiased overflow-y-auto flex flex-col p-6 md:p-8 select-none space-y-6">
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0 mix-blend-screen" />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -228,134 +232,131 @@ export default function Performance() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[700px] h-[700px] bg-purple-600/[0.1] blur-[160px]" />
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 flex items-center justify-between border-b border-white/[0.05] pb-4">
+      {/* ── 🛡️ HEADER SECTION ── */}
+      <div className="relative z-10 flex items-center justify-between border-b border-white/[0.05] pb-5">
         <div>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-2">
             Performance <span className="bg-gradient-to-r from-white via-neutral-200 to-rose-500 bg-clip-text text-transparent">Insights</span>
           </h1>
           <p className="text-neutral-500 text-xs mt-0.5">Live visualization tracking updates from your watchlist and bot conversations.</p>
         </div>
-        <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold text-neutral-200 hover:bg-white/[0.08] cursor-pointer active:scale-95 transition shadow-lg">
+        <button onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold font-mono text-neutral-200 hover:bg-white/[0.08] cursor-pointer active:scale-95 transition shadow-lg">
           ← Back to App
         </button>
       </div>
 
-      {/* Profile Hero Panel */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 my-4 items-center bg-gradient-to-br from-[#0d0d17]/90 to-[#07070d]/95 border border-white/[0.06] rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-neutral-100">Welcome back, Explorer</span>
+      {/* ── 👤 HERO PANEL WITH CENTRAL MATCH CIRCLE ── */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-[#0d0d17]/80 border border-white/[0.06] rounded-[24px] p-8 shadow-2xl backdrop-blur-xl">
+        
+        <div className="space-y-2 text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-2">
+            <span className="text-sm font-semibold text-neutral-200">Welcome back, Explorer</span>
             <span className="text-[9px] font-mono px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold rounded-md">Live Stream</span>
           </div>
           <p className="text-xs text-neutral-400">Your entertainment DNA matches</p>
-          <p className="text-3xl font-black tracking-tight">
+          <p className="text-3xl font-black tracking-tight mt-1">
             <span className="bg-gradient-to-r from-rose-400 to-pink-500 bg-clip-text text-transparent">{stats.aiMatch}% with MovieMind</span>
           </p>
         </div>
 
-        <div className="flex justify-center items-center relative">
+        {/* Precise Concentric Dynamic Alignment Core */}
+        <div className="flex justify-center items-center relative py-2">
           <div className="w-36 h-36 rounded-full border-4 border-dashed border-white/[0.03] flex items-center justify-center animate-[spin_100s_linear_infinite]" />
-          <div className="absolute w-32 h-32 rounded-full border-[5px] border-rose-500 border-r-transparent border-b-transparent flex flex-col items-center justify-center shadow-[0_0_40px_rgba(244,63,94,0.25)] transform -rotate-45">
+          <div className="absolute w-32 h-32 rounded-full border-[5px] border-rose-500 border-r-transparent border-b-transparent flex flex-col items-center justify-center shadow-[0_0_40px_rgba(244,63,94,0.2)] transform -rotate-45">
             <div className="transform rotate-45 text-center">
-              <p className="text-3.5xl font-black tracking-tight text-white">{stats.aiMatch}%</p>
-              <p className="text-[9px] uppercase tracking-widest font-black text-neutral-400 mt-0.5">AI MATCH</p>
+              <p className="text-3xl font-black tracking-tight text-white">{stats.aiMatch}%</p>
+              <p className="text-[8px] uppercase tracking-widest font-black text-neutral-400 mt-0.5">AI MATCH</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {[
-            { t: "Dynamic Preference Engine", d: "Changes shapes on taste radar instantly based on watched movies.", icon: "👁️", targetState: { filter: "all" } },
-            { t: "Live Sync Active", d: "Linked natively using open Firestore Snapshot pipelines.", icon: "🎯", targetState: { filter: "chatbot" } }
-          ].map((item, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => item.targetState.filter === "chatbot" ? navigate("/chatbot") : navigate("/movies", { state: item.targetState })} 
-              className="flex items-center gap-3 text-xs bg-white/[0.01] hover:bg-white/[0.04] p-2 border border-transparent hover:border-white/5 rounded-2xl cursor-pointer transition-all duration-300"
-            >
-              <span className="p-2 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm">{item.icon}</span>
-              <div>
-                <h4 className="font-bold text-neutral-200 flex items-center gap-1 hover:text-rose-400 transition">{item.t}</h4>
-                <p className="text-[11px] text-neutral-400 mt-0.5">{item.d}</p>
-              </div>
+        {/* Removed the middle list navigation routing stack map to clean workspace links */}
+        <div className="space-y-3.5">
+          <div className="flex items-center gap-3.5 text-xs bg-white/[0.01] border border-white/[0.03] p-3 rounded-xl">
+            <span className="p-2.5 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm">👁️</span>
+            <div>
+              <h4 className="font-bold text-neutral-200">Dynamic Preference Engine</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5">Changes shapes on taste radar instantly based on watched movies.</p>
             </div>
-          ))}
+          </div>
+          <div className="flex items-center gap-3.5 text-xs bg-white/[0.01] border border-white/[0.03] p-3 rounded-xl">
+            <span className="p-2.5 bg-white/[0.03] border border-white/[0.05] rounded-xl text-sm">🎯</span>
+            <div>
+              <h4 className="font-bold text-neutral-200">Live Sync Active</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5">Linked natively using open Firestore Snapshot pipelines.</p>
+            </div>
+          </div>
         </div>
+
       </div>
 
-      {/* Top Cards Sparklines Row */}
-      <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-4 my-2">
+      {/* ── 📊 SPARKLINE ANALYTICS SUMMARY GRID ROW ── */}
+      <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          // UPGRADED: Explicit state passing properties mapped directly to custom filtering flags
-          { label: "Watchlist", val: stats.watchlistCount, ref: sparklineRef1, targetState: { filter: "watchlist" } },
-          { label: "Watched History", val: stats.watchedCount, ref: sparklineRef2, targetState: { filter: "watched" } },
-          { label: "Watch Time", val: `${stats.watchHours}h`, ref: sparklineRef3, targetState: { filter: "all" } },
-          { label: "Completion Rate", val: `${stats.completionRate}%`, ref: sparklineRef4, targetState: { filter: "watchlist" } }
+          { label: "Watchlist", val: stats.watchlistCount, ref: sparklineRef1 },
+          { label: "Watched History", val: stats.watchedCount, ref: sparklineRef2 },
+          { label: "Watch Time", val: `${stats.watchHours}h`, ref: sparklineRef3 },
+          { label: "Completion Rate", val: `${stats.completionRate}%`, ref: sparklineRef4 }
         ].map((m, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => navigate("/movies", { state: m.targetState })}
-            className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-rose-500/20 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-md cursor-pointer transition-all duration-300 group"
-          >
+          <div key={idx} className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-4 flex items-center justify-between shadow-xl backdrop-blur-md">
             <div>
-              <p className="text-2xl font-black tracking-tight text-neutral-100 group-hover:text-rose-400 transition">{m.val}</p>
+              <p className="text-2xl font-black tracking-tight text-neutral-100">{m.val}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mt-0.5">{m.label}</p>
             </div>
-            <canvas ref={m.ref} width={75} height={30} className="opacity-90 object-contain" />
+            <canvas ref={m.ref} width={75} height={30} className="opacity-90" />
           </div>
         ))}
       </div>
 
-      {/* Grid Layout Containers */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-2 min-h-0">
+      {/* ── 🎛️ SYSTEM CONTEXT PARAMETERS ROW ── */}
+      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Panel A: Radar Grid */}
-        <div onClick={() => navigate("/movies", { state: { filter: "all" } })} className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-rose-500/20 transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between relative backdrop-blur-md cursor-pointer group">
+        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-5 flex flex-col justify-between backdrop-blur-md min-h-[220px]">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5 group-hover:text-rose-400 transition">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
               <span>🕸️</span> Taste Radar
             </h3>
             <p className="text-[10px] text-neutral-500 mt-0.5 font-mono">Changes shape dynamically</p>
           </div>
           
-          <div className="flex justify-center items-center my-auto relative w-full h-[150px]">
-            <canvas ref={radarCanvasRef} width={140} height={140} className="object-contain z-10" />
-            <span className="absolute top-1 text-[9px] font-mono font-bold text-neutral-300">Sci-Fi ({genres.genre_scifi})</span>
-            <span className="absolute bottom-1 text-[9px] font-mono font-bold text-neutral-300 text-center">Comedy ({genres.genre_comedy})</span>
-            <span className="absolute left-1 top-1/3 text-[9px] font-mono font-bold text-neutral-300">Action ({genres.genre_action})</span>
-            <span className="absolute left-1 bottom-1/3 text-[9px] font-mono font-bold text-neutral-300">Thriller ({genres.genre_thriller})</span>
-            <span className="absolute right-1 top-1/3 text-[9px] font-mono font-bold text-neutral-300 text-right">Drama ({genres.genre_drama})</span>
-            <span className="absolute right-1 bottom-1/3 text-[9px] font-mono font-bold text-neutral-300 text-right">Adventure ({genres.genre_adventure})</span>
+          <div className="flex justify-center items-center my-auto relative w-full h-[140px]">
+            <canvas ref={radarCanvasRef} width={130} height={130} className="object-contain z-10" />
+            <span className="absolute top-0 text-[9px] font-mono font-bold text-neutral-400">Sci-Fi ({genres.genre_scifi})</span>
+            <span className="absolute bottom-0 text-[9px] font-mono font-bold text-neutral-400 text-center">Comedy ({genres.genre_comedy})</span>
+            <span className="absolute left-0 top-1/3 text-[9px] font-mono font-bold text-neutral-400">Action ({genres.genre_action})</span>
+            <span className="absolute left-0 bottom-1/3 text-[9px] font-mono font-bold text-neutral-400">Thriller ({genres.genre_thriller})</span>
+            <span className="absolute right-0 top-1/3 text-[9px] font-mono font-bold text-neutral-400 text-right">Drama ({genres.genre_drama})</span>
+            <span className="absolute right-0 bottom-1/3 text-[9px] font-mono font-bold text-neutral-400 text-right">Adventure ({genres.genre_adventure})</span>
           </div>
         </div>
 
         {/* Panel B: Summary */}
-        <div onClick={() => navigate("/chatbot")} className="bg-[#0b0b14]/60 border border-white/[0.05] hover:border-purple-500/20 transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md cursor-pointer group">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2 group-hover:text-purple-400 transition">
+        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-5 flex flex-col backdrop-blur-md min-h-[220px]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2 mb-4">
             <span>🧠</span> AI Profile Summary
           </h3>
-          <div className="flex-1 flex flex-col justify-center space-y-3.5 my-2 text-xs">
+          <div className="flex-1 flex flex-col justify-center space-y-3 text-xs">
             {[
               `Primary preference vectors calibrated dynamically`,
               `Active watchlist threshold: ${stats.watchlistCount} items`,
               `Completion variance log: ${stats.completionRate}% computed`,
               "Real-time snapshot synchronization channel open"
             ].map((text, i) => (
-              <div key={i} className="flex items-start gap-2.5 text-neutral-300 leading-relaxed font-medium">
+              <div key={i} className="flex items-start gap-2.5 text-neutral-300 font-medium">
                 <span className="text-rose-500 font-bold">✓</span>
-                <span>{text}</span>
+                <span className="leading-tight">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Panel C: Active Log */}
-        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2">
+        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-5 flex flex-col backdrop-blur-md min-h-[220px]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2 mb-3">
             <span>📊</span> Active Session Log
           </h3>
-          <div className="flex-1 overflow-y-auto my-2 pr-1 space-y-2.5 scrollbar-none">
+          <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 scrollbar-none">
             {logs.map((log, i) => (
               <div key={i} className="p-2.5 bg-black/40 border border-white/[0.04] rounded-xl flex items-center justify-between text-[11px] text-neutral-300 gap-2">
                 <div className="truncate">
@@ -371,27 +372,21 @@ export default function Performance() {
         </div>
 
         {/* Panel D: Badges */}
-        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              <span>🏆</span> Achievements
-            </h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2 flex-1 items-center my-2">
+        <div className="bg-[#0b0b14]/60 border border-white/[0.05] rounded-2xl p-5 flex flex-col backdrop-blur-md min-h-[220px]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 border-b border-white/[0.04] pb-2 mb-3">
+            <span>🏆</span> Achievements
+          </h3>
+          <div className="grid grid-cols-2 gap-2 flex-1 items-center">
             {[
-              { n: "Explorer", t: stats.watchedCount >= 3 ? "Legendary" : "Common", icon: "🌌", targetFilter: "watched" },
-              { n: "Collector", t: stats.watchlistCount >= 3 ? "Epic" : "Common", icon: "📦", targetFilter: "watchlist" },
-              { n: "AI Fan", t: stats.aiMatch >= 80 ? "Rare" : "Common", icon: "🤖", targetFilter: "chatbot" },
-              { n: "Active Core", t: "Verified", icon: "🔥", targetFilter: "all" }
+              { n: "Explorer", t: stats.watchedCount >= 3 ? "Legendary" : "Common", icon: "🌌" },
+              { n: "Collector", t: stats.watchlistCount >= 3 ? "Epic" : "Common", icon: "📦" },
+              { n: "AI Fan", t: stats.aiMatch >= 80 ? "Rare" : "Common", icon: "🤖" },
+              { n: "Active Core", t: "Verified", icon: "🔥" }
             ].map((ach, i) => (
-              <div 
-                key={i} 
-                onClick={() => ach.targetFilter === "chatbot" ? navigate("/chatbot") : navigate("/movies", { state: { filter: ach.targetFilter } })}
-                className="p-2 bg-gradient-to-br from-neutral-500/5 to-transparent border border-white/5 hover:border-rose-500/30 rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[72px] shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300"
-              >
-                <div className="text-xl">{ach.icon}</div>
-                <h4 className="text-[11px] font-black text-neutral-200 mt-1">{ach.n}</h4>
-                <p className="text-[8px] font-mono tracking-widest uppercase opacity-50 mt-0.5">{ach.t}</p>
+              <div key={i} className="p-2 bg-gradient-to-br from-neutral-500/5 to-transparent border border-white/5 rounded-xl text-center flex flex-col justify-center items-center h-full max-h-[64px]">
+                <div className="text-lg">{ach.icon}</div>
+                <h4 className="text-[10px] font-black text-neutral-200 mt-0.5">{ach.n}</h4>
+                <p className="text-[7px] font-mono tracking-widest uppercase opacity-50">{ach.t}</p>
               </div>
             ))}
           </div>
@@ -399,10 +394,10 @@ export default function Performance() {
 
       </div>
 
-      {/* Footer Status Overlay */}
-      <div className="relative z-10 rounded-2xl border border-white/[0.06] p-4 flex items-center gap-4 overflow-hidden shadow-2xl bg-gradient-to-r from-[#0d0d16] via-[#121223] to-[#08080f] backdrop-blur-xl">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold whitespace-nowrap animate-pulse">
-          ✨ Real-Time Pipeline Safe
+      {/* ── 📜 ACCOMPANYING COMPLIANCE BOTTOM PANEL ── */}
+      <div className="relative z-10 rounded-2xl border border-white/[0.06] p-4 flex items-center gap-4 overflow-hidden bg-gradient-to-r from-[#0d0d16] via-[#121223] to-[#08080f] shadow-xl">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold whitespace-nowrap animate-pulse font-mono uppercase tracking-wider">
+          ✨ Pipeline Status Valid
         </div>
         <div className="text-xs">
           <p className="font-bold text-neutral-100">Watching metrics match system actions perfectly.</p>
