@@ -63,11 +63,10 @@ export default function Movies() {
 
   const [activeViewFilter, setActiveViewFilter] = useState("all");
   
-  // 🎛️ Navigation & Search Page Layout State Controllers
+  // Navigation & Search Page Layout State Controllers
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isSearchPageOpen, setIsSearchPageOpen] = useState(false);
 
-  // 🏷️ Mocked Historical Search Query Tags 
   const [recentSearches, setRecentSearches] = useState([
     "Muthu Alias Kaattaan",
     "Cooku with Comali",
@@ -156,7 +155,6 @@ export default function Movies() {
       setSearchResults(data.results || []);
       setActiveViewFilter("all"); 
 
-      // If clicking from the standalone search view panel layout, drop down slightly to reveal rows
       if (isSearchPageOpen) {
         setTimeout(() => {
           window.scrollTo({ top: 480, behavior: "smooth" });
@@ -167,7 +165,6 @@ export default function Movies() {
         }, 300);
       }
 
-      // Append custom query validation metrics to recent search array list
       if (!forcedQuery && !recentSearches.includes(queryTarget.trim())) {
         setRecentSearches(prev => [queryTarget.trim(), ...prev.slice(0, 4)]);
       }
@@ -344,12 +341,14 @@ export default function Movies() {
 
     return (
       <div className="relative mb-24 group">
-        <div className="flex items-center justify-between px-16 md:px-24 mb-8">
-          <div className="flex items-center gap-4">
-            <span className="text-red-500 text-4xl">{icon}</span>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">{title}</h2>
+        {title && (
+          <div className="flex items-center justify-between px-16 md:px-24 mb-8">
+            <div className="flex items-center gap-4">
+              <span className="text-red-500 text-4xl">{icon}</span>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">{title}</h2>
+            </div>
           </div>
-        </div>
+        )}
 
         <button onClick={() => rowRef.current.scrollBy({ left: -900, behavior: "smooth" })} className="absolute left-20 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 flex items-center justify-center text-white"><FaChevronLeft className="mx-auto" /></button>
         <button onClick={() => rowRef.current.scrollBy({ left: 900, behavior: "smooth" })} className="absolute right-6 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 flex items-center justify-center text-white"><FaChevronRight className="mx-auto" /></button>
@@ -368,7 +367,7 @@ export default function Movies() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
-              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-3 z-30">
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-30">
                 <div className="px-4 py-2 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-2 text-sm shadow-md">
                   <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
                 </div>
@@ -429,25 +428,27 @@ export default function Movies() {
   return (
     <div className="bg-[#030305] text-white min-h-screen overflow-x-hidden font-sans relative">
       
-      {/* ── 🧭 SCROLL-RESPONSIVE APP NAVIGATION VERTICAL HOVER SIDEBAR ── */}
+      {/* ── 🧭 SCROLL-RESPONSIVE VERTICAL SIDEBAR ── */}
       <div 
         onMouseEnter={() => setIsSidebarExpanded(true)}
         onMouseLeave={() => setIsSidebarExpanded(false)}
-        className={`fixed top-0 left-0 h-full z-[9999] bg-[#07070d]/90 border-r border-white/[0.04] backdrop-blur-3xl flex flex-col items-start pt-8 pb-12 transition-all duration-300 ease-out select-none shadow-[10px_0_50px_rgba(0,0,0,0.5)] ${
+        className={`fixed top-0 left-0 h-full z-[9999] bg-[#06060a]/95 border-r border-white/[0.03] backdrop-blur-3xl flex flex-col items-start pt-8 pb-12 transition-all duration-300 ease-out select-none shadow-[10px_0_50px_rgba(0,0,0,0.6)] ${
           isSidebarExpanded ? "w-64 px-6" : "w-16 md:w-20 px-0 items-center"
         }`}
       >
-        <div className={`mb-14 flex items-center gap-4 ${isSidebarExpanded ? "pl-2" : ""}`}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 via-pink-500 to-orange-400 flex items-center justify-center text-white font-black text-sm shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+        {/* Blended Glass Brand Logo Hub (FIXED: Gradient circle replaced with minimalist premium slate ring) */}
+        <div className={`mb-12 flex items-center gap-4 ${isSidebarExpanded ? "pl-2" : ""}`}>
+          <div className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/20 flex items-center justify-center text-zinc-300 font-bold text-sm shadow-xl transition-all">
             ★
           </div>
           {isSidebarExpanded && (
-            <span className="text-lg font-black tracking-wider text-white">
+            <span className="text-base font-black tracking-wider text-white">
               MovieMind <span className="text-red-500">AI</span>
             </span>
           )}
         </div>
 
+        {/* Dynamic Nav Menu Links */}
         <div className="flex-1 w-full space-y-2 flex flex-col justify-start">
           {[
             { label: "Home", icon: <FaHome />, action: () => { setIsSearchPageOpen(false); setActiveViewFilter("all"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
@@ -494,6 +495,7 @@ export default function Movies() {
           ))}
         </div>
 
+        {/* Exit Button Component */}
         <button
           onClick={() => navigate(-1)}
           className={`w-full flex items-center text-neutral-500 hover:text-red-500 transition-colors py-3 cursor-pointer ${
@@ -505,13 +507,12 @@ export default function Movies() {
         </button>
       </div>
 
-      {/* ── CONDITIONAL LAYOUT INJECTION CORE ── */}
+      {/* ── CONDITIONAL VIEW ROUTER MODULE ── */}
       {isSearchPageOpen ? (
         
-        /* ── 🔍 MODE 1: LIVE SEARCH PLATFORM INTERFACE DESIGN (MATCHES HOSTSTAR LAYOUT ASSET) ── */
+        /* ── 🔍 MODE 1: IMMERSIVE SEARCH PANEL INTERFACE ── */
         <div className="min-h-screen pl-16 md:pl-24 pt-10 pr-6 md:pr-12 animate-fade-in flex flex-col space-y-10">
           
-          {/* Main Massive Full-width Search Input Dock */}
           <div className="w-full max-w-5xl relative mt-4">
             <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 text-xl" />
             <input 
@@ -520,7 +521,7 @@ export default function Movies() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Movies, shows and more"
-              className="w-full pl-16 pr-24 py-5 rounded-2xl bg-[#12121a]/90 border border-white/10 outline-none text-lg text-white focus:border-red-500/60 shadow-2xl backdrop-blur-md transition-all font-medium"
+              className="w-full pl-16 pr-24 py-5 rounded-2xl bg-[#0e0e14]/90 border border-white/10 outline-none text-lg text-white focus:border-red-500/60 shadow-2xl backdrop-blur-md transition-all font-medium"
             />
             {search && (
               <button 
@@ -532,7 +533,6 @@ export default function Movies() {
             )}
           </div>
 
-          {/* Recent Searches Chips Panel */}
           {recentSearches.length > 0 && (
             <div className="w-full max-w-5xl space-y-4">
               <h3 className="text-sm font-mono tracking-widest font-bold text-neutral-400 uppercase">Recent Searches</h3>
@@ -541,7 +541,7 @@ export default function Movies() {
                   <div 
                     key={idx}
                     onClick={() => { setSearch(query); searchMovies(query); }}
-                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/5 hover:bg-white/[0.08] text-sm text-neutral-200 font-medium cursor-pointer transition-all shadow-md group"
+                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-sm text-neutral-200 font-medium cursor-pointer transition-all shadow-md group"
                   >
                     <FaHistory className="text-xs text-neutral-500 group-hover:text-red-400 transition-colors" />
                     <span>{query}</span>
@@ -555,7 +555,6 @@ export default function Movies() {
             </div>
           )}
 
-          {/* Conditional Query Output Grid or Category Trending Rack */}
           <div className="w-full pt-4">
             {searchResults.length > 0 ? (
               <div className="-ml-16 md:-ml-24">
@@ -566,7 +565,6 @@ export default function Movies() {
                 <h3 className="text-xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
                   <span>📈</span> Trending in India
                 </h3>
-                {/* Fallback to render active trending blocks below the search input field */}
                 <div className="-ml-16 md:-ml-24">
                   <MovieRow title="" icon={null} movies={trending.slice(0, 12)} />
                 </div>
@@ -578,7 +576,7 @@ export default function Movies() {
 
       ) : (
 
-        /* ── 🎬 MODE 2: CINEMATIC HERO CATALOG FEED INTERFACE VIEW ── */
+        /* ── 🎬 MODE 2: HERO CATALOG FEED INTERFACE ── */
         <>
           {heroMovie && (
             <div className="relative h-screen pl-16 md:pl-20">
@@ -591,12 +589,10 @@ export default function Movies() {
               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-black/30"></div>
 
-              {/* Minimal Float Search Toggle Indicator Link Pinned Top Right */}
               <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4">
                 <button 
                   onClick={() => setIsSearchPageOpen(true)}
                   className="w-11 h-11 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white hover:bg-red-500/80 shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer"
-                  title="Open Immersive Search Panel"
                 >
                   <FaSearch className="text-sm" />
                 </button>
@@ -626,7 +622,6 @@ export default function Movies() {
             </div>
           )}
 
-          {/* DISPLAY DECKS ROW STACK SECTION */}
           <div className="relative z-20 -mt-24 pb-32">
             {activeViewFilter === "watchlist" && (
               <div className="pt-24 min-h-[50vh]">
