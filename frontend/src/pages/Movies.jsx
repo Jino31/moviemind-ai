@@ -24,6 +24,7 @@ import {
   FaTrashAlt,
   FaHistory,
   FaEllipsisV,
+  FaChevronDown
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -57,6 +58,9 @@ export default function Movies() {
   const [activeTrailerMovie, setActiveTrailerMovie] = useState(null);
 
   const [activeViewFilter, setActiveViewFilter] = useState("all");
+  
+  // 🔘 Brand Dropdown Menu State Controller
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     loadMovies();
@@ -323,7 +327,6 @@ export default function Movies() {
           {movies.map((movie) => (
             <div 
               key={movie.id} 
-              // ✅ CHANGED: Card wrapper click event maps route paths seamlessly to /movie/:id details page
               onClick={() => movie.id !== "fallback" && navigate(`/movie/${movie.id}`)}
               className="group/card relative min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(255,0,100,0.5)] bg-zinc-900"
             >
@@ -334,7 +337,6 @@ export default function Movies() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
-              {/* Top Layout Controls Row */}
               <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-30">
                 <div className="px-4 py-2 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-2 text-sm shadow-md">
                   <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
@@ -342,7 +344,7 @@ export default function Movies() {
 
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Stops navigation behavior when clicking More Info button
+                    e.stopPropagation(); 
                     setSelectedMovie(movie); 
                   }}
                   className="w-9 h-9 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition-all duration-300 shadow-lg active:scale-90"
@@ -357,12 +359,11 @@ export default function Movies() {
                 <p className="text-white/60 text-sm">{movie.release_date?.split("-")[0] || "Unknown"}</p>
               </div>
 
-              {/* Hover Actions Drawer Overlay */}
-              <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500 bg-black/70 flex flex-col justify-end p-5 z-20">
+              <div className="absolute inset-0 bg-black/70 opacity-0 group-hover/card:opacity-100 transition-all duration-500 flex flex-col justify-end p-5 z-20">
                 <div className="flex gap-3">
                   <button 
                     onClick={(e) => { 
-                      e.stopPropagation(); // Stops page navigation when clicking the trailer button
+                      e.stopPropagation(); 
                       openTrailer(movie); 
                     }} 
                     className="flex-1 py-3 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 text-sm"
@@ -377,7 +378,7 @@ export default function Movies() {
                   ) : (
                     <button 
                       onClick={(e) => { 
-                        e.stopPropagation(); // Stops page navigation when clicking the plus button
+                        e.stopPropagation(); 
                         addToWatchlist(movie); 
                       }} 
                       className="w-14 rounded-2xl bg-red-500/20 border border-red-500/20 flex items-center justify-center transition-all hover:bg-red-500 text-white"
@@ -408,52 +409,79 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
-          {/* Navigation layout */}
+          {/* ── 🧭 UPGRADED APP NAVIGATION CONTROLLER BAR ── */}
           <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
             <div className="flex items-center justify-between px-10 py-6">
-              <div className="flex items-center gap-14">
-                <h1 onClick={() => { setActiveViewFilter("all"); navigate("/movies"); }} className="text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300">MovieMind AI</h1>
-                <div className="hidden md:flex items-center gap-10 text-lg font-semibold">
-                  <button onClick={() => { setActiveViewFilter("all"); navigate("/"); }} className="hover:text-red-400 transition-all">Home</button>
-                  <button onClick={() => { setActiveViewFilter("all"); navigate("/movies"); }} className="hover:text-red-400 transition-all">Movies</button>
-                  <button onClick={() => { setActiveViewFilter("all"); window.scrollTo({ top: 900, behavior: "smooth" }); }} className="hover:text-red-400 transition-all">Trending</button>
-                  <button
-                    onClick={() => {
-                      if (!auth.currentUser) {
-                        alert("🔒 Please log in to view your Watchlist.");
-                        localStorage.setItem("auth_redirect_target", "/movies");
-                        navigate("/login");
-                      } else if (watchlist.length === 0) {
-                        alert("Watchlist is empty");
-                      } else {
-                        setSearchResults(watchlist);
-                        setActiveViewFilter("watchlist");
-                        window.scrollTo({ top: 900, behavior: "smooth" });
-                      }
-                    }}
-                    className={`transition-all ${activeViewFilter === "watchlist" ? "text-red-500" : "hover:text-red-400"}`}
-                  >
-                    Watchlist
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      if (!auth.currentUser) {
-                        alert("🔒 Please log in to view your Watch History.");
-                        localStorage.setItem("auth_redirect_target", "/movies");
-                        navigate("/login");
-                      } else {
-                        setActiveViewFilter("watched");
-                        window.scrollTo({ top: 900, behavior: "smooth" });
-                      }
-                    }}
-                    className={`transition-all flex items-center gap-2 ${activeViewFilter === "watched" ? "text-red-500" : "hover:text-red-400"}`}
-                  >
-                    <FaHistory className="text-sm" /> History
-                  </button>
+              
+              {/* BRAND DROPDOWN ANCHOR */}
+              <div className="relative">
+                <div 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                  className="flex items-center gap-2 text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300 select-none"
+                >
+                  <h1>MovieMind AI</h1>
+                  <FaChevronDown className={`text-sm transition-transform duration-300 mt-1 ${isMenuOpen ? "rotate-180" : ""}`} />
                 </div>
+
+                {/* 📂 FLOATING PREMIUM NAVIGATION SUB-DECK */}
+                {isMenuOpen && (
+                  <div className="absolute top-14 left-0 w-64 bg-[#0a0a10]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-3xl animate-fade-in z-50">
+                    
+                    <button 
+                      onClick={() => { setActiveViewFilter("all"); setIsMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all"
+                    >
+                      🏠 Home Dashboard
+                    </button>
+                    
+                    <button 
+                      onClick={() => { setActiveViewFilter("all"); setIsMenuOpen(false); window.scrollTo({ top: 850, behavior: "smooth" }); }} 
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2"
+                    >
+                      <FaFire className="text-red-500 text-xs" /> Trending Feed
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        if (!auth.currentUser) {
+                          alert("🔒 Please log in to view your Watchlist.");
+                          localStorage.setItem("auth_redirect_target", "/movies");
+                          navigate("/login");
+                        } else if (watchlist.length === 0) {
+                          alert("Watchlist is empty");
+                        } else {
+                          setSearchResults(watchlist);
+                          setActiveViewFilter("watchlist");
+                          window.scrollTo({ top: 850, behavior: "smooth" });
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all ${activeViewFilter === "watchlist" ? "text-red-500 bg-white/5" : ""}`}
+                    >
+                      📦 Your Watchlist
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        if (!auth.currentUser) {
+                          alert("🔒 Please log in to view your Watch History.");
+                          localStorage.setItem("auth_redirect_target", "/movies");
+                          navigate("/login");
+                        } else {
+                          setActiveViewFilter("watched");
+                          window.scrollTo({ top: 850, behavior: "smooth" });
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2 ${activeViewFilter === "watched" ? "text-red-500 bg-white/5" : ""}`}
+                    >
+                      <FaHistory className="text-xs" /> History Tracking
+                    </button>
+                  </div>
+                )}
               </div>
 
+              {/* RIGHT UTILITIES PACK */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className={`overflow-hidden transition-all duration-500 ${search ? "w-[260px]" : "w-0"}`}>
@@ -462,13 +490,15 @@ export default function Movies() {
                       <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={handleKeyPress} placeholder="Search movies..." className="w-[260px] pl-14 pr-5 py-3.5 rounded-2xl bg-white/10 border border-white/10 outline-none text-sm focus:border-red-500 text-white" />
                     </div>
                   </div>
-                  <button onClick={() => { if (!search) { setSearch(" "); return; } searchMovies(); }} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 font-bold hover:scale-105 text-sm">Search</button>
+                  <button onClick={() => { if (!search) { setSearch(" "); return; } searchMovies(); }} className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 font-bold hover:scale-105 text-sm cursor-pointer">Search</button>
                 </div>
-                <button onClick={() => navigate("/")} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 text-sm font-semibold whitespace-nowrap">Back</button>
+                <button onClick={() => navigate(-1)} className="px-6 py-3.5 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 hover:scale-105 text-sm font-semibold whitespace-nowrap cursor-pointer">Back</button>
               </div>
+
             </div>
           </div>
 
+          {/* MAIN HERO VIEWPORT DETAIL MATRIX */}
           <div className="relative z-10 flex items-center h-full px-14">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-500/20 border border-red-500/20 backdrop-blur-xl mb-6 text-sm font-semibold text-red-400">🔥 #1 Trending Worldwide</div>
@@ -477,14 +507,13 @@ export default function Movies() {
               <div className="flex gap-5">
                 <button 
                   onClick={() => openTrailer(heroMovie)} 
-                  className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 shadow-xl"
+                  className="px-10 py-4 rounded-2xl bg-white text-black text-xl font-bold flex items-center gap-3 hover:scale-105 shadow-xl cursor-pointer"
                 >
                   <FaPlay /> Watch Trailer
                 </button>
-                {/* ✅ CHANGED: Hero section details button now routes to the active details streaming URL */}
                 <button 
                   onClick={() => heroMovie.id !== "fallback" && navigate(`/movie/${heroMovie.id}`)} 
-                  className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105"
+                  className="px-10 py-4 rounded-2xl bg-white/10 border border-white/10 text-xl font-bold hover:bg-white/20 hover:scale-105 cursor-pointer"
                 >
                   Watch Now
                 </button>
@@ -494,7 +523,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* Lists */}
+      {/* ── CATALOG DISCOVERY TRACK MATRICES ── */}
       <div className="relative z-20 -mt-20 pb-32">
         
         {searchResults.length > 0 && activeViewFilter === "all" && (
@@ -537,7 +566,7 @@ export default function Movies() {
       {selectedMovie && (
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-10">
           <div className="relative w-full max-w-6xl rounded-[40px] overflow-hidden bg-[#0c0c12] border border-white/10 shadow-2xl">
-            <button onClick={() => setSelectedMovie(null)} className="absolute top-6 right-6 z-30 w-14 h-14 rounded-full bg-black/60 flex items-center justify-center text-2xl hover:bg-red-500 hover:rotate-90 text-white"><FaTimes /></button>
+            <button onClick={() => setSelectedMovie(null)} className="absolute top-6 right-6 z-30 w-14 h-14 rounded-full bg-black/60 flex items-center justify-center text-2xl hover:bg-red-500 hover:rotate-90 text-white cursor-pointer"><FaTimes /></button>
             <div className="relative h-[600px]">
               {selectedMovie.backdrop_path ? <img src={`${IMG}${selectedMovie.backdrop_path}`} alt={selectedMovie.title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#0c0c12]" />}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c12] via-transparent to-transparent"></div>
@@ -549,14 +578,13 @@ export default function Movies() {
                 </div>
                 <p className="text-base md:text-lg text-white/70 leading-relaxed mb-8 line-clamp-3">{selectedMovie.overview}</p>
                 <div className="flex gap-4">
-                  <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 shadow-lg"><FaPlay /> Watch Trailer</button>
-                  {/* ✅ CHANGED: Modal secondary trigger button routes user to play full screen video frame */}
+                  <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 shadow-lg cursor-pointer"><FaPlay /> Watch Trailer</button>
                   <button 
                     onClick={() => {
                       setSelectedMovie(null);
                       navigate(`/movie/${selectedMovie.id}`);
                     }}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-lg font-bold text-white hover:scale-105 transition-transform"
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-lg font-bold text-white hover:scale-105 transition-transform cursor-pointer"
                   >
                     Play Full Movie
                   </button>
@@ -570,7 +598,7 @@ export default function Movies() {
       {/* Trailer Modal */}
       {trailerKey && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
-          <button onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }} className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 text-white"><FaTimes /></button>
+          <button onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }} className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 text-white cursor-pointer"><FaTimes /></button>
           <div className="w-[85vw] h-[80vh] rounded-[32px] overflow-hidden border border-white/10 bg-black relative z-10 shadow-[0_0_80px_rgba(244,63,94,0.25)]">
             <YouTube videoId={trailerKey} opts={{ width: "100%", height: "100%", playerVars: { autoplay: 1, modestbranding: 1, rel: 0, origin: window.location.origin } }} className="w-full h-full" onPlay={() => activeTrailerMovie && markAsWatched(activeTrailerMovie)} onEnd={() => { if (activeTrailerMovie) { markAsWatched(activeTrailerMovie); setTrailerKey(""); setActiveTrailerMovie(null); } }} />
           </div>
