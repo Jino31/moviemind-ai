@@ -59,8 +59,23 @@ export default function Movies() {
 
   const [activeViewFilter, setActiveViewFilter] = useState("all");
   
-  // 🔘 Brand Dropdown Menu State Controller
+  // 🎛️ Navigation Aesthetic State Hooks
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScScrolled] = useState(false);
+
+  // 📡 Window Scroll Coordinate Sensor Pipeline
+  useEffect(() => {
+    const handleScrollTracking = () => {
+      if (window.scrollY > 40) {
+        setIsScScrolled(true);
+      } else {
+        setIsScScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollTracking);
+    return () => window.removeEventListener("scroll", handleScrollTracking);
+  }, []);
 
   useEffect(() => {
     loadMovies();
@@ -409,9 +424,14 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
-          {/* ── 🧭 UPGRADED APP NAVIGATION CONTROLLER BAR ── */}
-          <div className="fixed top-0 left-0 w-full z-50 backdrop-blur-2xl bg-black/20 border-b border-white/5">
-            <div className="flex items-center justify-between px-10 py-6">
+          {/* ── 🧭 SCROLL-RESPONSIVE APP NAVIGATION NAVBAR BAR ── */}
+          {/* 💎 Upgraded Class Definition: Drops backdrop parameters and background colors dynamically on active scroll states */}
+          <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+            isScrolled 
+              ? "bg-transparent backdrop-blur-none border-b border-transparent py-4" 
+              : "backdrop-blur-2xl bg-black/20 border-b border-white/5 py-6"
+          }`}>
+            <div className="flex items-center justify-between px-10">
               
               {/* BRAND DROPDOWN ANCHOR */}
               <div className="relative">
@@ -423,10 +443,9 @@ export default function Movies() {
                   <FaChevronDown className={`text-sm transition-transform duration-300 mt-1 ${isMenuOpen ? "rotate-180" : ""}`} />
                 </div>
 
-                {/* 📂 FLOATING PREMIUM NAVIGATION SUB-DECK */}
+                {/* FLOATING PREMIUM NAVIGATION SUB-DECK */}
                 {isMenuOpen && (
                   <div className="absolute top-14 left-0 w-64 bg-[#0a0a10]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-3xl animate-fade-in z-50">
-                    
                     <button 
                       onClick={() => { setActiveViewFilter("all"); setIsMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
                       className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all"
@@ -481,7 +500,7 @@ export default function Movies() {
                 )}
               </div>
 
-              {/* RIGHT UTILITIES PACK */}
+              {/* RIGHT UTILITIES ACTIONS LAYER */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className={`overflow-hidden transition-all duration-500 ${search ? "w-[260px]" : "w-0"}`}>
@@ -498,7 +517,7 @@ export default function Movies() {
             </div>
           </div>
 
-          {/* MAIN HERO VIEWPORT DETAIL MATRIX */}
+          {/* MAIN HERO DETAIL PANEL */}
           <div className="relative z-10 flex items-center h-full px-14">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-red-500/20 border border-red-500/20 backdrop-blur-xl mb-6 text-sm font-semibold text-red-400">🔥 #1 Trending Worldwide</div>
@@ -523,7 +542,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── CATALOG DISCOVERY TRACK MATRICES ── */}
+      {/* ── DISCOVERY CONTENT FEED REGION ── */}
       <div className="relative z-20 -mt-20 pb-32">
         
         {searchResults.length > 0 && activeViewFilter === "all" && (
