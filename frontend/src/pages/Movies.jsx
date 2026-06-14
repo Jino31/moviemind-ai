@@ -28,7 +28,7 @@ import {
   FaTv,
   FaRegCompass,
   FaUserCircle,
-  FaArrowLeft // 💥 FIXED: Added the missing icon definition here to resolve the compilation crash
+  FaArrowLeft
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -63,8 +63,18 @@ export default function Movies() {
 
   const [activeViewFilter, setActiveViewFilter] = useState("all");
   
-  // 🎛️ Premium Vertical Sidebar Hover State Controller
+  // 🎛️ Navigation & Search Page Layout State Controllers
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSearchPageOpen, setIsSearchPageOpen] = useState(false);
+
+  // 🏷️ Mocked Historical Search Query Tags 
+  const [recentSearches, setRecentSearches] = useState([
+    "Muthu Alias Kaattaan",
+    "Cooku with Comali",
+    "Sita Ramam",
+    "Silukkuvarpatti Singam",
+    "Kadaikutty Singam"
+  ]);
 
   useEffect(() => {
     loadMovies();
@@ -127,7 +137,7 @@ export default function Movies() {
         setHeroMovie({
           id: "fallback",
           title: "Connection Offline",
-          overview: "Unable to reach media matrix servers. Please verify your internet connection endpoints.",
+          overview: "Unable to reach media servers.",
           backdrop_path: ""
         });
       }
@@ -136,26 +146,43 @@ export default function Movies() {
     }
   };
 
-  const searchMovies = async () => {
-    if (!search.trim()) return;
+  const searchMovies = async (forcedQuery = null) => {
+    const queryTarget = forcedQuery || search;
+    if (!queryTarget.trim()) return;
 
     try {
-      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${search}`);
+      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${queryTarget}`);
       const data = await res.json();
       setSearchResults(data.results || []);
       setActiveViewFilter("all"); 
 
-      setTimeout(() => {
-        window.scrollTo({ top: 850, behavior: "smooth" });
-      }, 300);
+      // If clicking from the standalone search view panel layout, drop down slightly to reveal rows
+      if (isSearchPageOpen) {
+        setTimeout(() => {
+          window.scrollTo({ top: 480, behavior: "smooth" });
+        }, 300);
+      } else {
+        setTimeout(() => {
+          window.scrollTo({ top: 850, behavior: "smooth" });
+        }, 300);
+      }
+
+      // Append custom query validation metrics to recent search array list
+      if (!forcedQuery && !recentSearches.includes(queryTarget.trim())) {
+        setRecentSearches(prev => [queryTarget.trim(), ...prev.slice(0, 4)]);
+      }
 
       if (!data.results || data.results.length === 0) {
-        alert("No movies found");
+        alert("No movies found matching current handle criteria.");
       }
     } catch (err) {
-      console.log(err);
-      alert("Search failed. Check connection endpoints.");
+      console.error(err);
     }
+  };
+
+  const removeRecentSearchTag = (e, indexToRemove) => {
+    e.stopPropagation();
+    setRecentSearches(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleKeyPress = (e) => {
@@ -168,7 +195,7 @@ export default function Movies() {
     if (!movie || movie.id === "fallback") return;
 
     if (!auth.currentUser) {
-      alert("🔒 Please log in to watch trailers.");
+      alert("🔒 Please log in with your email to watch trailers!");
       localStorage.setItem("auth_redirect_target", "/movies"); 
       navigate("/login");
       return;
@@ -320,7 +347,7 @@ export default function Movies() {
         <div className="flex items-center justify-between px-16 md:px-24 mb-8">
           <div className="flex items-center gap-4">
             <span className="text-red-500 text-4xl">{icon}</span>
-            <h2 className="text-5xl font-black">{title}</h2>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight">{title}</h2>
           </div>
         </div>
 
@@ -332,7 +359,7 @@ export default function Movies() {
             <div 
               key={movie.id} 
               onClick={() => movie.id !== "fallback" && navigate(`/movie/${movie.id}`)}
-              className="group/card relative min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(255,0,100,0.5)] bg-zinc-900"
+              className="group/card relative min-w-[300px] md:min-w-[330px] h-[190px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:z-40 hover:shadow-[0_0_45px_rgba(239,68,68,0.4)] bg-zinc-950"
             >
               {movie.backdrop_path ? (
                 <img src={`${IMG}${movie.backdrop_path}`} alt={movie.title} className="w-full h-full object-cover transition-all duration-700 group-hover/card:scale-125" />
@@ -341,7 +368,7 @@ export default function Movies() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
 
-              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-30">
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-3 z-30">
                 <div className="px-4 py-2 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-2 text-sm shadow-md">
                   <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
                 </div>
@@ -410,9 +437,8 @@ export default function Movies() {
           isSidebarExpanded ? "w-64 px-6" : "w-16 md:w-20 px-0 items-center"
         }`}
       >
-        {/* Star Logo Hub Brand Element */}
         <div className={`mb-14 flex items-center gap-4 ${isSidebarExpanded ? "pl-2" : ""}`}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 via-pink-500 to-orange-400 flex items-center justify-center text-white font-black text-sm shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 via-pink-500 to-orange-400 flex items-center justify-center text-white font-black text-sm shadow-[0_0_20px_rgba(239,68,68,0.4)]">
             ★
           </div>
           {isSidebarExpanded && (
@@ -422,13 +448,13 @@ export default function Movies() {
           )}
         </div>
 
-        {/* Dynamic Nav Menu Link Items Stack */}
         <div className="flex-1 w-full space-y-2 flex flex-col justify-start">
           {[
-            { label: "Home", icon: <FaHome />, action: () => { setActiveViewFilter("all"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
-            { label: "Search", icon: <FaSearch />, action: () => { if(!search) setSearch(" "); } },
-            { label: "Trending", icon: <FaFire />, action: () => { setActiveViewFilter("all"); window.scrollTo({ top: 850, behavior: "smooth" }); } },
+            { label: "Home", icon: <FaHome />, action: () => { setIsSearchPageOpen(false); setActiveViewFilter("all"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+            { label: "Search", icon: <FaSearch />, action: () => { setIsSearchPageOpen(true); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+            { label: "Trending", icon: <FaFire />, action: () => { setIsSearchPageOpen(false); setActiveViewFilter("all"); window.scrollTo({ top: 850, behavior: "smooth" }); } },
             { label: "Watchlist", icon: <FaCrown />, action: () => {
+                setIsSearchPageOpen(false);
                 if (!auth.currentUser) {
                   alert("🔒 Please log in to view your Watchlist.");
                   localStorage.setItem("auth_redirect_target", "/movies");
@@ -441,6 +467,7 @@ export default function Movies() {
               }
             },
             { label: "History", icon: <FaHistory />, action: () => {
+                setIsSearchPageOpen(false);
                 if (!auth.currentUser) {
                   alert("🔒 Please log in to view your Watch History.");
                   localStorage.setItem("auth_redirect_target", "/movies");
@@ -457,9 +484,9 @@ export default function Movies() {
             <button
               key={idx}
               onClick={item.action}
-              className={`w-full flex items-center rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200 py-3.5 cursor-pointer ${
+              className={`w-full flex items-center rounded-xl transition-all duration-200 py-3.5 cursor-pointer ${
                 isSidebarExpanded ? "px-4 gap-4 justify-start text-sm font-bold" : "justify-center text-xl"
-              }`}
+              } ${item.label === "Search" && isSearchPageOpen ? "text-red-500 bg-white/5" : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"}`}
             >
               <div className="shrink-0">{item.icon}</div>
               {isSidebarExpanded && <span className="animate-fade-in whitespace-nowrap">{item.label}</span>}
@@ -467,7 +494,6 @@ export default function Movies() {
           ))}
         </div>
 
-        {/* Small Back Action Hook at Sidebar Bottom */}
         <button
           onClick={() => navigate(-1)}
           className={`w-full flex items-center text-neutral-500 hover:text-red-500 transition-colors py-3 cursor-pointer ${
@@ -479,100 +505,160 @@ export default function Movies() {
         </button>
       </div>
 
-      {/* ── TOP UTILITIES SELECTION ROW ── */}
-      <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4 pl-24">
-        <div className="flex items-center gap-3">
-          <div className={`overflow-hidden transition-all duration-500 ${search ? "w-[240px]" : "w-0"}`}>
-            <div className="relative">
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-              <input 
-                type="text" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                onKeyDown={handleKeyPress} 
-                placeholder="Search movies..." 
-                className="w-[240px] pl-11 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/10 outline-none text-xs focus:border-red-500 text-white backdrop-blur-md" 
-              />
-            </div>
+      {/* ── CONDITIONAL LAYOUT INJECTION CORE ── */}
+      {isSearchPageOpen ? (
+        
+        /* ── 🔍 MODE 1: LIVE SEARCH PLATFORM INTERFACE DESIGN (MATCHES HOSTSTAR LAYOUT ASSET) ── */
+        <div className="min-h-screen pl-16 md:pl-24 pt-10 pr-6 md:pr-12 animate-fade-in flex flex-col space-y-10">
+          
+          {/* Main Massive Full-width Search Input Dock */}
+          <div className="w-full max-w-5xl relative mt-4">
+            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 text-xl" />
+            <input 
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Movies, shows and more"
+              className="w-full pl-16 pr-24 py-5 rounded-2xl bg-[#12121a]/90 border border-white/10 outline-none text-lg text-white focus:border-red-500/60 shadow-2xl backdrop-blur-md transition-all font-medium"
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch("")} 
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-sm bg-white/10 px-2.5 py-1 rounded-md transition-colors"
+              >
+                Clear
+              </button>
+            )}
           </div>
-          <button onClick={() => { if (!search) { setSearch(" "); return; } searchMovies(); }} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 font-bold hover:scale-105 text-xs tracking-wider cursor-pointer shadow-xl transition-all">SEARCH</button>
-        </div>
-      </div>
 
-      {/* ── HERO DISPLAY PANEL ── */}
-      {heroMovie && (
-        <div className="relative h-screen pl-16 md:pl-20">
-          {heroMovie.backdrop_path ? (
-            <img src={`${IMG}${heroMovie.backdrop_path}`} alt={heroMovie.title} className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0a0a14] to-black" />
-          )}
-          <div className="absolute inset-0 bg-black/50"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-black/30"></div>
-
-          <div className="relative z-10 flex items-center h-full px-14 md:px-20">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-xl mb-6 text-xs font-bold text-red-400 uppercase tracking-wider">🔥 #1 Trending Worldwide</div>
-              <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tight">{heroMovie.title}</h1>
-              <p className="text-base md:text-lg text-white/70 leading-relaxed mb-10 line-clamp-3 font-medium">{heroMovie.overview}</p>
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => openTrailer(heroMovie)} 
-                  className="px-8 py-3.5 rounded-2xl bg-white text-black text-base font-bold flex items-center gap-2.5 hover:scale-105 shadow-2xl transition-transform cursor-pointer"
-                >
-                  <FaPlay className="text-xs" /> Watch Trailer
-                </button>
-                <button 
-                  onClick={() => heroMovie.id !== "fallback" && navigate(`/movie/${heroMovie.id}`)} 
-                  className="px-8 py-3.5 rounded-2xl bg-white/10 border border-white/10 text-base font-bold hover:bg-white/20 hover:scale-105 transition-transform cursor-pointer"
-                >
-                  Watch Now
-                </button>
+          {/* Recent Searches Chips Panel */}
+          {recentSearches.length > 0 && (
+            <div className="w-full max-w-5xl space-y-4">
+              <h3 className="text-sm font-mono tracking-widest font-bold text-neutral-400 uppercase">Recent Searches</h3>
+              <div className="flex flex-wrap gap-3">
+                {recentSearches.map((query, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => { setSearch(query); searchMovies(query); }}
+                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/5 hover:bg-white/[0.08] text-sm text-neutral-200 font-medium cursor-pointer transition-all shadow-md group"
+                  >
+                    <FaHistory className="text-xs text-neutral-500 group-hover:text-red-400 transition-colors" />
+                    <span>{query}</span>
+                    <FaTimes 
+                      onClick={(e) => removeRecentSearchTag(e, idx)}
+                      className="text-[10px] text-neutral-500 hover:text-red-500 ml-1 transition-colors cursor-pointer" 
+                    />
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+
+          {/* Conditional Query Output Grid or Category Trending Rack */}
+          <div className="w-full pt-4">
+            {searchResults.length > 0 ? (
+              <div className="-ml-16 md:-ml-24">
+                <MovieRow title="Search Results" icon={<FaSearch />} movies={searchResults} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
+                  <span>📈</span> Trending in India
+                </h3>
+                {/* Fallback to render active trending blocks below the search input field */}
+                <div className="-ml-16 md:-ml-24">
+                  <MovieRow title="" icon={null} movies={trending.slice(0, 12)} />
+                </div>
+              </div>
+            )}
           </div>
+
         </div>
+
+      ) : (
+
+        /* ── 🎬 MODE 2: CINEMATIC HERO CATALOG FEED INTERFACE VIEW ── */
+        <>
+          {heroMovie && (
+            <div className="relative h-screen pl-16 md:pl-20">
+              {heroMovie.backdrop_path ? (
+                <img src={`${IMG}${heroMovie.backdrop_path}`} alt={heroMovie.title} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0a0a14] to-black" />
+              )}
+              <div className="absolute inset-0 bg-black/50"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-black/30"></div>
+
+              {/* Minimal Float Search Toggle Indicator Link Pinned Top Right */}
+              <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4">
+                <button 
+                  onClick={() => setIsSearchPageOpen(true)}
+                  className="w-11 h-11 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white hover:bg-red-500/80 shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+                  title="Open Immersive Search Panel"
+                >
+                  <FaSearch className="text-sm" />
+                </button>
+              </div>
+
+              <div className="relative z-10 flex items-center h-full px-14 md:px-20">
+                <div className="max-w-3xl">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-xl mb-6 text-xs font-bold text-red-400 uppercase tracking-wider">🔥 #1 Trending Worldwide</div>
+                  <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tight">{heroMovie.title}</h1>
+                  <p className="text-base md:text-lg text-white/70 leading-relaxed mb-10 line-clamp-3 font-medium">{heroMovie.overview}</p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => openTrailer(heroMovie)} 
+                      className="px-8 py-3.5 rounded-2xl bg-white text-black text-base font-bold flex items-center gap-2.5 hover:scale-105 shadow-2xl transition-transform cursor-pointer"
+                    >
+                      <FaPlay className="text-xs" /> Watch Trailer
+                    </button>
+                    <button 
+                      onClick={() => heroMovie.id !== "fallback" && navigate(`/movie/${heroMovie.id}`)} 
+                      className="px-8 py-3.5 rounded-2xl bg-white/10 border border-white/10 text-base font-bold hover:bg-white/20 hover:scale-105 transition-transform cursor-pointer"
+                    >
+                      Watch Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DISPLAY DECKS ROW STACK SECTION */}
+          <div className="relative z-20 -mt-24 pb-32">
+            {activeViewFilter === "watchlist" && (
+              <div className="pt-24 min-h-[50vh]">
+                <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} isGatedDeleteView="watchlist" />
+                {watchlist.length === 0 && (
+                  <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your Watchlist is empty.</p>
+                )}
+              </div>
+            )}
+
+            {activeViewFilter === "watched" && (
+              <div className="pt-24 min-h-[50vh]">
+                <MovieRow title="Your Watched Movie History" icon={"👁️"} movies={watchedHistory} isGatedDeleteView="watched" />
+                {watchedHistory.length === 0 && (
+                  <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your streaming history is empty.</p>
+                )}
+              </div>
+            )}
+
+            {activeViewFilter === "all" && (
+              <div className="space-y-4">
+                <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
+                <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
+                <MovieRow title="Action Blockbusters" icon={"🎬"} movies={actionMovies} />
+                <MovieRow title="Sci-Fi & Fantasy" icon={"🚀"} movies={sciFiMovies} />
+                <MovieRow title="Horror Night" icon={"👻"} movies={horrorMovies} />
+                <MovieRow title="Romance Feed" icon={"❤️"} movies={romanceMovies} />
+              </div>
+            )}
+          </div>
+        </>
       )}
-
-      {/* ── DISCOVERY BROWSING ROW SHELF DECKS ── */}
-      <div className="relative z-20 -mt-24 pb-32">
-        
-        {searchResults.length > 0 && activeViewFilter === "all" && (
-          <div className="-mt-12 mb-16">
-            <MovieRow title="Search Results" icon={<FaSearch />} movies={searchResults} />
-          </div>
-        )}
-
-        {activeViewFilter === "watchlist" && (
-          <div className="pt-24 min-h-[50vh]">
-            <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} isGatedDeleteView="watchlist" />
-            {watchlist.length === 0 && (
-              <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your Watchlist is empty.</p>
-            )}
-          </div>
-        )}
-
-        {activeViewFilter === "watched" && (
-          <div className="pt-24 min-h-[50vh]">
-            <MovieRow title="Your Watched Movie History" icon={"👁️"} movies={watchedHistory} isGatedDeleteView="watched" />
-            {watchedHistory.length === 0 && (
-              <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your streaming history is empty.</p>
-            )}
-          </div>
-        )}
-
-        {activeViewFilter === "all" && (
-          <div className="space-y-4">
-            <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
-            <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
-            <MovieRow title="Action Blockbusters" icon={"🎬"} movies={actionMovies} />
-            <MovieRow title="Sci-Fi & Fantasy" icon={"🚀"} movies={sciFiMovies} />
-            <MovieRow title="Horror Night" icon={"👻"} movies={horrorMovies} />
-            <MovieRow title="Romance Feed" icon={"❤️"} movies={romanceMovies} />
-          </div>
-        )}
-      </div>
 
       {/* Selection Modal */}
       {selectedMovie && (
