@@ -28,7 +28,7 @@ import {
   FaTv,
   FaRegCompass,
   FaUserCircle,
-  FaHeart
+  FaArrowLeft // 💥 FIXED: Added the missing icon definition here to resolve the compilation crash
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -168,7 +168,7 @@ export default function Movies() {
     if (!movie || movie.id === "fallback") return;
 
     if (!auth.currentUser) {
-      alert("🔒 Playback Guard: Cinematic views are reserved for registered accounts.");
+      alert("🔒 Please log in to watch trailers.");
       localStorage.setItem("auth_redirect_target", "/movies"); 
       navigate("/login");
       return;
@@ -327,7 +327,7 @@ export default function Movies() {
         <button onClick={() => rowRef.current.scrollBy({ left: -900, behavior: "smooth" })} className="absolute left-20 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 flex items-center justify-center text-white"><FaChevronLeft className="mx-auto" /></button>
         <button onClick={() => rowRef.current.scrollBy({ left: 900, behavior: "smooth" })} className="absolute right-6 top-1/2 z-20 -translate-y-1/2 w-14 h-14 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 flex items-center justify-center text-white"><FaChevronRight className="mx-auto" /></button>
 
-        <div ref={rowRef} className="flex gap-5 overflow-x-auto scrollbar-hide pl-16 md:pl-24 pr-12 scroll-smooth">
+        <div ref={rowRef} className="flex gap-5 overflow-x-auto scrollbar-hide px-16 md:px-24 scroll-smooth">
           {movies.map((movie) => (
             <div 
               key={movie.id} 
@@ -402,7 +402,7 @@ export default function Movies() {
   return (
     <div className="bg-[#030305] text-white min-h-screen overflow-x-hidden font-sans relative">
       
-      {/* ── 🛡️ PREMIUM LEFT-EDGE HOVER SIDEBAR NAVBAR (PRECISE MATCH) ── */}
+      {/* ── 🧭 SCROLL-RESPONSIVE APP NAVIGATION VERTICAL HOVER SIDEBAR ── */}
       <div 
         onMouseEnter={() => setIsSidebarExpanded(true)}
         onMouseLeave={() => setIsSidebarExpanded(false)}
@@ -457,7 +457,7 @@ export default function Movies() {
             <button
               key={idx}
               onClick={item.action}
-              className={`w-full flex items-center rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200 py-3.5 ${
+              className={`w-full flex items-center rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200 py-3.5 cursor-pointer ${
                 isSidebarExpanded ? "px-4 gap-4 justify-start text-sm font-bold" : "justify-center text-xl"
               }`}
             >
@@ -470,7 +470,7 @@ export default function Movies() {
         {/* Small Back Action Hook at Sidebar Bottom */}
         <button
           onClick={() => navigate(-1)}
-          className={`w-full flex items-center text-neutral-500 hover:text-red-500 transition-colors py-3 ${
+          className={`w-full flex items-center text-neutral-500 hover:text-red-500 transition-colors py-3 cursor-pointer ${
             isSidebarExpanded ? "px-4 gap-4 justify-start text-xs font-bold font-mono tracking-widest" : "justify-center text-lg"
           }`}
         >
@@ -479,7 +479,7 @@ export default function Movies() {
         </button>
       </div>
 
-      {/* ── TOP UTILITIES PANEL ── */}
+      {/* ── TOP UTILITIES SELECTION ROW ── */}
       <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4 pl-24">
         <div className="flex items-center gap-3">
           <div className={`overflow-hidden transition-all duration-500 ${search ? "w-[240px]" : "w-0"}`}>
@@ -499,7 +499,7 @@ export default function Movies() {
         </div>
       </div>
 
-      {/* ── HERO DISPLAY CONTAINER ── */}
+      {/* ── HERO DISPLAY PANEL ── */}
       {heroMovie && (
         <div className="relative h-screen pl-16 md:pl-20">
           {heroMovie.backdrop_path ? (
@@ -535,7 +535,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── DISCOVERY BROWSING SHELF DECKS ── */}
+      {/* ── DISCOVERY BROWSING ROW SHELF DECKS ── */}
       <div className="relative z-20 -mt-24 pb-32">
         
         {searchResults.length > 0 && activeViewFilter === "all" && (
