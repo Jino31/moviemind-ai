@@ -425,7 +425,6 @@ export default function Movies() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
 
           {/* ── 🧭 SCROLL-RESPONSIVE APP NAVIGATION NAVBAR BAR ── */}
-          {/* 💎 Upgraded Class Definition: Drops backdrop parameters and background colors dynamically on active scroll states */}
           <div className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
             isScrolled 
               ? "bg-transparent backdrop-blur-none border-b border-transparent py-4" 
@@ -433,29 +432,31 @@ export default function Movies() {
           }`}>
             <div className="flex items-center justify-between px-10">
               
-              {/* BRAND DROPDOWN ANCHOR */}
-              <div className="relative">
-                <div 
-                  onClick={() => setIsMenuOpen(!isMenuOpen)} 
-                  className="flex items-center gap-2 text-4xl font-black text-red-500 cursor-pointer hover:text-pink-400 transition-all duration-300 select-none"
-                >
-                  <h1>MovieMind AI</h1>
-                  <FaChevronDown className={`text-sm transition-transform duration-300 mt-1 ${isMenuOpen ? "rotate-180" : ""}`} />
+              {/* 🖱️ MOUSE INTERACTION SENSOR DROPDOWN WRAPPER */}
+              <div 
+                onMouseEnter={() => setIsMenuOpen(true)}
+                onMouseLeave={() => setIsMenuOpen(false)}
+                className="relative pb-4 pt-2 group"
+              >
+                <div className="flex items-center gap-2 text-4xl font-black text-red-500 cursor-pointer select-none">
+                  <h1 className="bg-gradient-to-r from-red-500 via-pink-500 to-red-600 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">MovieMind AI</h1>
+                  <FaChevronDown className={`text-sm text-red-500 transition-transform duration-300 mt-1 ${isMenuOpen ? "rotate-180" : ""}`} />
                 </div>
 
                 {/* FLOATING PREMIUM NAVIGATION SUB-DECK */}
                 {isMenuOpen && (
-                  <div className="absolute top-14 left-0 w-64 bg-[#0a0a10]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-3xl animate-fade-in z-50">
+                  <div className="absolute top-14 left-0 w-64 bg-[#09090f]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-3xl animate-fade-in z-50 transition-all">
+                    
                     <button 
                       onClick={() => { setActiveViewFilter("all"); setIsMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
-                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all"
+                      className="w-full text-left px-4 py-3 rounded-xl text-neutral-300 hover:text-white hover:bg-white/5 text-sm font-semibold tracking-wide transition-all cursor-pointer"
                     >
                       🏠 Home Dashboard
                     </button>
                     
                     <button 
                       onClick={() => { setActiveViewFilter("all"); setIsMenuOpen(false); window.scrollTo({ top: 850, behavior: "smooth" }); }} 
-                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2"
+                      className="w-full text-left px-4 py-3 rounded-xl text-neutral-300 hover:text-white hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2 cursor-pointer"
                     >
                       <FaFire className="text-red-500 text-xs" /> Trending Feed
                     </button>
@@ -475,7 +476,7 @@ export default function Movies() {
                           window.scrollTo({ top: 850, behavior: "smooth" });
                         }
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all ${activeViewFilter === "watchlist" ? "text-red-500 bg-white/5" : ""}`}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-neutral-300 hover:text-white hover:bg-white/5 text-sm font-semibold tracking-wide transition-all cursor-pointer ${activeViewFilter === "watchlist" ? "text-red-500 bg-white/5" : ""}`}
                     >
                       📦 Your Watchlist
                     </button>
@@ -492,7 +493,7 @@ export default function Movies() {
                           window.scrollTo({ top: 850, behavior: "smooth" });
                         }
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2 ${activeViewFilter === "watched" ? "text-red-500 bg-white/5" : ""}`}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-neutral-300 hover:text-white hover:bg-white/5 text-sm font-semibold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${activeViewFilter === "watched" ? "text-red-500 bg-white/5" : ""}`}
                     >
                       <FaHistory className="text-xs" /> History Tracking
                     </button>
