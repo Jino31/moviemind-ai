@@ -344,7 +344,6 @@ export default function Movies() {
       }
       setActiveViewFilter("watched");
     } else {
-      // Handles categorical updates cleanly inside view filters
       if (title.includes("Trending")) setSearchResults(trending);
       else if (title.includes("Top Rated")) setSearchResults(topRated);
       else if (title.includes("Action")) setSearchResults(actionMovies);
@@ -615,15 +614,18 @@ export default function Movies() {
         /* ── 🎬 MODE 2: HERO CATALOG FEED INTERFACE ── */
         <>
           {heroMovie && (
-            <div className="relative h-screen pl-16 md:pl-20">
+            <div className="relative h-screen pl-16 md:pl-20 overflow-hidden">
+              {/* Background Media Layered at Bottom (z-0) */}
               {heroMovie.backdrop_path ? (
-                <img src={`${IMG}${heroMovie.backdrop_path}`} alt={heroMovie.title} className="absolute inset-0 w-full h-full object-cover" />
+                <img src={`${IMG}${heroMovie.backdrop_path}`} alt={heroMovie.title} className="absolute inset-0 w-full h-full object-cover z-0" />
               ) : (
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0a0a14] to-black" />
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0a0a14] to-black z-0" />
               )}
-              <div className="absolute inset-0 bg-black/50"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-black/30"></div>
+              
+              {/* Dark Ambient Overlays Layered Middle (z-10) */}
+              <div className="absolute inset-0 bg-black/40 z-10"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent z-10"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-transparent z-10"></div>
 
               <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4">
                 <button 
@@ -634,23 +636,18 @@ export default function Movies() {
                 </button>
               </div>
 
-              <div className="relative z-10 flex items-center h-full px-14 md:px-20">
+              {/* Foreground Content safely lifted to Top (z-20) */}
+              <div className="relative z-20 flex items-center h-full px-14 md:px-20">
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-xl mb-6 text-xs font-bold text-red-400 uppercase tracking-wider">🔥 #1 Trending Worldwide</div>
-                  <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tight">{heroMovie.title}</h1>
-                  <p className="text-base md:text-lg text-white/70 leading-relaxed mb-10 line-clamp-3 font-medium">{heroMovie.overview}</p>
+                  <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tight text-white drop-shadow-md">{heroMovie.title}</h1>
+                  <p className="text-base md:text-lg text-white/80 leading-relaxed mb-10 line-clamp-3 font-medium max-w-2xl">{heroMovie.overview}</p>
                   <div className="flex gap-4">
                     <button 
                       onClick={() => openTrailer(heroMovie)} 
                       className="px-8 py-3.5 rounded-2xl bg-white text-black text-base font-bold flex items-center gap-2.5 hover:scale-105 shadow-2xl transition-transform cursor-pointer"
                     >
                       <FaPlay className="text-xs" /> Watch Trailer
-                    </button>
-                    <button 
-                      onClick={() => heroMovie.id !== "fallback" && navigate(`/movie/${heroMovie.id}`)} 
-                      className="px-8 py-3.5 rounded-2xl bg-white/10 border border-white/10 text-base font-bold hover:bg-white/20 hover:scale-105 transition-transform cursor-pointer"
-                    >
-                      Watch Now
                     </button>
                   </div>
                 </div>
