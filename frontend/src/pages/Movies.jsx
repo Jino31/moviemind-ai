@@ -68,11 +68,7 @@ export default function Movies() {
   const [isSearchPageOpen, setIsSearchPageOpen] = useState(false);
 
   const [recentSearches, setRecentSearches] = useState([
-    "Muthu Alias Kaattaan",
-    "Cooku with Comali",
-    "Sita Ramam",
-    "Silukkuvarpatti Singam",
-    "Kadaikutty Singam"
+    
   ]);
 
   useEffect(() => {
