@@ -18,7 +18,7 @@ export default function FindYourMovie() {
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
   
-  // Refactored State Framework for Handling Multi-Response Lists
+  // Dynamic State Framework for Multi-Match Selection Panels
   const [matchedMovie, setMatchedMovie] = useState(null);
   const [allMatchesList, setAllMatchesList] = useState([]);
 
@@ -121,8 +121,9 @@ export default function FindYourMovie() {
       await new Promise((r) => setTimeout(r, 600));
       setAnalysisStatus("Querying regional database indexing maps via Gemini Vision...");
 
-      // Endpoint path inside your current integrated express app router
-      const targetEndpoint = "http://localhost:5000/api/movies/identify-movie";
+      // ✅ Safe Cloud-Ready Dynamic Path Configuration Targeting Live Systems Or fallbacks
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "https://your-live-backend-domain.com";
+      const targetEndpoint = `${API_BASE_URL}/api/movies/identify-movie`;
       
       const response = await fetch(targetEndpoint, {
         method: "POST",
@@ -162,14 +163,13 @@ export default function FindYourMovie() {
           loadSearchHistory(uid);
         }
       } else {
-        // Fallback message display condition configuration
         alert(reportResult.message || "We couldn't confidently identify this movie.");
         resetScannerCanvas();
       }
 
     } catch (networkErr) {
       console.error("Critical routing core error:", networkErr);
-      alert("System connection error: Failed to process framework visual block components via Cloud Architecture APIs.");
+      alert("System connection error: Failed to process framework visual block components via Cloud Architecture APIs. Check backend endpoint health properties.");
     } finally {
       setAnalyzing(false);
       setAnalysisStatus("");
@@ -305,7 +305,7 @@ export default function FindYourMovie() {
                 </div>
               )}
 
-              {/* TOP 5 MULTI-MATCH CANDIDATES CONTROLLER BOX */}
+              {/* TOP 5 MULTI-MATCH CARD PANEL INTERFACE DESIGNS */}
               {!analyzing && allMatchesList.length > 1 && (
                 <div className="bg-[#0b0b14]/60 border border-white/[0.06] rounded-2xl p-4 backdrop-blur-xl space-y-2 animate-fade-in">
                   <p className="text-[11px] font-mono text-white/40 uppercase tracking-wider">Top Alternative Matches Found:</p>
