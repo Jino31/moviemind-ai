@@ -17,7 +17,10 @@ export default function FindYourMovie() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  
+  // Refactored State Framework for Handling Multi-Response Lists
   const [matchedMovie, setMatchedMovie] = useState(null);
+  const [allMatchesList, setAllMatchesList] = useState([]);
 
   // Search History State parameters
   const [searchHistory, setSearchHistory] = useState([]);
@@ -88,6 +91,7 @@ export default function FindYourMovie() {
     setFileType(file.type.startsWith("video/") ? "video" : "image");
     setPreviewUrl(URL.createObjectURL(file));
     setMatchedMovie(null); 
+    setAllMatchesList([]);
   };
 
   const handleDragOver = (e) => e.preventDefault();
@@ -98,86 +102,82 @@ export default function FindYourMovie() {
   };
 
   // ============================================================
-  // 🧠 SMART DYNAMIC REVERSE MATCHING PIPELINE
+  // 🧠 REAL AI COGNITIVE DEEP REVERSE MATCHING PIPELINE
   // ============================================================
   const triggerVisualAnalysis = async () => {
     if (!selectedFile || analyzing) return;
 
     setAnalyzing(true);
     setAnalysisStatus("Extracting cinematic color histograms...");
-    await new Promise((r) => setTimeout(r, 1200));
+    
+    try {
+      // Assemble standard Multi-part Form Payload
+      const formData = new FormData();
+      formData.append("mediaBlock", selectedFile);
 
-    setAnalysisStatus("Analyzing pixel metadata and actor contours...");
-    await new Promise((r) => setTimeout(r, 1400));
+      // Async artificial delay steps to sustain original status animation layout structures
+      await new Promise((r) => setTimeout(r, 600));
+      setAnalysisStatus("Analyzing pixel metadata and actor contours...");
+      await new Promise((r) => setTimeout(r, 600));
+      setAnalysisStatus("Querying regional database indexing maps via Gemini Vision...");
 
-    setAnalysisStatus("Querying regional database indexing maps...");
-    await new Promise((r) => setTimeout(r, 1000));
+      // Endpoint path inside your current integrated express app router
+      const targetEndpoint = "http://localhost:5000/api/movies/identify-movie";
+      
+      const response = await fetch(targetEndpoint, {
+        method: "POST",
+        body: formData
+      });
 
-    const fileNameLower = selectedFile.name.toLowerCase();
-    let dynamicResult = null;
-
-    if (fileNameLower.includes("siva") || fileNameLower.includes("vvs") || fileNameLower.includes("image_84d8fb") || fileNameLower.includes("image_84d19b")) {
-      dynamicResult = {
-        title: "Varuthapadatha Valibar Sangam",
-        year: "2013",
-        rating: "7.8",
-        director: "Ponram",
-        matchConfidence: "97.4%",
-        overview: "A care-free youth leader and his sidekick continuously trigger comedic chaos in a local rural village, finding themselves caught in a high-stakes standoff after falling in love with the daughter of a fierce village chieftain.",
-        // ✅ HIGH-FIDELITY LIVE TMDB PRODUCTION POSTER RES-PATH
-        posterPath: "https://image.tmdb.org/t/p/w500/z6S8n8oKsc4W2tE5S63vE69V578.jpg" 
-      };
-    } else if (fileNameLower.includes("leo") || fileNameLower.includes("vijay")) {
-      dynamicResult = {
-        title: "Leo",
-        year: "2023",
-        rating: "6.9",
-        director: "Lokesh Kanagaraj",
-        matchConfidence: "98.1%",
-        overview: "An ordinary cafe owner becomes the target of a massive gang syndicate who suspect him of being a legendary former executioner handler hiding under a deep alias footprint.",
-        // ✅ HIGH-FIDELITY LIVE TMDB PRODUCTION POSTER RES-PATH
-        posterPath: "https://image.tmdb.org/t/p/w500/cm656Xp9SByZUbJOnzZf96vXfAn.jpg" 
-      };
-    } else {
-      dynamicResult = {
-        title: "Varuthapadatha Valibar Sangam",
-        year: "2013",
-        rating: "7.8",
-        director: "Ponram",
-        matchConfidence: "89.2%",
-        overview: "Dynamic visual pattern mapping identified a high match configuration for Ponram's comedic masterpiece starring Sivakarthikeyan.",
-        posterPath: "https://image.tmdb.org/t/p/w500/z6S8n8oKsc4W2tE5S63vE69V578.jpg" 
-      };
-    }
-
-    setMatchedMovie(dynamicResult);
-    setAnalyzing(false);
-    setAnalysisStatus("");
-
-    if (auth.currentUser) {
-      try {
-        const uid = auth.currentUser.uid;
-        
-        // Log core history node
-        await addDoc(collection(db, "users", uid, "visionHistory"), {
-          fileName: selectedFile.name,
-          matchedTitle: dynamicResult.title,
-          timestamp: serverTimestamp()
-        });
-
-        // Log session action node
-        await addDoc(collection(db, "users", uid, "sessionLogs"), {
-          text: `Used Vision AI to identify clip from "${dynamicResult.title}"`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: "VISION_AI",
-          createdAt: serverTimestamp()
-        });
-
-        loadSearchHistory(uid);
-      } catch (err) {
-        console.error("Firestore tracking log write failure:", err);
+      if (!response.ok) {
+        throw new Error("Cloud analysis engine failure response status code.");
       }
+
+      const reportResult = await response.json();
+
+      if (reportResult.success && reportResult.matches && reportResult.matches.length > 0) {
+        const topHit = reportResult.matches[0];
+        setAllMatchesList(reportResult.matches);
+        setMatchedMovie(topHit);
+
+        // Commit standard background Firebase log tracking entries matching system criteria
+        if (auth.currentUser) {
+          const uid = auth.currentUser.uid;
+          
+          // Log core history node
+          await addDoc(collection(db, "users", uid, "visionHistory"), {
+            fileName: selectedFile.name,
+            matchedTitle: topHit.title,
+            timestamp: serverTimestamp()
+          });
+
+          // Log session action node
+          await addDoc(collection(db, "users", uid, "sessionLogs"), {
+            text: `Used Vision AI to identify clip from "${topHit.title}"`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: "VISION_AI",
+            createdAt: serverTimestamp()
+          });
+
+          loadSearchHistory(uid);
+        }
+      } else {
+        // Fallback message display condition configuration
+        alert(reportResult.message || "We couldn't confidently identify this movie.");
+        resetScannerCanvas();
+      }
+
+    } catch (networkErr) {
+      console.error("Critical routing core error:", networkErr);
+      alert("System connection error: Failed to process framework visual block components via Cloud Architecture APIs.");
+    } finally {
+      setAnalyzing(false);
+      setAnalysisStatus("");
     }
+  };
+
+  const selectAlternativeMovieCandidate = (chosenMovie) => {
+    setMatchedMovie(chosenMovie);
   };
 
   const handleDeleteSingleHistory = async (e, itemId) => {
@@ -211,6 +211,7 @@ export default function FindYourMovie() {
     setPreviewUrl(null);
     setFileType(null);
     setMatchedMovie(null);
+    setAllMatchesList([]);
   };
 
   return (
@@ -225,7 +226,7 @@ export default function FindYourMovie() {
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse" />
             <div>
-              <h1 className="text-3xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight支">
+              <h1 className="text-3xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight">
                 MovieMind Vision AI
               </h1>
               <p className="text-[10px] text-white/40 tracking-widest uppercase font-mono mt-0.5">
@@ -303,6 +304,29 @@ export default function FindYourMovie() {
                   </div>
                 </div>
               )}
+
+              {/* TOP 5 MULTI-MATCH CANDIDATES CONTROLLER BOX */}
+              {!analyzing && allMatchesList.length > 1 && (
+                <div className="bg-[#0b0b14]/60 border border-white/[0.06] rounded-2xl p-4 backdrop-blur-xl space-y-2 animate-fade-in">
+                  <p className="text-[11px] font-mono text-white/40 uppercase tracking-wider">Top Alternative Matches Found:</p>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {allMatchesList.map((item, index) => (
+                      <button
+                        key={`${item.title}-${index}`}
+                        onClick={() => selectAlternativeMovieCandidate(item)}
+                        className={`w-full px-3 py-2 rounded-lg text-left text-xs flex justify-between items-center border transition ${
+                          matchedMovie?.title === item.title 
+                            ? "bg-pink-500/10 border-pink-500/30 text-pink-400 font-bold" 
+                            : "bg-white/[0.02] border-white/[0.04] text-neutral-300 hover:bg-white/5"
+                        }`}
+                      >
+                        <span className="truncate">{(index + 1)}. {item.title} ({item.year})</span>
+                        <span className="font-mono text-[10px] opacity-70 bg-black/30 px-1.5 py-0.5 rounded">{item.matchConfidence}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Results Delivery Render Card Card */}
@@ -322,26 +346,59 @@ export default function FindYourMovie() {
                   ) : (
                     <div className="space-y-6 animate-fade-in">
                       <div className="flex gap-4 items-start">
-                        {matchedMovie.posterPath && (
+                        {matchedMovie.posterPath ? (
                           <div className="w-24 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg shrink-0 bg-zinc-800">
                             <img src={matchedMovie.posterPath} alt="TMDB Match" className="w-full h-full object-cover" />
                           </div>
+                        ) : (
+                          <div className="w-24 h-36 rounded-xl border border-dashed border-white/10 flex items-center justify-center text-center p-2 text-[10px] text-white/30 tracking-tight shrink-0 bg-black/40">
+                            No Poster Found
+                          </div>
                         )}
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-2xl font-black text-neutral-100">{matchedMovie.title}</span>
+                            <span className="text-2xl font-black text-neutral-100 truncate max-w-full">{matchedMovie.title}</span>
                             <span className="text-xs px-2 py-0.5 bg-white/5 border border-white/10 rounded-md font-bold text-neutral-400">{matchedMovie.year}</span>
                           </div>
+                          
                           <p className="text-xs text-neutral-400 font-medium">Directed by <span className="text-neutral-200 font-bold">{matchedMovie.director}</span></p>
-                          <div className="inline-flex items-center gap-3 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black">
-                            🎯 {matchedMovie.matchConfidence} Confidence Rate Match
+                          
+                          {matchedMovie.runtime && (
+                            <p className="text-[11px] text-neutral-400 font-mono">Length: <span className="text-neutral-300 font-medium">{matchedMovie.runtime}</span></p>
+                          )}
+                          
+                          <div className="flex gap-1.5 flex-wrap pt-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black">
+                              🎯 {matchedMovie.matchConfidence}
+                            </span>
+                            {matchedMovie.rating && (
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
+                                ⭐ {matchedMovie.rating} TMDB
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
+                      {/* Displaying Extracted Genres Metadata */}
+                      {matchedMovie.genres && matchedMovie.genres.length > 0 && (
+                        <div className="flex flex-wrap gap-1 border-t border-b border-white/[0.04] py-2">
+                          {matchedMovie.genres.map((g, idx) => (
+                            <span key={idx} className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full border border-white/5 text-neutral-400 font-medium">{g}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {matchedMovie.cast && matchedMovie.cast.length > 0 && (
+                        <div className="space-y-1">
+                          <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Starring Cast:</h4>
+                          <p className="text-xs text-neutral-300 font-medium truncate">{matchedMovie.cast.join(", ")}</p>
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Synopsis Analysis Block:</h4>
-                        <p className="text-xs text-neutral-300 leading-relaxed font-medium">{matchedMovie.overview}</p>
+                        <p className="text-xs text-neutral-300 leading-relaxed font-medium">{matchedMovie.overview || "No overview plot description available."}</p>
                       </div>
                     </div>
                   )}
@@ -349,10 +406,16 @@ export default function FindYourMovie() {
 
                 {matchedMovie && (
                   <button
-                    onClick={() => navigate("/movies", { state: { filter: "all" } })}
+                    onClick={() => {
+                      if (matchedMovie.trailerUrl) {
+                        window.open(matchedMovie.trailerUrl, "_blank", "noopener,noreferrer");
+                      } else {
+                        navigate("/movies", { state: { filter: "all" } });
+                      }
+                    }}
                     className="mt-6 w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-neutral-200 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                   >
-                    <FaFilm className="text-[10px]" /> Go to Streams Catalog to Watch Trailer
+                    <FaFilm className="text-[10px]" /> {matchedMovie.trailerUrl ? "Play Official Trailer Video (YouTube)" : "Go to Streams Catalog to Watch Trailer"}
                   </button>
                 )}
               </div>
