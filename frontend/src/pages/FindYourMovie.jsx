@@ -111,19 +111,24 @@ export default function FindYourMovie() {
     setAnalysisStatus("Extracting cinematic color histograms...");
     
     try {
-      // Assemble standard Multi-part Form Payload
       const formData = new FormData();
       formData.append("mediaBlock", selectedFile);
 
-      // Async artificial delay steps to sustain original status animation layout structures
       await new Promise((r) => setTimeout(r, 600));
       setAnalysisStatus("Analyzing pixel metadata and actor contours...");
       await new Promise((r) => setTimeout(r, 600));
       setAnalysisStatus("Querying regional database indexing maps via Gemini Vision...");
 
-      // ✅ Safe Cloud-Ready Dynamic Path Configuration Targeting Live Systems Or fallbacks
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "https://your-live-backend-domain.com";
-      const targetEndpoint = `${API_BASE_URL}/api/movies/identify-movie`;
+      // 🔍 DYNAMIC PRODUCTION ROUTING AGENT
+      // Checks if the window is local host; if not, fallback entirely to your deployed render/railway URL
+      let baseEndpoint = "http://localhost:5000";
+      
+      if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+         // 👉 TODO: Paste your real deployed live Render/Railway service URL here instead of the placeholder!
+         baseEndpoint = import.meta.env.VITE_API_URL || "https://your-deployed-render-or-railway-backend.com";
+      }
+      
+      const targetEndpoint = `${baseEndpoint}/api/movies/identify-movie`;
       
       const response = await fetch(targetEndpoint, {
         method: "POST",
@@ -141,18 +146,15 @@ export default function FindYourMovie() {
         setAllMatchesList(reportResult.matches);
         setMatchedMovie(topHit);
 
-        // Commit standard background Firebase log tracking entries matching system criteria
         if (auth.currentUser) {
           const uid = auth.currentUser.uid;
           
-          // Log core history node
           await addDoc(collection(db, "users", uid, "visionHistory"), {
             fileName: selectedFile.name,
             matchedTitle: topHit.title,
             timestamp: serverTimestamp()
           });
 
-          // Log session action node
           await addDoc(collection(db, "users", uid, "sessionLogs"), {
             text: `Used Vision AI to identify clip from "${topHit.title}"`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -169,7 +171,7 @@ export default function FindYourMovie() {
 
     } catch (networkErr) {
       console.error("Critical routing core error:", networkErr);
-      alert("System connection error: Failed to process framework visual block components via Cloud Architecture APIs. Check backend endpoint health properties.");
+      alert("System connection error: Failed to reach your live MovieMind AI backend service. Make sure your server is deployed and running.");
     } finally {
       setAnalyzing(false);
       setAnalysisStatus("");
