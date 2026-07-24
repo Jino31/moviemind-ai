@@ -5,14 +5,28 @@ import movieRoutes from "./routes/movieRoutes.js";
 
 dotenv.config();
 
-// ✅ Check if TMDB key is loading
-console.log("TMDB KEY:", process.env.TMDB_API_KEY);
+console.log("TMDB KEY Loaded:", process.env.TMDB_API_KEY ? "YES" : "NO");
+console.log("GEMINI KEY Loaded:", process.env.GEMINI_API_KEY ? "YES" : "NO");
 
 const app = express();
 
-app.use(cors());
+// ✅ Explicit CORS Configuration for Vercel Frontend
+app.use(
+  cors({
+    origin: "*", // Allows requests from Vercel or any client domain
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 
+// ✅ Root Health Check Endpoint for Render
+app.get("/", (req, res) => {
+  res.send("MovieMind AI Backend is Live and Healthy! 🚀");
+});
+
+// ✅ Movie Identification Routes
 app.use("/api/movies", movieRoutes);
 
 const PORT = process.env.PORT || 5000;
