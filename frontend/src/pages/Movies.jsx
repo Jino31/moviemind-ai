@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 import {
   doc,
@@ -25,10 +26,11 @@ import {
   FaHistory,
   FaEllipsisV,
   FaHome,
-  FaTv,
   FaRegCompass,
   FaUserCircle,
-  FaArrowLeft
+  FaArrowLeft,
+  FaExclamationTriangle,
+  FaSpinner
 } from "react-icons/fa";
 
 import YouTube from "react-youtube";
@@ -68,14 +70,41 @@ export default function Movies() {
   const [isSearchPageOpen, setIsSearchPageOpen] = useState(false);
 
   const [recentSearches, setRecentSearches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
+  // Storage key helpers for user-specific data isolation
+  const getWatchlistKey = (uid) => (uid ? `watchlist_${uid}` : null);
+  const getHistoryKey = (uid) => (uid ? `watched_history_${uid}` : null);
+
+  // Synchronize authentication state & initial data loading
   useEffect(() => {
-    loadMovies();
-    const savedWatchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
-    setWatchlist(savedWatchlist);
+    // Recent searches initialization
+    try {
+      const savedSearches = JSON.parse(localStorage.getItem("recent_searches")) || [];
+      setRecentSearches(savedSearches);
+    } catch {
+      setRecentSearches([]);
+    }
 
-    const savedHistory = JSON.parse(localStorage.getItem("watched_history")) || [];
-    setWatchedHistory(savedHistory);
+    // Reactive Auth State Listener
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const wKey = getWatchlistKey(user.uid);
+        const hKey = getHistoryKey(user.uid);
+
+        const savedWatchlist = JSON.parse(localStorage.getItem(wKey)) || [];
+        const savedHistory = JSON.parse(localStorage.getItem(hKey)) || [];
+
+        setWatchlist(savedWatchlist);
+        setWatchedHistory(savedHistory);
+      } else {
+        setWatchlist([]);
+        setWatchedHistory([]);
+      }
+    });
+
+    loadMovies();
 
     if (location.state && location.state.filter) {
       setActiveViewFilter(location.state.filter);
@@ -87,6 +116,8 @@ export default function Movies() {
         });
       }, 500);
     }
+
+    return () => unsubscribe();
   }, [location.state]);
 
   const fetchMovies = async (url) => {
@@ -102,13 +133,32 @@ export default function Movies() {
   };
 
   const loadMovies = async () => {
+    if (!API_KEY) {
+      setErrorMessage("TMDB API Key missing in environment configuration.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
     try {
-      const trendingData = await fetchMovies(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}`);
-      const topRatedData = await fetchMovies(`https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}`);
-      const actionData = await fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28`);
-      const sciFiData = await fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=878`);
-      const horrorData = await fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27`);
-      const romanceData = await fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=10749`);
+      // Parallel category loading via Promise.all
+      const [
+        trendingData,
+        topRatedData,
+        actionData,
+        sciFiData,
+        horrorData,
+        romanceData
+      ] = await Promise.all([
+        fetchMovies(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}`),
+        fetchMovies(`https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}`),
+        fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28`),
+        fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=878`),
+        fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27`),
+        fetchMovies(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=10749`)
+      ]);
 
       setTrending(trendingData);
       setTopRated(topRatedData);
@@ -116,13 +166,6 @@ export default function Movies() {
       setSciFiMovies(sciFiData);
       setHorrorMovies(horrorData);
       setRomanceMovies(romanceData);
-
-      const localHistory = JSON.parse(localStorage.getItem("watched_history")) || [];
-      if (localHistory.length === 0 && trendingData?.length > 0) {
-        const mockInitialHistory = trendingData.slice(0, 5);
-        setWatchedHistory(mockInitialHistory);
-        localStorage.setItem("watched_history", JSON.stringify(mockInitialHistory));
-      }
 
       if (trendingData && trendingData.length > 0) {
         setHeroMovie(trendingData[0]);
@@ -136,15 +179,24 @@ export default function Movies() {
       }
     } catch (err) {
       console.error("Critical TMDB pipeline initialization crash:", err);
+      setErrorMessage("Failed to load catalog data. Please check connection.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const searchMovies = async (forcedQuery = null) => {
-    const queryTarget = forcedQuery || search;
-    if (!queryTarget.trim()) return;
+    const queryTarget = (forcedQuery || search).trim();
+    if (!queryTarget) return;
+
+    if (!API_KEY) {
+      alert("API Configuration key missing.");
+      return;
+    }
 
     try {
-      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${queryTarget}`);
+      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(queryTarget)}`);
+      if (!res.ok) throw new Error(`HTTP Error Status: ${res.status}`);
       const data = await res.json();
       setSearchResults(data.results || []);
       setActiveViewFilter("all"); 
@@ -159,21 +211,30 @@ export default function Movies() {
         }, 300);
       }
 
-      if (!forcedQuery && !recentSearches.includes(queryTarget.trim())) {
-        setRecentSearches(prev => [queryTarget.trim(), ...prev.slice(0, 4)]);
-      }
+      // Manage recent searches with deduplication and 5-item max limit
+      setRecentSearches(prev => {
+        const filtered = prev.filter(item => item.toLowerCase() !== queryTarget.toLowerCase());
+        const updated = [queryTarget, ...filtered].slice(0, 5);
+        localStorage.setItem("recent_searches", JSON.stringify(updated));
+        return updated;
+      });
 
       if (!data.results || data.results.length === 0) {
-        alert("No movies found matching current handle criteria.");
+        alert("No movies found matching current criteria.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Search query execution failed:", err);
+      alert("Failed to execute search query. Please try again.");
     }
   };
 
   const removeRecentSearchTag = (e, indexToRemove) => {
     e.stopPropagation();
-    setRecentSearches(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setRecentSearches(prev => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      localStorage.setItem("recent_searches", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleKeyPress = (e) => {
@@ -194,6 +255,7 @@ export default function Movies() {
 
     try {
       const res = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${API_KEY}`);
+      if (!res.ok) throw new Error("Failed to fetch trailer payload");
       const data = await res.json();
       const trailer = data.results?.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
 
@@ -205,12 +267,13 @@ export default function Movies() {
         alert("Trailer video stream signature not found");
       }
     } catch (err) {
-      console.log(err);
+      console.error("Trailer stream initialization failed:", err);
     }
   };
 
   const addToWatchlist = async (movie) => {
-    if (!auth.currentUser) {
+    const user = auth.currentUser;
+    if (!user) {
       alert("🔒 Please log in to manage your Watchlist.");
       localStorage.setItem("auth_redirect_target", "/movies"); 
       navigate("/login");
@@ -225,20 +288,21 @@ export default function Movies() {
 
     const updated = [...watchlist, movie];
     setWatchlist(updated);
-    localStorage.setItem("watchlist", JSON.stringify(updated));
+
+    const wKey = getWatchlistKey(user.uid);
+    if (wKey) {
+      localStorage.setItem(wKey, JSON.stringify(updated));
+    }
 
     try {
-      const user = auth.currentUser;
-      if (user) {
-        await updateDoc(doc(db, "users", user.uid), {
-          watchlistCount: increment(1),
-          sessionLogs: arrayUnion({
-            text: `Added "${movie.title}" to Watchlist`,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            type: "WATCHLIST"
-          })
-        });
-      }
+      await updateDoc(doc(db, "users", user.uid), {
+        watchlistCount: increment(1),
+        sessionLogs: arrayUnion({
+          text: `Added "${movie.title}" to Watchlist`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: "WATCHLIST"
+        })
+      });
     } catch (error) {
       console.error("Firestore watchlist sync failed:", error);
     }
@@ -248,14 +312,18 @@ export default function Movies() {
 
   const removeFromWatchlist = async (e, movie) => {
     e.stopPropagation(); 
-    if (!auth.currentUser) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
     const updated = watchlist.filter((m) => m.id !== movie.id);
     setWatchlist(updated);
-    localStorage.setItem("watchlist", JSON.stringify(updated));
+
+    const wKey = getWatchlistKey(user.uid);
+    if (wKey) {
+      localStorage.setItem(wKey, JSON.stringify(updated));
+    }
 
     try {
-      const user = auth.currentUser;
       await updateDoc(doc(db, "users", user.uid), {
         watchlistCount: increment(-1),
         sessionLogs: arrayUnion({
@@ -272,22 +340,32 @@ export default function Movies() {
 
   const removeFromHistoryLog = async (e, movie) => {
     e.stopPropagation();
-    if (!auth.currentUser) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
+    const isCurrentlyInHistory = watchedHistory.some(m => m.id === movie.id);
     const updated = watchedHistory.filter((m) => m.id !== movie.id);
     setWatchedHistory(updated);
-    localStorage.setItem("watched_history", JSON.stringify(updated));
+
+    const hKey = getHistoryKey(user.uid);
+    if (hKey) {
+      localStorage.setItem(hKey, JSON.stringify(updated));
+    }
 
     try {
-      const user = auth.currentUser;
-      await updateDoc(doc(db, "users", user.uid), {
-        watchedCount: increment(-1),
+      const updateData = {
         sessionLogs: arrayUnion({
           text: `Purged "${movie.title}" from screening logs`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: "HISTORY_PURGE"
         })
-      });
+      };
+
+      if (isCurrentlyInHistory) {
+        updateData.watchedCount = increment(-1);
+      }
+
+      await updateDoc(doc(db, "users", user.uid), updateData);
       alert("Purged from watched history 🧼");
     } catch (error) {
       console.error("Firestore history optimization routine failed:", error);
@@ -295,35 +373,44 @@ export default function Movies() {
   };
 
   const markAsWatched = async (movie) => {
-    if (hasTrackedCurrent) return;
+    if (hasTrackedCurrent || !movie) return;
     setHasTrackedCurrent(true);
 
-    const historyLog = JSON.parse(localStorage.getItem("watched_history")) || [];
-    if (!historyLog.find(m => m.id === movie.id)) {
-      const updatedHistory = [movie, ...historyLog].slice(0, 10);
-      setWatchedHistory(updatedHistory);
-      localStorage.setItem("watched_history", JSON.stringify(updatedHistory));
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const isNewWatch = !watchedHistory.some(m => m.id === movie.id);
+    const updatedHistory = isNewWatch
+      ? [movie, ...watchedHistory].slice(0, 10)
+      : watchedHistory;
+
+    setWatchedHistory(updatedHistory);
+
+    const hKey = getHistoryKey(user.uid);
+    if (hKey) {
+      localStorage.setItem(hKey, JSON.stringify(updatedHistory));
     }
 
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-
       let primaryGenreField = "genre_other";
       if (movie.genre_ids?.includes(878)) primaryGenreField = "genre_scifi";
       else if (movie.genre_ids?.includes(28)) primaryGenreField = "genre_action";
       else if (movie.genre_ids?.includes(53)) primaryGenreField = "genre_thriller";
 
-      await updateDoc(doc(db, "users", user.uid), {
-        watchedCount: increment(1),
-        watchHours: increment(2), 
+      const firestoreUpdates = {
         [primaryGenreField]: increment(1), 
         sessionLogs: arrayUnion({
           text: `Watched trailer for "${movie.title}"`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: "SCREENING"
         })
-      });
+      };
+
+      if (isNewWatch) {
+        firestoreUpdates.watchedCount = increment(1);
+      }
+
+      await updateDoc(doc(db, "users", user.uid), firestoreUpdates);
     } catch (error) {
       console.error("Firestore tracking stream crash:", error);
     }
@@ -506,7 +593,7 @@ export default function Movies() {
             { label: "History", icon: <FaHistory />, action: () => {
                 setIsSearchPageOpen(false);
                 if (!auth.currentUser) {
-                  alert("🔒 Please log in to view your Watch History.");
+                  alert("🔒 Please log in to view your History.");
                   localStorage.setItem("auth_redirect_target", "/movies");
                   navigate("/login");
                 } else {
@@ -546,199 +633,295 @@ export default function Movies() {
       {isSearchPageOpen ? (
         
         /* ── 🔍 MODE 1: IMMERSIVE SEARCH PANEL INTERFACE ── */
-        <div className="min-h-screen pl-16 md:pl-24 pt-10 pr-6 md:pr-12 animate-fade-in flex flex-col space-y-10">
-          
-          <div className="w-full max-w-5xl relative mt-4">
-            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 text-xl" />
-            <input 
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Movies, shows and more"
-              className="w-full pl-16 pr-24 py-5 rounded-2xl bg-[#0e0e14]/90 border border-white/10 outline-none text-lg text-white focus:border-red-500/60 shadow-2xl backdrop-blur-md transition-all font-medium"
-            />
-            {search && (
+        <div className="min-h-screen pl-16 md:pl-24 pt-12 pb-24 px-8 md:px-16 animate-fade-in">
+          <div className="max-w-7xl mx-auto">
+            
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-2">Search Catalog</h1>
+                <p className="text-neutral-400 text-lg">Locate cinematic experiences across global TMDB datasets.</p>
+              </div>
               <button 
-                onClick={() => setSearch("")} 
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-sm bg-white/10 px-2.5 py-1 rounded-md transition-colors"
+                onClick={() => setIsSearchPageOpen(false)}
+                className="w-12 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-xl transition-all"
               >
-                Clear
+                <FaTimes />
               </button>
-            )}
-          </div>
+            </div>
 
-          {recentSearches.length > 0 && (
-            <div className="w-full max-w-5xl space-y-4">
-              <h3 className="text-sm font-mono tracking-widest font-bold text-neutral-400 uppercase">Recent Searches</h3>
-              <div className="flex flex-wrap gap-3">
-                {recentSearches.map((query, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => { setSearch(query); searchMovies(query); }}
-                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-sm text-neutral-200 font-medium cursor-pointer transition-all shadow-md group"
+            {/* Search Input Bar */}
+            <div className="relative mb-8">
+              <input
+                type="text"
+                placeholder="Search movies, genres, or keywords..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyPress}
+                className="w-full bg-zinc-900/90 border border-white/10 rounded-3xl py-6 pl-16 pr-36 text-xl md:text-2xl text-white placeholder-neutral-500 focus:outline-none focus:border-red-500 transition-all shadow-2xl"
+              />
+              <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-neutral-400 text-2xl" />
+              <button
+                onClick={() => searchMovies()}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-500 text-white font-bold px-8 py-3 rounded-2xl transition-all shadow-lg active:scale-95"
+              >
+                Search
+              </button>
+            </div>
+
+            {/* Recent Searches Pills */}
+            {recentSearches.length > 0 && (
+              <div className="mb-12 flex items-center gap-3 flex-wrap">
+                <span className="text-neutral-500 text-sm font-semibold uppercase tracking-wider mr-2">Recent Searches:</span>
+                {recentSearches.map((term, index) => (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      setSearch(term);
+                      searchMovies(term);
+                    }}
+                    className="group/pill flex items-center gap-2 bg-white/5 border border-white/10 hover:border-red-500/50 px-4 py-2 rounded-full text-sm font-medium text-neutral-300 hover:text-white cursor-pointer transition-all"
                   >
-                    <FaHistory className="text-xs text-neutral-500 group-hover:text-red-400 transition-colors" />
-                    <span>{query}</span>
-                    <FaTimes 
-                      onClick={(e) => removeRecentSearchTag(e, idx)}
-                      className="text-[10px] text-neutral-500 hover:text-red-500 ml-1 transition-colors cursor-pointer" 
-                    />
+                    <span>{term}</span>
+                    <button
+                      onClick={(e) => removeRecentSearchTag(e, index)}
+                      className="text-neutral-500 hover:text-red-400 transition-colors p-0.5"
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="w-full pt-4">
+            {/* Search Results Display */}
             {searchResults.length > 0 ? (
-              <div className="-ml-16 md:-ml-24">
-                <MovieRow title="Search Results" icon={<FaSearch />} movies={searchResults} />
+              <div className="mt-8">
+                <MovieRow title={`Search Results (${searchResults.length})`} icon={<FaSearch />} movies={searchResults} />
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
-                  <span>📈</span> Trending Searches
-                </h3>
-                <div className="-ml-16 md:-ml-24">
-                  <MovieRow title="" icon={null} movies={trending.slice(0, 12)} />
-                </div>
+              <div className="mt-20 text-center text-neutral-500">
+                <FaSearch className="text-6xl mx-auto mb-4 opacity-20" />
+                <p className="text-xl">Enter a search query to discover movies.</p>
               </div>
             )}
-          </div>
 
+          </div>
         </div>
 
       ) : (
 
-        /* ── 🎬 MODE 2: HERO CATALOG FEED INTERFACE ── */
-        <>
+        /* ── 🎬 MODE 2: MAIN CATALOG DASHBOARD (DEFAULT VIEW) ── */
+        <div className="pl-16 md:pl-20 transition-all duration-300">
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex flex-col items-center justify-center gap-4">
+              <FaSpinner className="animate-spin text-5xl text-red-500" />
+              <p className="text-xl font-medium tracking-wide">Loading Media Catalog...</p>
+            </div>
+          )}
+
+          {/* Error Message Banner */}
+          {errorMessage && (
+            <div className="mx-16 md:mx-24 mt-8 p-4 bg-red-950/80 border border-red-500/50 rounded-2xl flex items-center gap-4 text-red-200">
+              <FaExclamationTriangle className="text-2xl text-red-400 shrink-0" />
+              <div className="flex-1">
+                <p className="font-bold">Catalog Initialization Alert</p>
+                <p className="text-sm opacity-80">{errorMessage}</p>
+              </div>
+              <button 
+                onClick={loadMovies}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm transition-all"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          
+          {/* Hero Section */}
           {heroMovie && (
-            <div className="relative h-screen pl-16 md:pl-20 overflow-hidden">
-              {/* Background Media Layered at Bottom (z-0) */}
+            <div className="relative w-full h-[85vh] min-h-[600px] overflow-hidden mb-12 select-none">
               {heroMovie.backdrop_path ? (
-                <img src={`${IMG}${heroMovie.backdrop_path}`} alt={heroMovie.title} className="absolute inset-0 w-full h-full object-cover z-0" />
+                <img
+                  src={`${IMG}${heroMovie.backdrop_path}`}
+                  alt={heroMovie.title}
+                  className="w-full h-full object-cover object-center scale-105 animate-pulse-subtle"
+                />
               ) : (
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#0a0a14] to-black z-0" />
+                <div className="w-full h-full bg-[#0a0a0f] flex items-center justify-center">
+                  <span className="text-neutral-700 font-mono text-2xl">MEDIA STREAM OFFLINE</span>
+                </div>
               )}
               
-              {/* Dark Ambient Overlays Layered Middle (z-10) */}
-              <div className="absolute inset-0 bg-black/40 z-10"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent z-10"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-transparent z-10"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-[#030305]/40 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#030305] via-[#030305]/60 to-transparent"></div>
 
-              <div className="absolute top-0 right-0 z-40 p-6 flex items-center gap-4">
-                <button 
-                  onClick={() => setIsSearchPageOpen(true)}
-                  className="w-11 h-11 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white hover:bg-red-500/80 shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer"
-                >
-                  <FaSearch className="text-sm" />
-                </button>
-              </div>
+              <div className="absolute bottom-16 left-12 md:left-24 max-w-2xl z-20 space-y-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600/20 border border-red-500/30 backdrop-blur-md text-red-400 font-bold text-sm">
+                  🔥 Trending Worldwide
+                </div>
+                
+                <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none drop-shadow-2xl">
+                  {heroMovie.title}
+                </h1>
 
-              {/* Foreground Content safely lifted to Top (z-20) */}
-              <div className="relative z-20 flex items-center h-full px-14 md:px-20">
-                <div className="max-w-3xl">
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 backdrop-blur-xl mb-6 text-xs font-bold text-red-400 uppercase tracking-wider">🔥 #1 Trending Worldwide</div>
-                  <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6 tracking-tight text-white drop-shadow-md">{heroMovie.title}</h1>
-                  <p className="text-base md:text-lg text-white/80 leading-relaxed mb-10 line-clamp-3 font-medium max-w-2xl">{heroMovie.overview}</p>
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => openTrailer(heroMovie)} 
-                      className="px-8 py-3.5 rounded-2xl bg-white text-black text-base font-bold flex items-center gap-2.5 hover:scale-105 shadow-2xl transition-transform cursor-pointer"
-                    >
-                      <FaPlay className="text-xs" /> Watch Trailer
-                    </button>
-                  </div>
+                <p className="text-neutral-300 text-base md:text-lg line-clamp-3 leading-relaxed font-normal drop-shadow-md">
+                  {heroMovie.overview}
+                </p>
+
+                <div className="flex items-center gap-4 pt-4">
+                  <button
+                    onClick={() => openTrailer(heroMovie)}
+                    className="px-8 py-4 rounded-2xl bg-white text-black font-extrabold flex items-center gap-3 hover:bg-neutral-200 transition-all transform hover:scale-105 shadow-2xl active:scale-95"
+                  >
+                    <FaPlay className="text-sm" /> Watch Trailer
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/movie/${heroMovie.id}`)}
+                    className="px-8 py-4 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md text-white font-bold flex items-center gap-3 hover:bg-white/20 transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    View Movie Details
+                  </button>
+
+                  <button
+                    onClick={() => addToWatchlist(heroMovie)}
+                    className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-red-500 hover:border-red-500 transition-all transform hover:scale-105 active:scale-95 shadow-xl"
+                    title="Add to Watchlist"
+                  >
+                    <FaPlus />
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="relative z-20 -mt-24 pb-32 space-y-4">
-            {activeViewFilter === "watchlist" && (
-              <div className="pt-24 min-h-[50vh]">
-                <MovieRow title="Your Watchlist Collection" icon={"📦"} movies={watchlist} isGatedDeleteView="watchlist" />
-                {watchlist.length === 0 && (
-                  <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your Watchlist is empty.</p>
-                )}
-              </div>
-            )}
-
-            {activeViewFilter === "watched" && (
-              <div className="pt-24 min-h-[50vh]">
-                <MovieRow title="Your Watched Movie History" icon={"👁️"} movies={watchedHistory} isGatedDeleteView="watched" />
-                {watchedHistory.length === 0 && (
-                  <p className="text-neutral-500 text-sm font-mono text-center py-20 uppercase tracking-widest">Your streaming history is empty.</p>
-                )}
-              </div>
-            )}
-
-            {activeViewFilter === "category_expanded" && (
-              <div className="pt-24 min-h-[50vh]">
-                <MovieRow title="Expanded Collection View" icon={"🎬"} movies={searchResults} />
-                <button 
-                  onClick={() => setActiveViewFilter("all")} 
-                  className="mx-auto block mt-8 px-6 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold transition-all"
-                >
-                  ← Back to Showcase
-                </button>
-              </div>
-            )}
-
-            {activeViewFilter === "all" && (
-              <div className="space-y-4">
-                <MovieRow title="Trending Now" icon={<FaFire />} movies={trending} />
-                <MovieRow title="Top Rated" icon={<FaCrown />} movies={topRated} />
-                <MovieRow title="Action Blockbusters" icon={"🎬"} movies={actionMovies} />
-                <MovieRow title="Sci-Fi & Fantasy" icon={"🚀"} movies={sciFiMovies} />
-                <MovieRow title="Horror Night" icon={"👻"} movies={horrorMovies} />
-                <MovieRow title="Romance Feed" icon={"❤️"} movies={romanceMovies} />
-              </div>
+          {/* Filter Bar / Catalog Views */}
+          <div className="mt-8">
+            {activeViewFilter === "watchlist" ? (
+              <MovieRow title="Your Watchlist" icon={<FaCrown />} movies={watchlist} isGatedDeleteView="watchlist" />
+            ) : activeViewFilter === "watched" ? (
+              <MovieRow title="Recently Watched History" icon={<FaHistory />} movies={watchedHistory} isGatedDeleteView="watched" />
+            ) : activeViewFilter === "category_expanded" ? (
+              <MovieRow title="Selected Collection" icon={<FaFire />} movies={searchResults} />
+            ) : (
+              <>
+                <MovieRow title="Trending Movies" icon={<FaFire />} movies={trending} />
+                <MovieRow title="Top Rated" icon={<FaStar />} movies={topRated} />
+                <MovieRow title="Action Blockbusters" movies={actionMovies} />
+                <MovieRow title="Sci-Fi & Fantasy" movies={sciFiMovies} />
+                <MovieRow title="Horror & Thrillers" movies={horrorMovies} />
+                <MovieRow title="Romantic Hits" movies={romanceMovies} />
+              </>
             )}
           </div>
-        </>
+
+        </div>
       )}
 
-      {/* Selection Modal */}
-      {selectedMovie && (
-        <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-10">
-          <div className="relative w-full max-w-6xl rounded-[40px] overflow-hidden bg-[#0c0c12] border border-white/10 shadow-2xl animate-fade-in">
-            <button onClick={() => setSelectedMovie(null)} className="absolute top-6 right-6 z-30 w-14 h-14 rounded-full bg-black/60 flex items-center justify-center text-2xl hover:bg-red-500 hover:rotate-90 text-white cursor-pointer"><FaTimes /></button>
-            <div className="relative h-[600px]">
-              {selectedMovie.backdrop_path ? <img src={`${IMG}${selectedMovie.backdrop_path}`} alt={selectedMovie.title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#0c0c12]" />}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c12] via-transparent to-transparent"></div>
-              <div className="absolute bottom-12 left-12 max-w-4xl z-10">
-                <h1 className="text-5xl md:text-6xl font-black mb-4 tracking-tight">{selectedMovie.title}</h1>
-                <div className="flex items-center gap-6 mb-4 text-sm font-semibold">
-                  <span className="text-emerald-400 text-xl font-bold">{selectedMovie.vote_average?.toFixed(1) || "0.0"} Rating</span>
-                  <span className="text-white/50 text-lg">{selectedMovie.release_date || "Unknown date"}</span>
-                </div>
-                <p className="text-base md:text-lg text-white/70 leading-relaxed mb-8 line-clamp-3">{selectedMovie.overview}</p>
-                <div className="flex gap-4">
-                  <button onClick={() => openTrailer(selectedMovie)} className="px-8 py-4 rounded-xl bg-white text-black font-bold text-lg flex items-center gap-2 hover:scale-105 shadow-lg cursor-pointer"><FaPlay /> Watch Trailer</button>
-                  <button 
-                    onClick={() => {
-                      setSelectedMovie(null);
-                      navigate(`/movie/${selectedMovie.id}`);
-                    }}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-lg font-bold text-white hover:scale-105 transition-transform cursor-pointer"
-                  >
-                    Play Full Movie
-                  </button>
-                </div>
-              </div>
+      {/* ── 🎬 TRAILER MODAL ── */}
+      {trailerKey && (
+        <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12 animate-fade-in">
+          <div className="relative w-full max-w-5xl bg-zinc-950 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            <button
+              onClick={() => {
+                setTrailerKey("");
+                setActiveTrailerMovie(null);
+                setHasTrackedCurrent(false);
+              }}
+              className="absolute top-4 right-4 z-50 w-12 h-12 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white text-xl hover:bg-red-600 transition-all"
+            >
+              <FaTimes />
+            </button>
+
+            <div className="relative pt-[56.25%] w-full">
+              <YouTube
+                videoId={trailerKey}
+                className="absolute inset-0 w-full h-full"
+                opts={{
+                  width: "100%",
+                  height: "100%",
+                  playerVars: {
+                    autoplay: 1,
+                    modestbranding: 1,
+                    rel: 0,
+                  },
+                }}
+                onPlay={() => {
+                  if (activeTrailerMovie) {
+                    markAsWatched(activeTrailerMovie);
+                  }
+                }}
+                onEnd={() => {
+                  setHasTrackedCurrent(false);
+                }}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Trailer Modal */}
-      {trailerKey && (
-        <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 transition-all duration-300">
-          <button onClick={() => { setTrailerKey(""); setActiveTrailerMovie(null); }} className="absolute top-8 right-8 z-50 w-14 h-14 rounded-full bg-black/60 border border-white/10 text-2xl flex items-center justify-center hover:bg-red-500 hover:rotate-90 text-white cursor-pointer"><FaTimes /></button>
-          <div className="w-[85vw] h-[80vh] rounded-[32px] overflow-hidden border border-white/10 bg-black relative z-10 shadow-[0_0_80px_rgba(244,63,94,0.25)]">
-            <YouTube videoId={trailerKey} opts={{ width: "100%", height: "100%", playerVars: { autoplay: 1, modestbranding: 1, rel: 0, origin: window.location.origin } }} className="w-full h-full" onPlay={() => activeTrailerMovie && markAsWatched(activeTrailerMovie)} onEnd={() => { if (activeTrailerMovie) { markAsWatched(activeTrailerMovie); setTrailerKey(""); setActiveTrailerMovie(null); } }} />
+      {/* ── ℹ️ MOVIE DETAILS QUICK-VIEW MODAL ── */}
+      {selectedMovie && (
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="relative w-full max-w-2xl bg-zinc-900 border border-white/10 rounded-3xl p-8 overflow-hidden shadow-2xl">
+            <button
+              onClick={() => setSelectedMovie(null)}
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-red-600 transition-all"
+            >
+              <FaTimes />
+            </button>
+
+            <div className="flex flex-col md:flex-row gap-6">
+              {selectedMovie.backdrop_path || selectedMovie.poster_path ? (
+                <img
+                  src={`${IMG}${selectedMovie.poster_path || selectedMovie.backdrop_path}`}
+                  alt={selectedMovie.title}
+                  className="w-full md:w-48 h-72 object-cover rounded-2xl shadow-lg"
+                />
+              ) : (
+                <div className="w-full md:w-48 h-72 bg-zinc-800 rounded-2xl flex items-center justify-center text-neutral-500 text-xs font-mono">
+                  NO COVER
+                </div>
+              )}
+
+              <div className="flex-1 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-3xl font-black mb-2">{selectedMovie.title}</h2>
+                  <div className="flex items-center gap-4 text-sm text-neutral-400 mb-4">
+                    <span className="flex items-center gap-1 text-yellow-500 font-bold">
+                      <FaStar /> {selectedMovie.vote_average?.toFixed(1) || "N/A"}
+                    </span>
+                    <span>•</span>
+                    <span>{selectedMovie.release_date || "Release Unknown"}</span>
+                  </div>
+                  <p className="text-neutral-300 text-sm line-clamp-4 leading-relaxed mb-6">
+                    {selectedMovie.overview || "No overview available for this title."}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setSelectedMovie(null);
+                      openTrailer(selectedMovie);
+                    }}
+                    className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
+                  >
+                    <FaPlay /> Watch Trailer
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedMovie(null);
+                      addToWatchlist(selectedMovie);
+                    }}
+                    className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all"
+                  >
+                    + Watchlist
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
