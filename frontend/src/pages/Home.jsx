@@ -35,20 +35,31 @@ function Home() {
 
   return (
     <div className="min-h-screen app-bg overflow-hidden font-sans">
-      {/* PREMIUM BACKDROP GRAPHIC ARRAYS */}
+      {/* PREMIUM BACKDROP GRAPHIC ARRAYS (Grid lines removed) */}
       <div className="absolute inset-0 backdrop-glow"></div>
-      <div className="absolute inset-0 grid-lines"></div>
 
       <div className="relative z-10">
         {/* NAVBAR */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-10 py-5 md:py-8 border-b border-line gap-4">
-          <div>
-            <h1 className="text-3xl md:text-5xl font-black leading-tight bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
-              MovieMind AI
-            </h1>
-            <p className="t-muted mt-2 text-sm md:text-base">
-              AI Powered Movie Discovery Platform
-            </p>
+          
+          {/* LOGO & TITLE */}
+          <div 
+            onClick={() => navigate("/")} 
+            className="flex items-center gap-3.5 cursor-pointer group"
+          >
+            <img
+              src="/logo.png"
+              alt="MovieMind AI Logo"
+              className="h-12 w-12 md:h-14 md:w-14 object-contain rounded-xl border border-white/10 group-hover:scale-105 transition-transform"
+            />
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black leading-tight bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
+                MovieMind AI
+              </h1>
+              <p className="t-muted mt-1 text-xs md:text-sm font-medium">
+                AI Powered Movie Discovery Platform
+              </p>
+            </div>
           </div>
 
           {/* RIGHT PROFILE AREA */}
