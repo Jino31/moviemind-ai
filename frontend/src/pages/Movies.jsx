@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, setDoc, increment, arrayUnion } from "firebase/firestore";
 import {
   FaPlay,
@@ -16,6 +16,7 @@ import {
   FaCrown,
   FaChevronLeft,
   FaChevronRight,
+  FaChevronDown,
   FaTrashAlt,
   FaHistory,
   FaInfoCircle,
@@ -26,6 +27,8 @@ import {
   FaExclamationTriangle,
   FaSpinner,
   FaFilm,
+  FaCog,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
@@ -33,10 +36,15 @@ import ThemeToggle from "../components/ThemeToggle";
 /* ───────────────────────── CONFIG ───────────────────────── */
 
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+
+// If TMDB is blocked on your network, point these at the Vercel rewrites instead:
+//   const TMDB = "/tmdb";
+//   const IMG_HERO = "/tmdb-img/w1280"; ...
 const TMDB = "https://api.themoviedb.org/3";
 const IMG_HERO = "https://image.tmdb.org/t/p/w1280";
 const IMG_BACKDROP = "https://image.tmdb.org/t/p/w780";
 const IMG_POSTER = "https://image.tmdb.org/t/p/w342";
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png";
 
 const CATEGORIES = [
   { key: "trending", title: "Trending Movies", icon: <FaFire />, path: "/trending/movie/week", params: "" },
@@ -88,7 +96,6 @@ const safeList = (path, params) =>
     .catch(() => []);
 
 // setDoc + merge works even if the user document doesn't exist yet
-// (updateDoc throws in that case, which silently broke the counters)
 async function syncUser(updates) {
   const user = auth.currentUser;
   if (!user) return;
@@ -235,7 +242,7 @@ function MovieRow({ id, title, icon, movies, onViewAll, cardProps }) {
   };
 
   return (
-    <section id={id} className="group/row mb-10 scroll-mt-24">
+    <section id={id} className="group/row mb-10 scroll-mt-32">
       <div className={`flex items-center justify-between ${PAGE_PAD} mb-4`}>
         <div className="flex items-center gap-3">
           {icon && <span className="text-red-500 text-xl">{icon}</span>}
@@ -314,7 +321,7 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
   if (!movie) return null;
 
   return (
-    <section className="relative w-full h-[68vh] min-h-[460px] max-h-[760px] overflow-hidden select-none">
+    <section className="relative w-full h-[64vh] min-h-[440px] max-h-[740px] overflow-hidden select-none">
       {movies.map((m, i) => (
         <img
           key={m.id}
@@ -390,7 +397,7 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
       </div>
 
       {movies.length > 1 && (
-        <div className={`absolute bottom-5 z-10 flex gap-2 left-4 sm:left-8 lg:left-12`}>
+        <div className="absolute bottom-5 z-10 flex gap-2 left-4 sm:left-8 lg:left-12">
           {movies.map((m, i) => (
             <button
               key={m.id}
@@ -435,6 +442,9 @@ export default function Movies() {
   const [view, setView] = useState("home");
   const [collection, setCollection] = useState({ title: "", movies: [] });
 
+  const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const [catalog, setCatalog] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -460,14 +470,13 @@ export default function Movies() {
 
   const [trailer, setTrailer] = useState(null); // { key, movie }
   const [infoMovie, setInfoMovie] = useState(null);
-
-  const [railExpanded, setRailExpanded] = useState(false);
   const [toast, setToast] = useState("");
 
   const trackedRef = useRef(false);
   const searchSeq = useRef(0);
   const searchInputRef = useRef(null);
   const toastTimer = useRef(null);
+  const menuRef = useRef(null);
 
   const watchlistIds = new Set(watchlist.map((m) => m.id));
 
@@ -490,14 +499,30 @@ export default function Movies() {
 
   /* ── auth: runs once, loads this user's lists ── */
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setWatchlist(readList(watchlistKey(user?.uid)));
-      setWatchedHistory(readList(historyKey(user?.uid)));
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setWatchlist(readList(watchlistKey(currentUser?.uid)));
+      setWatchedHistory(readList(historyKey(currentUser?.uid)));
     });
     return unsubscribe;
   }, []);
 
-  /* ── catalog: loads once (previously re-ran on every location.state change) ── */
+  /* ── close the profile menu on outside click / Escape ── */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  /* ── catalog: loads once ── */
   const loadCatalog = useCallback(async () => {
     if (!API_KEY) {
       setErrorMessage("TMDB API key missing. Add VITE_TMDB_API_KEY to your environment.");
@@ -640,14 +665,14 @@ export default function Movies() {
   };
 
   const toggleWatchlist = (movie) => {
-    const user = requireAuth("manage your Watchlist");
-    if (!user) return;
+    const currentUser = requireAuth("manage your Watchlist");
+    if (!currentUser) return;
 
     const exists = watchlist.some((m) => m.id === movie.id);
     const updated = exists ? watchlist.filter((m) => m.id !== movie.id) : [movie, ...watchlist];
 
     setWatchlist(updated);
-    writeList(watchlistKey(user.uid), updated);
+    writeList(watchlistKey(currentUser.uid), updated);
     showToast(exists ? "Removed from watchlist" : "Added to watchlist");
 
     syncUser({
@@ -661,12 +686,12 @@ export default function Movies() {
   };
 
   const removeFromHistory = (movie) => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
     const updated = watchedHistory.filter((m) => m.id !== movie.id);
     setWatchedHistory(updated);
-    writeList(historyKey(user.uid), updated);
+    writeList(historyKey(currentUser.uid), updated);
     showToast("Removed from history");
 
     syncUser({
@@ -683,13 +708,13 @@ export default function Movies() {
     if (trackedRef.current || !movie) return; // ref guard: onPlay fires on every resume
     trackedRef.current = true;
 
-    const user = auth.currentUser;
-    if (!user) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
     const isNew = !watchedHistory.some((m) => m.id === movie.id);
     const updated = [movie, ...watchedHistory.filter((m) => m.id !== movie.id)].slice(0, 10);
     setWatchedHistory(updated);
-    writeList(historyKey(user.uid), updated);
+    writeList(historyKey(currentUser.uid), updated);
 
     let genreField = "genre_other";
     if (movie.genre_ids?.includes(878)) genreField = "genre_scifi";
@@ -708,6 +733,17 @@ export default function Movies() {
     syncUser(updates);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setMenuOpen(false);
+      navigate("/login");
+    } catch (err) {
+      console.error("Sign out failed:", err);
+      showToast("Couldn't sign out. Please try again.");
+    }
+  };
+
   /* ───────────── navigation ───────────── */
 
   const goHome = (scrollId) => {
@@ -719,6 +755,17 @@ export default function Movies() {
       );
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Back: from a sub-view return to Discover, from Discover leave the page
+  const goBack = () => {
+    if (view !== "home") {
+      goHome();
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
     }
   };
 
@@ -740,25 +787,20 @@ export default function Movies() {
     if (requireAuth("view your History")) setView("history");
   };
 
-  const navItems = [
-    { id: "home", label: "Home", icon: <FaHome />, mobile: true, onClick: () => goHome() },
-    { id: "search", label: "Search", icon: <FaSearch />, mobile: true, onClick: focusSearch },
-    { id: "trending", label: "Trending", icon: <FaFire />, mobile: false, onClick: () => goHome("row-trending") },
-    { id: "watchlist", label: "Watchlist", icon: <FaCrown />, mobile: true, onClick: openWatchlist },
-    { id: "history", label: "History", icon: <FaHistory />, mobile: true, onClick: openHistory },
-    { id: "dashboard", label: "Dashboard", icon: <FaRegCompass />, mobile: true, onClick: () => navigate("/performance") },
-    { id: "profile", label: "My Space", icon: <FaUserCircle />, mobile: true, onClick: () => navigate("/profile") },
-  ];
+  const items = {
+    home: { id: "home", label: "Home", icon: <FaHome />, onClick: () => goHome() },
+    search: { id: "search", label: "Search", icon: <FaSearch />, onClick: focusSearch },
+    trending: { id: "trending", label: "Trending", icon: <FaFire />, onClick: () => goHome("row-trending") },
+    watchlist: { id: "watchlist", label: "Watchlist", icon: <FaCrown />, onClick: openWatchlist },
+    history: { id: "history", label: "History", icon: <FaHistory />, onClick: openHistory },
+    dashboard: { id: "dashboard", label: "Dashboard", icon: <FaRegCompass />, onClick: () => navigate("/performance") },
+    profile: { id: "profile", label: "Profile", icon: <FaUserCircle />, onClick: () => navigate("/profile") },
+  };
+
+  const desktopTabs = [items.home, items.trending, items.watchlist, items.history, items.dashboard];
+  const mobileTabs = [items.home, items.search, items.watchlist, items.history, items.profile];
 
   const activeId = view === "collection" ? "home" : view;
-
-  const headerTitle = {
-    home: "Discover",
-    search: "Search",
-    watchlist: "Your Watchlist",
-    history: "Watch History",
-    collection: collection.title,
-  }[view];
 
   const cardProps = {
     watchlistIds,
@@ -768,133 +810,225 @@ export default function Movies() {
     onToggleWatchlist: toggleWatchlist,
   };
 
+  const menuLinks = [
+    { label: "My Profile", icon: <FaUserCircle />, to: "/profile" },
+    { label: "Performance", icon: <FaRegCompass />, to: "/performance" },
+    { label: "Settings", icon: <FaCog />, to: "/settings" },
+  ];
+
   /* ───────────── render ───────────── */
 
   return (
     <div className="app-bg min-h-screen overflow-x-clip font-sans">
-      {/* ── DESKTOP SIDE RAIL ── */}
-      <aside
-        onMouseEnter={() => setRailExpanded(true)}
-        onMouseLeave={() => setRailExpanded(false)}
-        className={`hidden md:flex fixed top-0 left-0 h-full z-50 flex-col py-6 menu-bg border-r border-line backdrop-blur-2xl transition-all duration-300 select-none ${
-          railExpanded ? "w-60 px-4 shadow-2xl" : "w-16 items-center"
-        }`}
-      >
-        <button
-          onClick={() => navigate("/")}
-          className={`mb-10 flex items-center gap-3 cursor-pointer ${railExpanded ? "pl-1" : ""}`}
-          title="MovieMind AI"
-        >
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-black">
-            M
-          </div>
-          {railExpanded && (
-            <span className="t-main font-black tracking-wide whitespace-nowrap">
+      {/* ═════════ TOP NAVIGATION ═════════ */}
+      <header className="sticky top-0 z-40 nav-bg backdrop-blur-2xl border-b border-line">
+        <div className={`max-w-[1800px] mx-auto ${PAGE_PAD} py-3 flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-3`}>
+          {/* back */}
+          <button
+            onClick={goBack}
+            title={view === "home" ? "Go back" : "Back to Discover"}
+            aria-label="Go back"
+            className="shrink-0 h-11 px-3 sm:px-4 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm flex items-center gap-2 transition hover:text-red-500 active:scale-95 cursor-pointer"
+          >
+            <FaArrowLeft className="text-xs" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+
+          {/* logo */}
+          <button
+            onClick={() => navigate("/")}
+            title="MovieMind AI home"
+            className="shrink-0 flex items-center gap-2.5 cursor-pointer"
+          >
+            <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-black shadow-[0_0_20px_rgba(236,72,153,0.35)]">
+              M
+            </span>
+            <span className="hidden lg:block t-main font-black tracking-tight text-lg whitespace-nowrap">
               MovieMind <span className="text-red-500">AI</span>
             </span>
-          )}
-        </button>
+          </button>
 
-        <nav className={`flex-1 flex flex-col gap-1 ${railExpanded ? "w-full" : "items-center"}`}>
-          {navItems.map((item) => {
-            const active = activeId === item.id;
-            return (
+          {/* desktop tabs */}
+          <nav className="hidden md:flex items-center gap-1 ml-1 xl:ml-4">
+            {desktopTabs.map((tab) => {
+              const active = activeId === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={tab.onClick}
+                  className={`flex items-center gap-2 px-3 xl:px-4 py-2 rounded-full text-sm font-bold transition whitespace-nowrap cursor-pointer ${
+                    active
+                      ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.3)]"
+                      : "t-muted surface-hover hover:text-red-500"
+                  }`}
+                >
+                  <span className="text-xs">{tab.icon}</span>
+                  <span className="hidden xl:inline">{tab.label}</span>
+                  <span className="xl:hidden">{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* search (own row on phones) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              runSearch();
+            }}
+            className="order-last md:order-none w-full md:w-auto md:flex-1 relative min-w-0 md:max-w-md md:ml-auto"
+          >
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search movies..."
+              className="w-full h-11 surface border border-line rounded-2xl pl-10 pr-10 text-sm t-main placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition"
+            />
+            {query && (
               <button
-                key={item.id}
-                onClick={item.onClick}
-                title={item.label}
-                className={`flex items-center rounded-xl transition cursor-pointer ${
-                  railExpanded ? "w-full px-4 py-3 gap-4 text-sm font-bold" : "w-11 h-11 justify-center text-lg"
-                } ${active ? "text-red-500 surface" : "t-muted surface-hover hover:text-red-500"}`}
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 cursor-pointer"
               >
-                <span className="shrink-0">{item.icon}</span>
-                {railExpanded && <span className="whitespace-nowrap">{item.label}</span>}
+                <FaTimes className="text-sm" />
               </button>
-            );
-          })}
-        </nav>
+            )}
+          </form>
 
-        <button
-          onClick={() => navigate("/")}
-          title="Back to site"
-          className={`flex items-center t-muted hover:text-red-500 transition cursor-pointer ${
-            railExpanded ? "w-full px-4 py-3 gap-4 text-xs font-bold tracking-widest" : "w-11 h-11 justify-center text-lg"
-          }`}
-        >
-          <FaArrowLeft />
-          {railExpanded && <span className="whitespace-nowrap">BACK TO SITE</span>}
-        </button>
-      </aside>
+          {/* right cluster */}
+          <div className="ml-auto md:ml-0 flex items-center gap-2 shrink-0">
+            <ThemeToggle />
 
-      {/* ── MOBILE BOTTOM NAV ── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 menu-bg border-t border-line backdrop-blur-2xl flex pb-[env(safe-area-inset-bottom)]">
-        {navItems
-          .filter((i) => i.mobile)
-          .map((item) => {
-            const active = activeId === item.id;
-            return (
+            {!user ? (
               <button
-                key={item.id}
-                onClick={item.onClick}
-                className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-semibold cursor-pointer ${
-                  active ? "text-red-500" : "t-muted"
-                }`}
+                onClick={() => navigate("/login")}
+                className="h-11 px-5 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition cursor-pointer"
               >
-                <span className="text-lg">{item.icon}</span>
-                {item.label}
+                Login
               </button>
-            );
-          })}
+            ) : (
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  className="h-11 pl-1.5 pr-3 rounded-full surface surface-hover border border-line flex items-center gap-2 transition cursor-pointer"
+                >
+                  <img
+                    src={user.photoURL || FALLBACK_AVATAR}
+                    alt="Profile"
+                    referrerPolicy="no-referrer"
+                    className="w-8 h-8 rounded-full object-cover border border-line"
+                  />
+                  <FaChevronDown
+                    className={`text-[10px] t-muted transition-transform ${menuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-3 w-72 rounded-3xl border border-line menu-bg backdrop-blur-xl overflow-hidden z-50 shadow-[0_0_30px_rgba(255,0,100,0.2)]"
+                  >
+                    <div className="px-5 py-4 flex items-center gap-3 border-b border-line">
+                      <img
+                        src={user.photoURL || FALLBACK_AVATAR}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        className="w-11 h-11 rounded-full object-cover border border-line"
+                      />
+                      <div className="min-w-0">
+                        <p className="t-main font-bold text-sm truncate">{user.displayName || "Explorer"}</p>
+                        <p className="t-muted text-xs truncate">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-2">
+                      {menuLinks.map((link) => (
+                        <button
+                          key={link.to}
+                          role="menuitem"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            navigate(link.to);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl surface-hover t-main text-sm font-semibold text-left transition cursor-pointer"
+                        >
+                          <span className="w-8 h-8 rounded-lg surface flex items-center justify-center text-red-500 text-sm">
+                            {link.icon}
+                          </span>
+                          {link.label}
+                        </button>
+                      ))}
+
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          openWatchlist();
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl surface-hover t-main text-sm font-semibold text-left transition cursor-pointer"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-lg surface flex items-center justify-center text-red-500 text-sm">
+                            <FaCrown />
+                          </span>
+                          Watchlist
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full surface t-muted text-xs">{watchlist.length}</span>
+                      </button>
+                    </div>
+
+                    <div className="p-2 border-t border-line">
+                      <button
+                        role="menuitem"
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-500/10 text-sm font-semibold text-left transition cursor-pointer"
+                      >
+                        <span className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-sm">
+                          <FaSignOutAlt />
+                        </span>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ═════════ MOBILE BOTTOM NAV ═════════ */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 menu-bg border-t border-line backdrop-blur-2xl flex pb-[env(safe-area-inset-bottom)]">
+        {mobileTabs.map((tab) => {
+          const active = activeId === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={tab.onClick}
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition cursor-pointer ${
+                active ? "text-red-500" : "t-muted"
+              }`}
+            >
+              <span className={`text-lg ${active ? "scale-110" : ""} transition-transform`}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* ── MAIN COLUMN ── */}
-      <main className="md:pl-16 pb-24 md:pb-12">
-        {/* sticky top bar: title + search + theme toggle */}
-        <header className="sticky top-0 z-40 nav-bg backdrop-blur-2xl border-b border-line">
-          <div className={`flex items-center gap-3 ${PAGE_PAD} py-3`}>
-            <h1 className="hidden sm:block t-main text-xl font-black shrink-0 max-w-[220px] truncate">
-              {headerTitle}
-            </h1>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                runSearch();
-              }}
-              className="relative flex-1 min-w-0 max-w-2xl sm:ml-4"
-            >
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search movies..."
-                className="w-full surface border border-line rounded-2xl py-2.5 pl-10 pr-10 text-sm t-main placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 cursor-pointer"
-                >
-                  <FaTimes className="text-sm" />
-                </button>
-              )}
-            </form>
-
-            <div className="ml-auto shrink-0">
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
-
-        {/* ═════════ HOME ═════════ */}
+      {/* ═════════ CONTENT ═════════ */}
+      <main className="pb-28 md:pb-12">
+        {/* HOME */}
         {view === "home" && (
           <>
             {isLoading ? (
-              <div className="w-full h-[60vh] min-h-[420px] surface animate-pulse" />
+              <div className="w-full h-[56vh] min-h-[400px] surface animate-pulse" />
             ) : (
               heroMovies.length > 0 && (
                 <Hero
@@ -950,7 +1084,7 @@ export default function Movies() {
           </>
         )}
 
-        {/* ═════════ SEARCH ═════════ */}
+        {/* SEARCH */}
         {view === "search" && (
           <div className={`${PAGE_PAD} py-8`}>
             {recentSearches.length > 0 && (
@@ -985,7 +1119,8 @@ export default function Movies() {
             ) : searchResults.length > 0 ? (
               <>
                 <h2 className="t-main text-2xl font-black mb-6">
-                  Results for “{resultsFor}” <span className="t-muted font-semibold">({searchResults.length})</span>
+                  Results for “{resultsFor}”{" "}
+                  <span className="t-muted font-semibold">({searchResults.length})</span>
                 </h2>
                 <MovieGrid movies={searchResults} cardProps={cardProps} />
               </>
@@ -1005,13 +1140,16 @@ export default function Movies() {
           </div>
         )}
 
-        {/* ═════════ WATCHLIST ═════════ */}
+        {/* WATCHLIST */}
         {view === "watchlist" && (
           <div className={`${PAGE_PAD} py-8`}>
             {watchlist.length > 0 ? (
               <>
                 <h2 className="t-main text-2xl font-black mb-6">
-                  {watchlist.length} saved {watchlist.length === 1 ? "title" : "titles"}
+                  Your Watchlist{" "}
+                  <span className="t-muted font-semibold">
+                    ({watchlist.length} {watchlist.length === 1 ? "title" : "titles"})
+                  </span>
                 </h2>
                 <MovieGrid
                   movies={watchlist}
@@ -1030,7 +1168,7 @@ export default function Movies() {
           </div>
         )}
 
-        {/* ═════════ HISTORY ═════════ */}
+        {/* HISTORY */}
         {view === "history" && (
           <div className={`${PAGE_PAD} py-8`}>
             {watchedHistory.length > 0 ? (
@@ -1053,15 +1191,9 @@ export default function Movies() {
           </div>
         )}
 
-        {/* ═════════ COLLECTION ("View All") ═════════ */}
+        {/* COLLECTION ("View All") */}
         {view === "collection" && (
           <div className={`${PAGE_PAD} py-8`}>
-            <button
-              onClick={() => goHome()}
-              className="mb-6 flex items-center gap-2 t-muted hover:text-red-500 text-sm font-bold transition cursor-pointer"
-            >
-              <FaArrowLeft className="text-xs" /> Back to Discover
-            </button>
             <h2 className="t-main text-3xl font-black mb-6">{collection.title}</h2>
             {collection.movies.length > 0 ? (
               <MovieGrid movies={collection.movies} cardProps={cardProps} />
@@ -1072,7 +1204,7 @@ export default function Movies() {
         )}
       </main>
 
-      {/* ── TRAILER MODAL ── */}
+      {/* ═════════ TRAILER MODAL ═════════ */}
       {trailer && (
         <div
           onClick={closeTrailer}
@@ -1112,7 +1244,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── MOVIE INFO MODAL ── */}
+      {/* ═════════ MOVIE INFO MODAL ═════════ */}
       {infoMovie && (
         <div
           onClick={() => setInfoMovie(null)}
@@ -1192,7 +1324,7 @@ export default function Movies() {
         </div>
       )}
 
-      {/* ── TOAST ── */}
+      {/* ═════════ TOAST ═════════ */}
       {toast && (
         <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl">
           {toast}
