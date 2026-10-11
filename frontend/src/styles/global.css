@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ───────── THEME VARIABLES ───────── */
+:root,
+[data-theme="dark"] {
+  --bg: #020617;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.1);
+  --menu-bg: rgba(0, 0, 0, 0.95);
+  --nav-bg: rgba(0, 0, 0, 0.4);
+  --grid: rgba(255, 255, 255, 0.04);
+  --glow-a: #7f1d1d;
+  --glow-b: #4c1d95;
+  --glow-opacity: 0.6;
+  --glass-bg: rgba(15, 23, 42, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --scroll-track: #050505;
+}
+
+[data-theme="light"] {
+  --bg: #f8f7fb;
+  --text: #111827;
+  --text-muted: rgba(17, 24, 39, 0.6);
+  --surface: rgba(0, 0, 0, 0.04);
+  --surface-hover: rgba(0, 0, 0, 0.08);
+  --border: rgba(0, 0, 0, 0.1);
+  --menu-bg: rgba(255, 255, 255, 0.97);
+  --nav-bg: rgba(255, 255, 255, 0.7);
+  --grid: rgba(0, 0, 0, 0.05);
+  --glow-a: #fecaca;
+  --glow-b: #ddd6fe;
+  --glow-opacity: 0.7;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --scroll-track: #e5e7eb;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -9,10 +47,11 @@
 }
 
 body {
-  background: #020617;
-  color: white;
+  background: var(--bg);
+  color: var(--text);
   font-family: Inter, sans-serif;
   overflow-x: hidden;
+  transition: background 0.25s, color 0.25s;
 }
 
 /* Smooth Scroll */
@@ -27,7 +66,7 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #050505;
+  background: var(--scroll-track);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -51,19 +90,19 @@ html {
 
 /* Glass Effect */
 .glass {
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--glass-border);
 }
 
 /* Glow */
 .red-glow {
   box-shadow:
-    0 0 20px rgba(239,68,68,0.2),
-    0 0 40px rgba(239,68,68,0.1);
+    0 0 20px rgba(239, 68, 68, 0.2),
+    0 0 40px rgba(239, 68, 68, 0.1);
 }
-/* HIDE SCROLLBAR */
 
+/* HIDE SCROLLBAR */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -71,4 +110,28 @@ html {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ───────── THEME HELPER CLASSES ───────── */
+html .app-bg { background: var(--bg); color: var(--text); }
+html .t-main { color: var(--text); }
+html .t-muted { color: var(--text-muted); }
+html .surface { background: var(--surface); }
+html .surface-hover:hover { background: var(--surface-hover); }
+html .border-line { border-color: var(--border); }
+html .menu-bg { background: var(--menu-bg); }
+html .nav-bg { background: var(--nav-bg); }
+
+html .grid-lines {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+html .backdrop-glow {
+  background-image:
+    radial-gradient(circle at top left, var(--glow-a), transparent 35%),
+    radial-gradient(circle at bottom right, var(--glow-b), transparent 35%);
+  opacity: var(--glow-opacity);
 }
