@@ -40,11 +40,12 @@ const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 // If TMDB is blocked on your network, point these at the Vercel rewrites instead:
 //   const TMDB = "/tmdb";
 //   const IMG_HERO = "/tmdb-img/w1280"; ...
-const TMDB = "https://api.themoviedb.org/3";
-const IMG_HERO = "https://image.tmdb.org/t/p/w1280";
-const IMG_BACKDROP = "https://image.tmdb.org/t/p/w780";
-const IMG_POSTER = "https://image.tmdb.org/t/p/w342";
-const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png";
+const PROXY = import.meta.env.PROD;
+const TMDB = PROXY ? "/tmdb" : "https://api.themoviedb.org/3";
+const IMG_BASE = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
+const IMG_HERO = `${IMG_BASE}/w1280`;
+const IMG_BACKDROP = `${IMG_BASE}/w780`;
+const IMG_POSTER = `${IMG_BASE}/w342`;
 
 const CATEGORIES = [
   { key: "trending", title: "Trending Movies", icon: <FaFire />, path: "/trending/movie/week", params: "" },
