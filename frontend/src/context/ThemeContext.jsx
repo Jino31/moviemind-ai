@@ -4,11 +4,17 @@
 // <html> element immediately, so every page updates in real time:
 //   - theme         -> data-theme="dark|light" (+ color-scheme)
 //   - fontSize      -> root font-size (all rem-based Tailwind sizes scale)
-//   - fontFamily    -> --font-body CSS variable
+//   - fontFamily    -> --font-body CSS variable, applied to the whole app
 //   - reducedMotion -> data-motion="reduced|full"
 //
 // Preferences are saved in localStorage and, when logged in, synced to
 // users/{uid}.preferences in Firestore so they follow the user across devices.
+//
+// Fonts are bundled with the app (@fontsource-variable/*) and loaded on demand,
+// so they work even where Google Fonts is blocked or offline.
+//
+//   npm i @fontsource-variable/inter @fontsource-variable/plus-jakarta-sans \
+//         @fontsource-variable/lexend @fontsource-variable/merriweather
 
 import {
   createContext,
@@ -27,42 +33,59 @@ const STORAGE_KEY = "moviemind_prefs";
 
 /* eslint-disable react-refresh/only-export-components */
 
+/* ───────────────────────── FONTS ───────────────────────── */
+
 export const FONTS = {
   inter: {
     label: "Inter",
-    note: "Clean default",
-    stack: 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
-    google: "Inter:wght@400;500;600;700;800;900",
+    desc: "Clean and neutral",
+    stack: '"Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
   },
-  poppins: {
-    label: "Poppins",
-    note: "Rounded and friendly",
-    stack: "Poppins, system-ui, sans-serif",
-    google: "Poppins:wght@400;500;600;700;800;900",
+  jakarta: {
+    label: "Plus Jakarta Sans",
+    desc: "Modern and friendly",
+    stack: '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif',
   },
   lexend: {
     label: "Lexend",
-    note: "Easy to read",
-    stack: "Lexend, system-ui, sans-serif",
-    google: "Lexend:wght@400;500;600;700;800;900",
+    desc: "Easy to read",
+    stack: '"Lexend Variable", Lexend, system-ui, sans-serif',
   },
   merriweather: {
     label: "Merriweather",
-    note: "Classic serif",
-    stack: "Merriweather, Georgia, serif",
-    google: "Merriweather:wght@400;700;900",
+    desc: "Classic serif",
+    stack: '"Merriweather Variable", Merriweather, Georgia, serif',
   },
   system: {
     label: "System",
-    note: "Your device font",
+    desc: "Your device font",
     stack: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-    google: null,
   },
 };
 
+// Each loader pulls in the font's CSS + files only when that font is needed.
+const FONT_LOADERS = {
+  inter: () => import("@fontsource-variable/inter"),
+  jakarta: () => import("@fontsource-variable/plus-jakarta-sans"),
+  lexend: () => import("@fontsource-variable/lexend"),
+  merriweather: () => import("@fontsource-variable/merriweather"),
+};
+
+const requestedFonts = new Set();
+
+export function ensureFont(key) {
+  const load = FONT_LOADERS[key];
+  if (!load || requestedFonts.has(key)) return;
+  requestedFonts.add(key);
+  load().catch((err) => {
+    requestedFonts.delete(key);
+    console.warn(`Couldn't load the ${key} font:`, err.message);
+  });
+}
+
 export const FONT_SIZES = {
   sm: { label: "Small", scale: 87.5 },
-  md: { label: "Medium", scale: 100 },
+  md: { label: "Default", scale: 100 },
   lg: { label: "Large", scale: 112.5 },
   xl: { label: "Extra large", scale: 125 },
 };
@@ -76,17 +99,73 @@ export const DEFAULT_PREFS = {
   reducedMotion: false,
 };
 
-export function ensureFont(key) {
-  const font = FONTS[key];
-  if (!font?.google || typeof document === "undefined") return;
-  const id = `mm-font-${key}`;
-  if (document.getElementById(id)) return;
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
-  document.head.appendChild(link);
+/* ───────────────────────── GLOBAL CSS (injected) ─────────────────────────
+   Injected here so the font override, motion setting and the shared design
+   tokens work without anyone having to edit global.css. */
+
+const PREFS_CSS = `
+:root { --font-body: ${FONTS.inter.stack}; }
+
+/* the chosen typeface applies to the whole app (code/mono labels excluded) */
+html body,
+html .font-sans { font-family: var(--font-body); }
+
+/* shared design tokens */
+html[data-theme="dark"], html:not([data-theme]) {
+  --card: #0d1322;
+  --card-border: rgba(255,255,255,0.08);
+  --field: #0a0f1c;
+  --inset: rgba(255,255,255,0.03);
+  --hover: rgba(255,255,255,0.06);
+  --toggle-off: rgba(255,255,255,0.18);
+  --shadow-card: none;
 }
+html[data-theme="light"] {
+  --card: #ffffff;
+  --card-border: #e2e8f0;
+  --field: #ffffff;
+  --inset: #f8fafc;
+  --hover: #f1f5f9;
+  --toggle-off: #cbd5e1;
+  --shadow-card: 0 1px 2px rgba(15,23,42,0.06);
+}
+
+.mm-card { background: var(--card); border: 1px solid var(--card-border); box-shadow: var(--shadow-card); }
+.mm-inset { background: var(--inset); border: 1px solid var(--card-border); }
+.mm-opt { background: var(--inset); border-color: var(--card-border); }
+.mm-opt:hover { border-color: rgba(239,68,68,0.5); }
+.mm-divide > * + * { border-top: 1px solid var(--card-border); }
+.mm-hover:hover { background: var(--hover); }
+.mm-toggle-off { background: var(--toggle-off); }
+.mm-field { background: var(--field); border: 1px solid var(--card-border); color: var(--text); }
+.mm-field:focus { outline: none; border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.25); }
+.mm-btn { background: var(--card); border: 1px solid var(--card-border); color: var(--text); }
+.mm-btn:hover:not(:disabled) { background: var(--hover); }
+.mm-btn-danger { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.35); color: #ef4444; }
+.mm-btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.16); }
+.mm-focus:focus-visible { outline: 2px solid #f87171; outline-offset: 2px; }
+
+/* reduce motion */
+html[data-motion="reduced"] { scroll-behavior: auto !important; }
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+`;
+
+function injectPrefsStyle() {
+  if (typeof document === "undefined" || document.getElementById("mm-prefs-style")) return;
+  const el = document.createElement("style");
+  el.id = "mm-prefs-style";
+  el.textContent = PREFS_CSS;
+  document.head.appendChild(el); // last in <head>, so it wins over equal-specificity rules
+}
+
+/* ───────────────────────── STATE HELPERS ───────────────────────── */
 
 function sanitize(p) {
   return {
@@ -136,6 +215,10 @@ export function ThemeProvider({ children }) {
 
   const resolvedTheme =
     prefs.theme === "system" ? (systemDark ? "dark" : "light") : prefs.theme;
+
+  useEffect(() => {
+    injectPrefsStyle();
+  }, []);
 
   /* ── follow the OS theme while "system" is selected ── */
   useEffect(() => {
