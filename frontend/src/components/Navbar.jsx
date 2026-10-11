@@ -33,9 +33,9 @@ function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 nav-bg backdrop-blur-2xl border-b border-line transition-colors duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-10 py-4 gap-6">
+      <div className="w-full px-6 md:px-12 py-4 flex items-center justify-between">
 
-        {/* LEFT SIDE: LOGO & NAV LINKS */}
+        {/* LEFT CORNER: LOGO & NAV LINKS */}
         <div className="flex items-center gap-10 lg:gap-14">
           <Link to="/" className="flex items-center gap-3.5 group">
             <img
@@ -67,8 +67,8 @@ function Navbar() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: SEARCH, THEME, PROFILE/LOGIN */}
-        <div className="flex items-center gap-4">
+        {/* RIGHT CORNER: SEARCH, THEME, PROFILE/LOGIN */}
+        <div className="flex items-center gap-4 ml-auto">
           
           {/* SEARCH BAR */}
           <div className="hidden lg:flex items-center gap-3 surface border border-line px-4 py-2.5 rounded-2xl backdrop-blur-xl">

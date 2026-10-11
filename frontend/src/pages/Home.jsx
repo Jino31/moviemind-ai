@@ -6,9 +6,10 @@ function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen app-bg overflow-hidden font-sans">
-      {/* PREMIUM BACKDROP GLOW */}
+    <div className="min-h-screen app-bg overflow-hidden font-sans relative">
+      {/* PREMIUM BACKDROP GRAPHIC ARRAYS & GRID PATTERN RESTORED */}
       <div className="absolute inset-0 backdrop-glow pointer-events-none"></div>
+      <div className="absolute inset-0 grid-lines pointer-events-none"></div>
 
       <div className="relative z-10">
         {/* REUSABLE NAVBAR */}
