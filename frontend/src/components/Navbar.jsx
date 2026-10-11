@@ -32,61 +32,58 @@ function Navbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-black/60 dark:bg-black/80 backdrop-blur-3xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between gap-6">
+    <nav className="fixed top-0 left-0 w-full z-50 nav-bg backdrop-blur-2xl border-b border-line shadow-lg transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-4">
 
         {/* LEFT: BRAND LOGO & TITLE */}
-        <Link to="/" className="flex items-center gap-3.5 group flex-shrink-0">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 rounded-2xl blur-md opacity-50 group-hover:opacity-100 transition duration-500"></div>
-            <img
-              src="/logo.png"
-              alt="MovieMind AI"
-              className="relative h-11 w-11 md:h-12 md:w-12 object-contain rounded-2xl border border-white/20 bg-black/40 group-hover:scale-105 transition-transform"
-            />
-          </div>
+        <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
+          <img
+            src="/logo.png"
+            alt="MovieMind AI"
+            className="h-10 w-10 md:h-11 md:w-11 object-contain bg-transparent group-hover:scale-105 transition-transform"
+          />
           <div className="flex flex-col">
-            <span className="text-xl md:text-2xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-tight leading-tight">
+            <span className="text-lg md:text-xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent leading-tight">
               MovieMind AI
             </span>
-            <span className="text-gray-400 text-[10px] md:text-xs font-semibold tracking-wide uppercase opacity-80">
-              AI Cinematic Engine
+            <span className="t-muted text-[9px] md:text-[10px] font-semibold tracking-wide uppercase">
+              AI Powered Movie Discovery
             </span>
           </div>
         </Link>
 
-        {/* CENTER: ICONIC NAV CHIPS */}
-        <div className="hidden lg:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-2xl shadow-inner">
+        {/* CENTER: NAV CHIPS */}
+        <div className="hidden md:flex items-center gap-1.5 surface border border-line px-3 py-1.5 rounded-full backdrop-blur-xl">
           <Link
             to="/"
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-gray-200 hover:text-white hover:bg-white/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold t-main hover:text-red-500 hover:surface-hover transition"
           >
-            <FaCompass className="text-red-400" /> Home
+            <FaCompass className="text-red-500 text-xs" /> Home
           </Link>
           <Link
             to="/movies"
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-gray-200 hover:text-white hover:bg-white/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold t-main hover:text-pink-500 hover:surface-hover transition"
           >
-            <FaFilm className="text-pink-400" /> Movies
+            <FaFilm className="text-pink-500 text-xs" /> Movies
           </Link>
           <Link
             to="/chatbot"
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-gray-200 hover:text-white hover:bg-white/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold t-main hover:text-purple-500 hover:surface-hover transition"
           >
-            <FaRobot className="text-purple-400" /> AI Matrix
+            <FaRobot className="text-purple-500 text-xs" /> AI Recommendation
           </Link>
         </div>
 
         {/* RIGHT: SEARCH, THEME, PROFILE/LOGIN */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           
           {/* SEARCH BOX */}
-          <div className="hidden xl:flex items-center gap-2.5 bg-white/5 border border-white/10 px-3.5 py-2 rounded-2xl backdrop-blur-xl focus-within:border-red-500/50 transition">
+          <div className="hidden lg:flex items-center gap-2 surface border border-line px-3 py-1.5 rounded-xl backdrop-blur-xl">
             <FaSearch className="text-gray-400 text-xs" />
             <input
               type="text"
-              placeholder="Search films..."
-              className="bg-transparent outline-none text-white placeholder:text-gray-500 text-xs w-36 2xl:w-48 font-medium"
+              placeholder="Search movies..."
+              className="bg-transparent outline-none t-main placeholder:text-gray-400 text-xs w-32 xl:w-44"
             />
           </div>
 
@@ -95,15 +92,15 @@ function Navbar() {
           {!user ? (
             <button
               onClick={() => navigate("/login")}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 text-white text-xs font-bold hover:bg-red-500/30 transition-all shadow-md cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl surface surface-hover border border-line t-main text-xs font-semibold transition cursor-pointer"
             >
-              Login Matrix
+              Login
             </button>
           ) : (
             <div className="relative" ref={menuRef}>
               <div
                 onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white cursor-pointer hover:scale-105 transition-all select-none shadow-[0_0_20px_rgba(255,0,100,0.3)]"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white cursor-pointer hover:scale-105 transition-all select-none shadow-sm"
               >
                 <img
                   src={
@@ -111,18 +108,18 @@ function Navbar() {
                     "https://cdn-icons-png.flaticon.com/512/3177/3177440.png"
                   }
                   alt="profile"
-                  className="w-8 h-8 rounded-xl object-cover border border-white/30 flex-shrink-0"
+                  className="w-6 h-6 rounded-full object-cover border border-white/20 flex-shrink-0"
                 />
-                <span className="font-bold text-xs hidden sm:inline pr-1">
+                <span className="font-semibold text-xs hidden sm:inline">
                   {user.displayName?.split(" ")[0] || "Explorer"}
                 </span>
               </div>
 
               {showMenu && (
-                <div className="absolute right-0 mt-3 w-72 rounded-3xl border border-white/15 bg-black/95 backdrop-blur-3xl overflow-hidden z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-                  <div className="p-4 border-b border-white/10 bg-gradient-to-r from-red-500/10 to-transparent">
-                    <p className="text-xs text-gray-400">Signed in as</p>
-                    <p className="text-sm font-bold text-white truncate">{user.email}</p>
+                <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-line menu-bg backdrop-blur-2xl overflow-hidden z-50 shadow-2xl">
+                  <div className="p-3 border-b border-line surface">
+                    <p className="text-[10px] t-muted">Signed in as</p>
+                    <p className="text-xs font-bold t-main truncate">{user.email}</p>
                   </div>
 
                   <button
@@ -130,9 +127,9 @@ function Navbar() {
                       setShowMenu(false);
                       navigate("/profile");
                     }}
-                    className="w-full text-left px-5 py-3.5 hover:bg-white/10 transition-all font-semibold text-xs text-gray-200 hover:text-white cursor-pointer flex items-center gap-3"
+                    className="w-full text-left px-4 py-3 surface-hover transition font-semibold text-xs t-main cursor-pointer"
                   >
-                    👤 My Profile Matrix
+                    👤 My Profile
                   </button>
 
                   <button
@@ -140,9 +137,9 @@ function Navbar() {
                       setShowMenu(false);
                       navigate("/performance");
                     }}
-                    className="w-full text-left px-5 py-3.5 hover:bg-white/10 transition-all font-semibold text-xs text-gray-200 hover:text-white cursor-pointer flex items-center gap-3"
+                    className="w-full text-left px-4 py-3 surface-hover transition font-semibold text-xs t-main cursor-pointer"
                   >
-                    📊 Performance Dashboard
+                    📊 Performance
                   </button>
 
                   <button
@@ -150,12 +147,12 @@ function Navbar() {
                       setShowMenu(false);
                       navigate("/settings");
                     }}
-                    className="w-full text-left px-5 py-3.5 hover:bg-white/10 transition-all font-semibold text-xs text-gray-200 hover:text-white cursor-pointer flex items-center gap-3"
+                    className="w-full text-left px-4 py-3 surface-hover transition font-semibold text-xs t-main cursor-pointer"
                   >
-                    ⚙️ System Settings
+                    ⚙️ Settings
                   </button>
 
-                  <div className="border-t border-white/10" />
+                  <div className="border-t border-line" />
 
                   <button
                     onClick={async () => {
@@ -167,9 +164,9 @@ function Navbar() {
                         console.error("Sign out error:", error);
                       }
                     }}
-                    className="w-full text-left px-5 py-3.5 text-red-400 hover:bg-red-500/20 transition-all font-bold text-xs cursor-pointer flex items-center gap-3"
+                    className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-500/10 transition font-semibold text-xs cursor-pointer"
                   >
-                    🚪 Terminate Session (Logout)
+                    🚪 Logout
                   </button>
                 </div>
               )}
