@@ -33,50 +33,50 @@ function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-line">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-3 gap-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-2 gap-4">
 
         {/* LEFT SIDE: LOGO & NAV LINKS */}
-        <div className="flex items-center gap-8 lg:gap-12">
-          <Link to="/" className="flex items-center gap-3 group">
+        <div className="flex items-center gap-6 lg:gap-10">
+          <Link to="/" className="flex items-center gap-2.5 group">
             <img
               src="/logo.png"
               alt="MovieMind AI"
-              className="h-10 w-10 md:h-12 md:w-12 object-contain rounded-xl border border-white/10 group-hover:scale-105 transition-transform"
+              className="h-9 w-9 md:h-10 md:w-10 object-contain group-hover:scale-105 transition-transform"
             />
             <div>
-              <h1 className="text-xl md:text-2xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+              <h1 className="text-lg md:text-2xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
                 MovieMind AI
               </h1>
-              <p className="text-gray-400 text-[10px] md:text-xs">
+              <p className="text-gray-400 text-[9px] md:text-[11px] leading-none">
                 AI Powered Movie Discovery
               </p>
             </div>
           </Link>
 
           {/* NAVIGATION LINKS */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm lg:text-base font-semibold t-main hover:text-red-400 transition">
+          <div className="hidden md:flex items-center gap-5">
+            <Link to="/" className="text-sm font-semibold t-main hover:text-red-400 transition">
               Home
             </Link>
-            <Link to="/movies" className="text-sm lg:text-base font-semibold t-main hover:text-pink-400 transition">
+            <Link to="/movies" className="text-sm font-semibold t-main hover:text-pink-400 transition">
               Movies
             </Link>
-            <Link to="/chatbot" className="text-sm lg:text-base font-semibold t-main hover:text-purple-400 transition">
+            <Link to="/chatbot" className="text-sm font-semibold t-main hover:text-purple-400 transition">
               AI Recommendation
             </Link>
           </div>
         </div>
 
         {/* RIGHT SIDE: SEARCH, THEME, PROFILE/LOGIN */}
-        <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2.5 md:gap-3">
           
           {/* SEARCH BAR */}
-          <div className="hidden lg:flex items-center gap-2 surface border border-line px-3 py-2 rounded-xl">
-            <FaSearch className="text-gray-400 text-sm" />
+          <div className="hidden lg:flex items-center gap-2 surface border border-line px-3 py-1.5 rounded-xl">
+            <FaSearch className="text-gray-400 text-xs" />
             <input
               type="text"
               placeholder="Search movies..."
-              className="bg-transparent outline-none t-main placeholder:text-gray-500 text-sm w-36 xl:w-48"
+              className="bg-transparent outline-none t-main placeholder:text-gray-500 text-xs w-32 xl:w-44"
             />
           </div>
 
@@ -85,7 +85,7 @@ function Navbar() {
           {!user ? (
             <button
               onClick={() => navigate("/login")}
-              className="px-4 py-2 rounded-xl surface surface-hover border border-line t-main text-sm font-semibold transition"
+              className="px-3.5 py-1.5 rounded-xl surface surface-hover border border-line t-main text-xs font-semibold transition"
             >
               Login
             </button>
@@ -93,7 +93,7 @@ function Navbar() {
             <div className="relative" ref={menuRef}>
               <div
                 onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white cursor-pointer hover:scale-105 transition-all select-none"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white cursor-pointer hover:scale-105 transition-all select-none"
               >
                 <img
                   src={
@@ -101,9 +101,9 @@ function Navbar() {
                     "https://cdn-icons-png.flaticon.com/512/3177/3177440.png"
                   }
                   alt="profile"
-                  className="w-8 h-8 rounded-full object-cover border border-white/20"
+                  className="w-7 h-7 rounded-full object-cover border border-white/20"
                 />
-                <span className="font-semibold text-sm hidden sm:inline">
+                <span className="font-semibold text-xs hidden sm:inline">
                   {user.displayName || "Explorer"}
                 </span>
               </div>
