@@ -32,8 +32,8 @@ function Navbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-line">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-2 gap-4">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-black/80 dark:bg-black/90 backdrop-blur-md border-b border-line">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-2.5 gap-4">
 
         {/* LEFT SIDE: LOGO & NAV LINKS */}
         <div className="flex items-center gap-6 lg:gap-10">
@@ -47,21 +47,21 @@ function Navbar() {
               <h1 className="text-lg md:text-2xl font-black bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
                 MovieMind AI
               </h1>
-              <p className="text-gray-400 text-[9px] md:text-[11px] leading-none">
+              <p className="text-gray-400 dark:text-gray-400 text-[9px] md:text-[11px] leading-none">
                 AI Powered Movie Discovery
               </p>
             </div>
           </Link>
 
           {/* NAVIGATION LINKS */}
-          <div className="hidden md:flex items-center gap-5">
-            <Link to="/" className="text-sm font-semibold t-main hover:text-red-400 transition">
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-bold text-gray-800 dark:text-gray-200 hover:text-red-500 transition">
               Home
             </Link>
-            <Link to="/movies" className="text-sm font-semibold t-main hover:text-pink-400 transition">
+            <Link to="/movies" className="text-sm font-bold text-gray-800 dark:text-gray-200 hover:text-pink-500 transition">
               Movies
             </Link>
-            <Link to="/chatbot" className="text-sm font-semibold t-main hover:text-purple-400 transition">
+            <Link to="/chatbot" className="text-sm font-bold text-gray-800 dark:text-gray-200 hover:text-purple-500 transition">
               AI Recommendation
             </Link>
           </div>
@@ -76,7 +76,7 @@ function Navbar() {
             <input
               type="text"
               placeholder="Search movies..."
-              className="bg-transparent outline-none t-main placeholder:text-gray-500 text-xs w-32 xl:w-44"
+              className="bg-transparent outline-none t-main placeholder:text-gray-400 text-xs w-32 xl:w-44"
             />
           </div>
 
