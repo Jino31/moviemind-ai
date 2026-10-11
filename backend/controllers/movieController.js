@@ -1,102 +1,214 @@
-import axios from "axios";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// controllers/movieController.js
+//
+// NOTE: environment variables are read inside functions, not at the top of
+// the file. ES module imports run before dotenv.config() in server.js, so a
+// top-level process.env.X would be undefined.
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const TMDB_BASE = "https://api.themoviedb.org/3";
+const TMDB_IMAGE = "https://image.tmdb.org/t/p/w500";
+const MAX_MATCHES = 5;
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const httpError = (status, message) => Object.assign(new Error(message), { status });
 
-export const getTrendingMovies = async (req, res) => {
-  try {
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY}`
-    );
+const PROMPT = `You are a film expert. Identify the movie that this image or video clip comes from.
+Use everything visible: actors, costumes, sets, vehicles, visible text and cinematography.
 
-    res.json(response.data.results);
-  } catch (error) {
-    console.error("Error fetching trending movies:", error);
-    res.status(500).json({
-      message: "Failed to fetch trending movies",
-    });
+Respond with JSON only, in exactly this shape:
+{"matches":[{"title":"Movie title","year":2014,"confidence":85}]}
+
+Rules:
+- Return up to ${MAX_MATCHES} matches, best match first.
+- "confidence" is a number from 0 to 100.
+- If you cannot identify the movie with reasonable confidence, return {"matches":[]}.
+- Never invent titles.`;
+
+/* ───────── GEMINI ───────── */
+async function askGemini(file) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+  if (!apiKey) throw httpError(500, "GEMINI_API_KEY is missing on the server.");
+
+  const response = await fetch(`${GEMINI_BASE}/${model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: PROMPT },
+            {
+              inline_data: {
+                mime_type: file.mimetype,
+                data: file.buffer.toString("base64"),
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+    }),
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    console.error(`Gemini error ${response.status}:`, details.slice(0, 500));
+
+    if (response.status === 429) {
+      throw httpError(429, "The AI service is busy right now. Please try again in a minute.");
+    }
+    if (response.status === 404) {
+      throw httpError(500, `Gemini model "${model}" was not found. Set GEMINI_MODEL in your .env.`);
+    }
+    throw httpError(502, "The AI service could not process this file.");
   }
+
+  const data = await response.json();
+  const text = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+
+  // Models sometimes wrap JSON in code fences even in JSON mode
+  const cleaned = text.replace(/```json|```/g, "").trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    console.error("Could not parse Gemini output:", cleaned.slice(0, 300));
+    return [];
+  }
+
+  return (Array.isArray(parsed?.matches) ? parsed.matches : [])
+    .filter((m) => m && typeof m.title === "string" && m.title.trim())
+    .slice(0, MAX_MATCHES);
+}
+
+/* ───────── TMDB ───────── */
+async function tmdb(path, params = {}) {
+  const key = process.env.TMDB_API_KEY;
+  const url = new URL(`${TMDB_BASE}${path}`);
+  const headers = {};
+
+  // Supports both a v3 API key and a v4 read access token
+  if (key.startsWith("eyJ")) {
+    headers.Authorization = `Bearer ${key}`;
+  } else {
+    url.searchParams.set("api_key", key);
+  }
+
+  for (const [name, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(name, String(value));
+    }
+  }
+
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
+  if (!response.ok) throw new Error(`TMDB responded with ${response.status}`);
+  return response.json();
+}
+
+const formatRuntime = (minutes) => {
+  if (!minutes) return "";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h ? `${h}h ${m}m` : `${m}m`;
 };
 
-export const searchMovies = async (req, res) => {
-  try {
-    const query = req.query.query;
+/* Adds poster, cast, director, trailer, etc. If TMDB fails, keep the AI result. */
+async function enrich(match) {
+  const confidence = Number(match.confidence);
+  const pct = Number.isFinite(confidence) ? Math.min(100, Math.max(0, confidence)) : 50;
 
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${query}`
+  const base = {
+    title: match.title.trim(),
+    year: match.year ? String(match.year) : "",
+    matchConfidence: `${Math.round(pct)}%`,
+  };
+
+  try {
+    let search = await tmdb("/search/movie", {
+      query: base.title,
+      year: base.year,
+      include_adult: "false",
+    });
+    let hit = search.results?.[0];
+
+    // The year from the AI can be off by one, so retry without it
+    if (!hit && base.year) {
+      search = await tmdb("/search/movie", { query: base.title, include_adult: "false" });
+      hit = search.results?.[0];
+    }
+    if (!hit) return base;
+
+    const details = await tmdb(`/movie/${hit.id}`, { append_to_response: "credits,videos" });
+
+    const director = details.credits?.crew?.find((c) => c.job === "Director")?.name || "";
+    const cast = (details.credits?.cast || []).slice(0, 5).map((c) => c.name);
+    const trailer = (details.videos?.results || []).find(
+      (v) => v.site === "YouTube" && v.type === "Trailer"
     );
 
-    res.json(response.data.results);
-  } catch (error) {
-    console.error("Error searching movies:", error);
-
-    res.status(500).json({
-      message: "Search failed",
-    });
+    return {
+      ...base,
+      title: details.title || base.title,
+      year: details.release_date?.slice(0, 4) || base.year,
+      director,
+      runtime: formatRuntime(details.runtime),
+      rating: details.vote_average ? details.vote_average.toFixed(1) : "",
+      genres: (details.genres || []).map((g) => g.name),
+      cast,
+      overview: details.overview || "",
+      posterPath: details.poster_path ? `${TMDB_IMAGE}${details.poster_path}` : "",
+      trailerUrl: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : "",
+    };
+  } catch (err) {
+    console.error(`TMDB lookup failed for "${base.title}":`, err.message);
+    return base;
   }
-};
+}
 
-// ✅ EXPORTED identifyMovie FUNCTION (Fixes the Render crash)
+/* ───────── ROUTE HANDLER ───────── */
 export const identifyMovie = async (req, res) => {
   try {
-    const file = req.file;
-
-    if (!file) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "No image file uploaded",
+        message: "No file received. Upload a screenshot or a short clip.",
+      });
+    }
+    if (!process.env.TMDB_API_KEY) {
+      throw httpError(500, "TMDB_API_KEY is missing on the server.");
+    }
+
+    const candidates = await askGemini(req.file);
+
+    if (candidates.length === 0) {
+      return res.json({
+        success: false,
+        matches: [],
+        message:
+          "We couldn't confidently identify this movie. Try a clearer frame with faces or distinctive scenery.",
       });
     }
 
-    // Convert uploaded buffer to inline base64 data for Gemini API
-    const imageParts = [
-      {
-        inlineData: {
-          data: file.buffer.toString("base64"),
-          mimeType: file.mimetype,
-        },
-      },
-    ];
+    const enriched = await Promise.all(candidates.map(enrich));
 
-    // Query Gemini Vision Model
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt =
-      "Analyze this movie/TV show frame screenshot. Identify the exact movie or show title. Return strictly a raw JSON object with keys: 'movieTitle' (string), 'confidence' (number 0-100), and 'summary' (brief 1-2 sentence description). Do not wrap in markdown code blocks.";
-
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const responseText = result.response.text().trim();
-
-    // Clean JSON response if formatted in markdown backticks
-    const cleanedJson = responseText.replace(/```json|```/g, "").trim();
-    const parsedData = JSON.parse(cleanedJson);
-
-    // Fetch movie metadata from TMDB if title was found
-    let tmdbData = null;
-    if (parsedData.movieTitle) {
-      const tmdbRes = await axios.get(
-        `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-          parsedData.movieTitle
-        )}`
-      );
-      if (tmdbRes.data.results.length > 0) {
-        tmdbData = tmdbRes.data.results[0];
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      movie: parsedData,
-      details: tmdbData,
+    // Remove duplicate titles
+    const seen = new Set();
+    const matches = enriched.filter((m) => {
+      const key = m.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
-  } catch (error) {
-    console.error("Error identifying movie:", error);
-    res.status(500).json({
+
+    return res.json({ success: true, matches });
+  } catch (err) {
+    console.error("identify-movie error:", err);
+    return res.status(err.status || 500).json({
       success: false,
-      message: error.message || "Failed to process vision matrix analysis.",
+      message: err.status ? err.message : "Something went wrong while identifying the movie.",
     });
   }
 };

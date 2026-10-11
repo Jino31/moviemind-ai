@@ -1,26 +1,42 @@
+// routes/movieRoutes.js
 import express from "express";
 import multer from "multer";
-import {
-  getTrendingMovies,
-  searchMovies,
-  identifyMovie, // Make sure to export this in movieController.js or implement your controller logic
-} from "../controllers/movieController.js";
+import { identifyMovie } from "../controllers/movieController.js";
 
 const router = express.Router();
 
-// Multer setup in memory for receiving image/video uploads from frontend
+// Gemini accepts about 20 MB per request including base64 overhead,
+// so keep uploads at 14 MB or less. Keep MAX_FILE_MB in the frontend in sync.
+const MAX_UPLOAD_MB = 14;
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (/^(image|video)\//.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image and video files are allowed."));
+    }
+  },
 });
 
-// GET /api/movies/trending
-router.get("/trending", getTrendingMovies);
+// Wraps multer so upload errors come back as JSON the frontend can display
+const receiveMedia = (req, res, next) => {
+  upload.single("mediaBlock")(req, res, (err) => {
+    if (!err) return next();
 
-// GET /api/movies/search
-router.get("/search", searchMovies);
+    const tooLarge = err.code === "LIMIT_FILE_SIZE";
+    return res.status(tooLarge ? 413 : 400).json({
+      success: false,
+      message: tooLarge
+        ? `That file is too large. The limit is ${MAX_UPLOAD_MB} MB.`
+        : err.message,
+    });
+  });
+};
 
-// POST /api/movies/identify-movie (THIS FIXES THE 404 ERROR)
-router.post("/identify-movie", upload.single("mediaBlock"), identifyMovie);
+// POST /api/movies/identify-movie
+router.post("/identify-movie", receiveMedia, identifyMovie);
 
 export default router;

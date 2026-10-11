@@ -1,44 +1,93 @@
 // frontend/src/firebase.js
 
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp, getApps } from "firebase/app";
+
 import {
   initializeAuth,
+  getAuth,
   GoogleAuthProvider,
   browserLocalPersistence,
   browserPopupRedirectResolver,
 } from "firebase/auth";
+
 import { getFirestore } from "firebase/firestore";
-// 🤖 Import the official Google Gen AI SDK for client-side processing
 import { GoogleGenAI } from "@google/genai";
 
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "", // Loaded securely from your environment variables
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "moviemind-25984.firebaseapp.com",
   projectId: "moviemind-25984",
   storageBucket: "moviemind-25984.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize the core Firebase App instance
-const app = initializeApp(firebaseConfig);
+// Validate required Firebase configuration
+const requiredFirebaseFields = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "appId",
+];
 
-// 🔒 Initialize and export Auth with browser state persistence
-export const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence,
-  popupRedirectResolver: browserPopupRedirectResolver,
+const missingFirebaseFields = requiredFirebaseFields.filter(
+  (field) => !firebaseConfig[field]
+);
+
+if (missingFirebaseFields.length > 0) {
+  throw new Error(
+    `Missing Firebase configuration: ${missingFirebaseFields.join(", ")}. Check your frontend .env file.`
+  );
+}
+
+// Initialize Firebase only once
+const app = getApps().length > 0
+  ? getApp()
+  : initializeApp(firebaseConfig);
+
+// Initialize Firebase Authentication
+let auth;
+
+try {
+  auth = initializeAuth(app, {
+    persistence: browserLocalPersistence,
+    popupRedirectResolver: browserPopupRedirectResolver,
+  });
+} catch (error) {
+  if (error.code === "auth/already-initialized") {
+    auth = getAuth(app);
+  } else {
+    throw error;
+  }
+}
+
+export { auth };
+
+// Google Authentication Provider
+export const provider = new GoogleAuthProvider();
+
+provider.setCustomParameters({
+  prompt: "select_account",
 });
 
-// 🌐 Configure and export Google OAuth Identity Provider
-export const provider = new GoogleAuthProvider();
-provider.setCustomParameters({ prompt: "select_account" });
-
-// 📥 Initialize and export Cloud Firestore Database handler
+// Firestore Database
 export const db = getFirestore(app);
 
-// 🧠 Initialize and export the Google Gen AI Core Engine 
-// This reads your Gemini API token securely from your frontend project's root .env file
-export const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+// Gemini AI Initialization
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-console.log("✅ Firebase Engine & Gemini AI Core initialized successfully");
+export const ai = geminiApiKey
+  ? new GoogleGenAI({ apiKey: geminiApiKey })
+  : null;
+
+if (ai) {
+  console.info("Gemini AI initialized successfully");
+} else {
+  console.warn(
+    "Gemini AI is disabled. Configure VITE_GEMINI_API_KEY to enable AI features."
+  );
+}
+
+console.info("Firebase initialized successfully");

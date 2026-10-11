@@ -135,3 +135,404 @@ html .backdrop-glow {
     radial-gradient(circle at bottom right, var(--glow-b), transparent 35%);
   opacity: var(--glow-opacity);
 }
+
+
+/* ==========================================
+   MOVIEMIND AI — PARTICLE WAVE ANIMATION
+   Compatible with existing dark/light themes
+   ========================================== */
+
+.particle-wave {
+  z-index: 0;
+  opacity: 0.85;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 12%,
+    black 78%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 12%,
+    black 78%,
+    transparent
+  );
+}
+
+.wave-line {
+  stroke-dasharray: 12 16;
+  animation: wave-flow 18s linear infinite;
+}
+
+.wave-line-1 {
+  animation-duration: 23s;
+  animation-direction: reverse;
+}
+
+.wave-line-2 {
+  animation-duration: 17s;
+}
+
+.wave-line-3 {
+  animation-duration: 26s;
+  animation-direction: reverse;
+}
+
+.wave-line-4 {
+  animation-duration: 21s;
+}
+
+.wave-particle {
+  opacity: 0.7;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: particle-float 5s ease-in-out infinite;
+  animation-delay: var(--particle-delay, 0s);
+}
+
+.wave-ambient {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  filter: blur(75px);
+  pointer-events: none;
+  animation: ambient-drift 12s ease-in-out infinite alternate;
+}
+
+.wave-ambient-one {
+  top: 5%;
+  left: 10%;
+  background: rgba(236, 72, 153, 0.13);
+}
+
+.wave-ambient-two {
+  top: 20%;
+  right: 8%;
+  background: rgba(168, 85, 247, 0.13);
+  animation-delay: -6s;
+}
+
+/* Dark theme */
+[data-theme="dark"] .particle-wave {
+  opacity: 0.85;
+}
+
+[data-theme="dark"] .wave-particle {
+  opacity: 0.8;
+}
+
+/* Light theme: stronger contrast */
+[data-theme="light"] .particle-wave {
+  opacity: 0.9;
+}
+
+[data-theme="light"] .wave-particle {
+  opacity: 0.95;
+}
+
+[data-theme="light"] .wave-ambient-one {
+  background: rgba(236, 72, 153, 0.12);
+}
+
+[data-theme="light"] .wave-ambient-two {
+  background: rgba(139, 92, 246, 0.12);
+}
+
+/* ==========================================
+   CINEMATIC TEXT REVEAL
+   ========================================== */
+
+.hero-reveal {
+  opacity: 0;
+  animation: cinematic-reveal 850ms
+    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-reveal-1 {
+  animation-delay: 100ms;
+}
+
+.hero-reveal-3 {
+  animation-delay: 480ms;
+}
+
+.hero-reveal-4 {
+  animation-delay: 650ms;
+}
+
+.hero-title {
+  perspective: 800px;
+}
+
+.hero-title-line {
+  opacity: 0;
+  transform: translateY(32px) rotateX(-5deg);
+  animation: title-reveal 1000ms
+    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-title-line:nth-child(2) {
+  animation-delay: 180ms;
+}
+
+/* Keyframes */
+
+@keyframes cinematic-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes title-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(32px) rotateX(-5deg);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes wave-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -280;
+  }
+}
+
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: translateY(-14px) scale(1.2);
+    opacity: 0.95;
+  }
+}
+
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-12px, 0, 0);
+  }
+
+  to {
+    transform: translate3d(18px, 15px, 0);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .wave-line,
+  .wave-particle,
+  .wave-ambient,
+  .hero-reveal,
+  .hero-title-line {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+html .footer-bg { background: var(--bg); }
+
+/* ───────── FOOTER ───────── */
+.site-footer {
+  --f-bg: #020617;
+  --f-text: #ffffff;
+  --f-muted: rgba(255, 255, 255, 0.65);
+  --f-border: rgba(255, 255, 255, 0.1);
+  --f-accent: #ec4899;
+  --f-grad-a: #ef4444;
+  --f-grad-b: #ec4899;
+  --f-grad-c: #a855f7;
+
+  background: var(--f-bg);
+  color: var(--f-muted);
+  border-top: 1px solid var(--f-border);
+}
+
+html[data-theme="light"] .site-footer,
+[data-theme="light"] .site-footer {
+  --f-bg: #f8f7fb;
+  --f-text: #111827;
+  --f-muted: rgba(17, 24, 39, 0.7);
+  --f-border: rgba(17, 24, 39, 0.12);
+  --f-accent: #db2777;
+  --f-grad-a: #dc2626;
+  --f-grad-b: #db2777;
+  --f-grad-c: #7c3aed;
+}
+
+.site-footer .footer-title {
+  color: var(--f-text);
+}
+
+.site-footer .footer-text {
+  color: var(--f-muted);
+}
+
+.site-footer .footer-link {
+  color: var(--f-muted);
+  transition: color 0.2s ease;
+}
+
+.site-footer .footer-link:hover {
+  color: var(--f-accent);
+}
+
+.site-footer .footer-divider {
+  border-color: var(--f-border);
+}
+
+.site-footer .footer-gradient {
+  background-image: linear-gradient(
+    to right,
+    var(--f-grad-a),
+    var(--f-grad-b),
+    var(--f-grad-c)
+  );
+}
+
+.site-footer .footer-underline {
+  background: var(--f-accent);
+}
+
+.site-footer .footer-btn {
+  color: var(--f-muted);
+  border: 1px solid var(--f-border);
+  transition: all 0.3s ease;
+}
+
+.site-footer .footer-btn:hover {
+  color: var(--f-accent);
+  border-color: var(--f-accent);
+}
+
+/* Footer animations */
+@keyframes footer-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes footer-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -14px, 0); }
+}
+
+.footer-flow  { background-size: 200% 100%; animation: footer-flow 6s linear infinite; }
+.footer-float { animation: footer-float 9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-flow,
+  .footer-float {
+    animation: none !important;
+  }
+}
+
+/* ───────── HOME PAGE ADDITIONS ───────── */
+
+/* Grid + glow only live behind the hero and fade out before the content ends */
+.hero-backdrop {
+  -webkit-mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+}
+
+/* Animated gradient text */
+.gradient-flow {
+  background-size: 200% 100%;
+  animation: gradient-flow 6s ease-in-out infinite alternate;
+}
+
+@keyframes gradient-flow {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+/* Genre marquee */
+.marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-flow,
+  .marquee-track {
+    animation: none !important;
+  }
+}
+
+/* ───────── FIND YOUR MOVIE ───────── */
+.fade-in-up { animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ec4899, transparent);
+  box-shadow: 0 0 24px 6px rgba(236, 72, 153, 0.55);
+  animation: scan-sweep 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes scan-sweep {
+  from { top: 0; }
+  to   { top: calc(100% - 3px); }
+}
+
+.bar-indeterminate {
+  width: 40%;
+  animation: bar-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes bar-indeterminate {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up,
+  .scan-line,
+  .bar-indeterminate {
+    animation: none !important;
+  }
+}
