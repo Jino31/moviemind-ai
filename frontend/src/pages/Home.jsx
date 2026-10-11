@@ -1,18 +1,19 @@
 // src/pages/Home.jsx
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer"; // 👈 Import Footer
 
 function Home() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen app-bg overflow-hidden font-sans relative">
-      {/* PREMIUM BACKDROP GRAPHIC ARRAYS & GRID PATTERN RESTORED */}
+      {/* PREMIUM BACKDROP GRAPHIC ARRAYS & GRID PATTERN */}
       <div className="absolute inset-0 backdrop-glow pointer-events-none"></div>
       <div className="absolute inset-0 grid-lines pointer-events-none"></div>
 
       <div className="relative z-10">
-        {/* REUSABLE NAVBAR */}
+        {/* NAVBAR */}
         <Navbar />
 
         {/* HERO CALL TO ACTION */}
@@ -103,6 +104,9 @@ function Home() {
             </div>
           </div>
         </section>
+
+        {/* FOOTER */}
+        <Footer />
       </div>
     </div>
   );
