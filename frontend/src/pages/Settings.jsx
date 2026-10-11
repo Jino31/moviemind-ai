@@ -1,341 +1,659 @@
-// frontend/src/pages/Settings.jsx
+// src/pages/Settings.jsx
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { onAuthStateChanged, deleteUser } from "firebase/auth";
-import { 
-  FaShieldAlt, FaBell, FaGlobe, FaEye, FaBrain, 
-  FaTrashAlt, FaArrowLeft, FaCheckCircle, FaSpinner, FaTimes
+import {
+  onAuthStateChanged,
+  deleteUser,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  EmailAuthProvider,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { doc, setDoc, deleteDoc, increment, arrayUnion } from "firebase/firestore";
+import {
+  FaArrowLeft,
+  FaMoon,
+  FaSun,
+  FaDesktop,
+  FaUndo,
+  FaTrashAlt,
+  FaSpinner,
+  FaCheckCircle,
+  FaTimes,
+  FaExclamationTriangle,
+  FaSignInAlt,
 } from "react-icons/fa";
+import { useTheme, FONTS, FONT_SIZES, ensureFont } from "../context/ThemeContext";
+
+/* ───────────────────────── CONSTANTS / HELPERS ───────────────────────── */
+
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png";
+
+const REGIONS = [
+  ["IN", "India"],
+  ["US", "United States"],
+  ["GB", "United Kingdom"],
+  ["CA", "Canada"],
+  ["AU", "Australia"],
+];
+
+const watchlistKey = (uid) => `watchlist_${uid}`;
+const historyKey = (uid) => `watched_history_${uid}`;
+
+const nowTime = () =>
+  new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+const safeRemove = (key) => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+};
+
+const readRegion = () => {
+  try {
+    return localStorage.getItem("watch_region") || "IN";
+  } catch {
+    return "IN";
+  }
+};
+
+/* ───────────────────────── SMALL UI PIECES ───────────────────────── */
+
+function Card({ title, subtitle, danger = false, children }) {
+  return (
+    <section
+      className={`rounded-[28px] p-6 sm:p-8 border backdrop-blur-xl ${
+        danger ? "border-red-500/30 bg-red-500/[0.04]" : "border-line surface"
+      }`}
+    >
+      <div className="mb-6">
+        <h2 className={`text-xl font-black tracking-tight ${danger ? "text-red-500" : "t-main"}`}>{title}</h2>
+        {subtitle && <p className="t-muted text-sm mt-1">{subtitle}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Row({ title, description, children }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 py-5 first:pt-0 last:pb-0 border-b border-line last:border-b-0">
+      <div className="min-w-0">
+        <h3 className="t-main text-sm font-bold">{title}</h3>
+        {description && <p className="t-muted text-xs mt-1 max-w-md leading-relaxed">{description}</p>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Segmented({ options, value, onChange, label }) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="inline-flex flex-wrap gap-1 p-1 rounded-2xl surface border border-line"
+    >
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(o.value)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition cursor-pointer ${
+              active
+                ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md"
+                : "t-muted surface-hover"
+            }`}
+          >
+            {o.icon}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Switch({ checked, onChange, label }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative w-12 h-7 rounded-full transition cursor-pointer ${
+        checked ? "bg-gradient-to-r from-red-500 to-pink-500" : "bg-gray-400/40"
+      }`}
+    >
+      <span
+        className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-5" : ""
+        }`}
+      />
+    </button>
+  );
+}
+
+function ActionRow({ title, description, label, armed, disabled = false, onClick }) {
+  return (
+    <Row title={title} description={description}>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
+          armed ? "bg-red-600 border-red-500 text-white" : "surface surface-hover border-line t-main"
+        }`}
+      >
+        {armed ? "Tap again to confirm" : label}
+      </button>
+    </Row>
+  );
+}
+
+/* ───────────────────────── PAGE ───────────────────────── */
 
 export default function Settings() {
   const navigate = useNavigate();
-  
-  // 💾 STATE HOOK MANAGEMENT MATRIX
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Preference States
-  const [language, setLanguage] = useState("English");
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-  const [aiQuality, setAiQuality] = useState(true);
+  const {
+    themePreference,
+    fontFamily,
+    fontSize,
+    reducedMotion,
+    isSynced,
+    setTheme,
+    setFontFamily,
+    setFontSize,
+    setReducedMotion,
+    resetPreferences,
+  } = useTheme();
 
-  // Floating Notification Banner Alert State (Custom Toast)
-  const [toast, setToast] = useState({ show: false, message: "" });
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Monitor Authentication Session Stream State
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
-        // If your database profile stores user preferences, you could fetch and set states here
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
+  const [region, setRegion] = useState(readRegion);
+
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef(null);
+
+  const [confirmKey, setConfirmKey] = useState("");
+  const confirmTimer = useRef(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [password, setPassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const showToast = useCallback((message) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 2400);
   }, []);
 
-  // 🔊 Helper function to trigger elegant custom feedback toast alerts
-  const showToast = (message) => {
-    setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: "" }), 3500);
+  useEffect(
+    () => () => {
+      clearTimeout(toastTimer.current);
+      clearTimeout(confirmTimer.current);
+    },
+    []
+  );
+
+  /* ── auth ── */
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  /* ── load every font once so the picker can preview them ── */
+  useEffect(() => {
+    Object.keys(FONTS).forEach(ensureFont);
+  }, []);
+
+  /* ── delete dialog: Escape + scroll lock ── */
+  useEffect(() => {
+    if (!deleteOpen) return;
+    const onKey = (e) => e.key === "Escape" && !deleting && setDeleteOpen(false);
+    window.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [deleteOpen, deleting]);
+
+  /* ───────────── actions ───────────── */
+
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
   };
 
-  // ⚙️ TOGGLE EVENT HANDLER INTERFACES
-  const toggleNotifications = async () => {
-    const nextState = !notifications;
-    setNotifications(nextState);
-    showToast(`🔔 Notifications successfully ${nextState ? "Enabled" : "Muted"}.`);
+  const handleReset = () => {
+    resetPreferences();
+    showToast("Appearance reset to defaults");
   };
 
-  const toggleDarkMode = () => {
-    const nextState = !darkMode;
-    setDarkMode(nextState);
-    showToast(`✨ System Appearance switched to ${nextState ? "Dark Mode Aura" : "Light Studio Mode"}.`);
-  };
-
-  const toggleAiQuality = () => {
-    const nextState = !aiQuality;
-    setAiQuality(nextState);
-    showToast(`🧠 Deep Neural recommendations are now ${nextState ? "Hyper-Personalized" : "Standardized"}.`);
-  };
-
-  const handleLanguageChange = () => {
-    const nextLang = language === "English" ? "Tamil" : "English";
-    setLanguage(nextLang);
-    showToast(`🌐 Primary App dialect updated to [ ${nextLang} ].`);
-  };
-
-  const handleManageSecurity = () => {
-    if (!currentUser) {
-      showToast("🔒 Security block: Please authenticate your session first.");
-      return;
-    }
-    navigate("/profile"); // Routes user to manage their baseline security vectors
-  };
-
-  // ⚠️ ACCELERATED CRITICAL TRASH PIPELINE BLOCK (Danger Zone Action)
-  const handleDeleteAccount = async () => {
-    if (!currentUser) return;
-    
-    const firstConfirmation = window.confirm("⚠️ DANGER ACCELERATION BARRIER:\nAre you absolutely sure you want to completely wipe out your MovieMind AI Profile?");
-    if (!firstConfirmation) return;
-
-    const finalChallenge = window.prompt("🔒 SECURITY DESTRUCTION CODE:\nType your account email address exactly to authorize permanent system deletion:");
-    if (finalChallenge !== currentUser.email) {
-      alert("❌ Authentication Token Mismatch: Verification failed. Aborting destruction sequence.");
-      return;
-    }
-
-    setIsDeleting(true);
+  const handleRegion = (value) => {
+    setRegion(value);
     try {
-      // 1. Evaporate the core document metrics from Cloud Firestore root collections
-      const userDocRef = doc(db, "users", currentUser.uid);
-      await deleteDoc(userDocRef);
+      localStorage.setItem("watch_region", value);
+    } catch {
+      // ignore
+    }
+    showToast("Streaming region saved");
+  };
 
-      // 2. Erase the account authentication identity node completely from Google server registries
-      await deleteUser(currentUser);
-      
-      alert("💥 Account Purged: Your profile telemetry has been successfully scrubbed from our systems.");
+  // two-step confirm: first click arms the button, second click runs it
+  const confirmThen = (key, action) => {
+    if (confirmKey === key) {
+      clearTimeout(confirmTimer.current);
+      setConfirmKey("");
+      action();
+      return;
+    }
+    setConfirmKey(key);
+    clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => setConfirmKey(""), 4000);
+  };
+
+  const clearSearches = () => {
+    safeRemove("recent_searches");
+    showToast("Recent searches cleared");
+  };
+
+  const clearHistory = async () => {
+    if (!user) return;
+    safeRemove(historyKey(user.uid));
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          watchedCount: 0,
+          sessionLogs: arrayUnion({ text: "Cleared watch history", timestamp: nowTime(), type: "HISTORY_PURGE" }),
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.error("History sync failed:", err);
+    }
+    showToast("Watch history cleared");
+  };
+
+  const clearWatchlist = async () => {
+    if (!user) return;
+    safeRemove(watchlistKey(user.uid));
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          watchlistCount: 0,
+          sessionLogs: arrayUnion({ text: "Cleared watchlist", timestamp: nowTime(), type: "WATCHLIST_REMOVE" }),
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.error("Watchlist sync failed:", err);
+    }
+    showToast("Watchlist cleared");
+  };
+
+  /* ── delete account ── */
+  const providerIds = user?.providerData?.map((p) => p.providerId) || [];
+  const needsPassword = providerIds.includes("password");
+  const confirmWord = user?.email || "DELETE";
+  const canDelete =
+    confirmText.trim().toLowerCase() === confirmWord.toLowerCase() &&
+    (!needsPassword || password.length > 0) &&
+    !deleting;
+
+  const openDelete = () => {
+    setConfirmText("");
+    setPassword("");
+    setDeleteError("");
+    setDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!user || !canDelete) return;
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      // fresh login is required before deleting an account
+      if (needsPassword) {
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      } else if (providerIds.includes("google.com")) {
+        await reauthenticateWithPopup(user, new GoogleAuthProvider());
+      }
+
+      const uid = user.uid;
+      await deleteDoc(doc(db, "users", uid));
+      await deleteUser(user);
+
+      safeRemove(watchlistKey(uid));
+      safeRemove(historyKey(uid));
+      safeRemove("recent_searches");
       navigate("/login");
     } catch (err) {
-      console.error("Scrub protocol crash logs:", err);
-      alert("🔒 Security Challenge Timeout: Recent login validation required. Please log out, sign back in, and try again.");
+      console.error("Account deletion failed:", err);
+      const code = err?.code || "";
+      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setDeleteError("That password is incorrect.");
+      } else if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        setDeleteError("Verification was cancelled. Try again.");
+      } else if (code === "auth/requires-recent-login") {
+        setDeleteError("Please log out, sign in again, and retry.");
+      } else if (code === "auth/too-many-requests") {
+        setDeleteError("Too many attempts. Wait a few minutes and try again.");
+      } else {
+        setDeleteError("Couldn't delete your account. Please try again.");
+      }
     } finally {
-      setIsDeleting(false);
+      setDeleting(false);
     }
   };
 
-  if (loading) {
+  /* ───────────── options ───────────── */
+
+  const themeOptions = [
+    { value: "dark", label: "Dark", icon: <FaMoon className="text-xs" /> },
+    { value: "light", label: "Light", icon: <FaSun className="text-xs" /> },
+    { value: "system", label: "System", icon: <FaDesktop className="text-xs" /> },
+  ];
+
+  const sizeOptions = Object.entries(FONT_SIZES).map(([value, s], i) => ({
+    value,
+    label: s.label,
+    icon: <span style={{ fontSize: `${10 + i * 3}px`, lineHeight: 1 }}>A</span>,
+  }));
+
+  /* ───────────── render ───────────── */
+
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#04040a] flex items-center justify-center text-white font-mono">
-        <div className="flex flex-col items-center gap-4">
-          <FaSpinner className="animate-spin text-4xl text-pink-500" />
-          <p className="text-xs text-white/40 tracking-widest uppercase">Syncing Global Configurations Matrix...</p>
-        </div>
+      <div className="app-bg min-h-screen flex items-center justify-center">
+        <FaSpinner className="animate-spin text-4xl text-red-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#04040a] text-white relative overflow-x-hidden font-sans antialiased pb-20">
-      
-      {/* ── CINEMATIC DYNAMIC BACKDROP FLOATING AURAS ── */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[800px] h-[600px] bg-red-600/[0.08] rounded-full blur-[160px] animate-pulse duration-[8s]" />
-        <div className="absolute bottom-10 right-10 w-[700px] h-[700px] bg-purple-600/[0.08] rounded-full blur-[180px]" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "50px 50px",
-          }}
-        />
-      </div>
-
-      {/* ── TRANSIENT PREFERENCE TOAST NOTIFICATION FLOATER ── */}
-      {toast.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[999999] bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl animate-fade-in">
-          <FaCheckCircle className="text-pink-500 text-sm animate-bounce" />
-          <span className="text-xs font-semibold tracking-wide text-white/90">{toast.message}</span>
-        </div>
-      )}
-
-      {/* Main Container */}
-      <div className="max-w-4xl mx-auto px-6 pt-16">
-        
-        {/* ── HEADER NAVIGATION CHASSIS ── */}
-        <div className="flex items-end justify-between mb-16 pb-6 border-b border-white/[0.06]">
-          <div>
-            <h1 className="text-5xl font-black bg-gradient-to-r from-white via-pink-400 to-purple-500 bg-clip-text text-transparent tracking-tight">
-              Settings
-            </h1>
-            <p className="text-white/40 mt-2.5 text-sm font-medium tracking-wide">
-              Calibrate and protect your MovieMind streaming metrics workspace.
-            </p>
-          </div>
+    <div className="app-bg min-h-screen overflow-x-clip font-sans pb-20">
+      {/* ── top bar ── */}
+      <header className="sticky top-0 z-40 nav-bg backdrop-blur-2xl border-b border-line">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
           <button
-            onClick={() => navigate("/")}
-            className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-xs font-bold flex items-center gap-2 cursor-pointer active:scale-95 shadow-md"
+            onClick={goBack}
+            aria-label="Go back"
+            className="shrink-0 h-11 px-3 sm:px-4 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm flex items-center gap-2 transition hover:text-red-500 active:scale-95 cursor-pointer"
           >
-            <FaArrowLeft className="text-[10px]" /> Back Home
+            <FaArrowLeft className="text-xs" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+
+          <h1 className="flex-1 t-main font-black text-xl sm:text-2xl tracking-tight">Settings</h1>
+
+          <button
+            onClick={handleReset}
+            className="shrink-0 h-11 px-4 rounded-2xl surface surface-hover border border-line t-muted font-bold text-sm flex items-center gap-2 transition hover:text-red-500 cursor-pointer"
+          >
+            <FaUndo className="text-xs" />
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
+      </header>
 
-        {/* ── CORE SETTINGS SECTIONS GRID GRID ── */}
-        <div className="space-y-6">
-          
-          {/* 1. Security & Notifications Control Deck Row */}
-          <div className="grid md:grid-cols-2 gap-6">
-            
-            {/* Security Interface */}
-            <div className="group bg-white/[0.02] border border-white/[0.06] rounded-[32px] p-6 hover:border-pink-500/30 transition-all duration-300 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-xl group-hover:bg-pink-500/10 group-hover:text-pink-400 transition-colors">
-                  <FaShieldAlt />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-bold tracking-tight">Security Credentials</h2>
-                  <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                    Audit active logging parameters, sessions, and connected identity nodes.
-                  </p>
-                </div>
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+        {/* ── account ── */}
+        {user ? (
+          <Card title="Account">
+            <div className="flex items-center gap-4">
+              <img
+                src={user.photoURL || FALLBACK_AVATAR}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="w-14 h-14 rounded-full object-cover border border-line"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="t-main font-bold truncate">{user.displayName || "Explorer"}</p>
+                <p className="t-muted text-sm truncate">{user.email}</p>
               </div>
-              <button 
-                onClick={handleManageSecurity}
-                className="mt-6 w-full py-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 font-bold text-xs tracking-wide transition-all cursor-pointer text-center"
+              <button
+                onClick={() => navigate("/profile")}
+                className="shrink-0 px-4 py-2.5 rounded-xl surface surface-hover border border-line t-main text-sm font-bold transition cursor-pointer"
               >
-                Manage Security Profile
+                View profile
               </button>
             </div>
+          </Card>
+        ) : (
+          <Card title="You're not logged in" subtitle="Your settings are saved on this device. Log in to keep them on every device.">
+            <button
+              onClick={() => {
+                localStorage.setItem("auth_redirect_target", "/settings");
+                navigate("/login");
+              }}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+            >
+              <FaSignInAlt className="text-xs" /> Log in
+            </button>
+          </Card>
+        )}
 
-            {/* Notifications Toggle Interface */}
-            <div className="group bg-white/[0.02] border border-white/[0.06] rounded-[32px] p-6 hover:border-purple-500/30 transition-all duration-300 backdrop-blur-xl flex flex-col justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-xl group-hover:bg-purple-500/10 group-hover:text-purple-400 transition-colors">
-                  <FaBell />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-bold tracking-tight">System Push Notifications</h2>
-                  <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                    Toggle active pings regarding fresh releases, system data drops, and trending trailers.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center justify-between p-1 rounded-xl bg-black/40 border border-white/[0.04]">
-                <span className="text-xs font-mono text-white/50 pl-3">CURRENT CONFIG: {notifications ? "LIVE" : "MUTED"}</span>
-                <button 
-                  type="button"
-                  onClick={toggleNotifications}
-                  className={`px-5 py-2 rounded-lg font-extrabold text-xs tracking-wide transition-all duration-300 cursor-pointer ${
-                    notifications 
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md" 
-                      : "bg-white/5 text-white/40"
-                  }`}
-                >
-                  {notifications ? "Active Alerts" : "Mute Alerts"}
-                </button>
-              </div>
-            </div>
+        {/* ── appearance ── */}
+        <Card
+          title="Appearance"
+          subtitle={
+            isSynced
+              ? "Changes apply instantly across the whole site and are saved to your account."
+              : "Changes apply instantly across the whole site and are saved on this device."
+          }
+        >
+          <Row title="Theme" description="Dark, light, or follow your device setting.">
+            <Segmented label="Theme" options={themeOptions} value={themePreference} onChange={setTheme} />
+          </Row>
 
-          </div>
-
-          {/* 2. Global Profile Preferences Immersive Block */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-[36px] p-8 backdrop-blur-xl relative overflow-hidden">
-            <h2 className="text-xl font-black uppercase tracking-widest text-white/30 font-mono mb-6">System Preferences</h2>
-            
-            <div className="divide-y divide-white/[0.05] space-y-6">
-              
-              {/* Language Parameter */}
-              <div className="flex justify-between items-center pt-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-sm text-pink-400">
-                    <FaGlobe />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight">Application Interface Dialect</h3>
-                    <p className="text-xs text-white/40 mt-0.5">Adjust the global localization string files structure.</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleLanguageChange}
-                  className="px-4 py-2 text-xs font-extrabold bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all cursor-pointer font-mono"
-                >
-                  {language}
-                </button>
-              </div>
-
-              {/* Appearance Parameter */}
-              <div className="flex justify-between items-center pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-sm text-purple-400">
-                    <FaEye />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight">Display Layout Style</h3>
-                    <p className="text-xs text-white/40 mt-0.5">Toggle immersive workspace color themes and deep lighting contrast profiles.</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={toggleDarkMode}
-                  className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all duration-300 border cursor-pointer font-mono ${
-                    darkMode 
-                      ? "border-pink-500/20 bg-pink-500/5 text-pink-400" 
-                      : "border-white/10 bg-white/5 text-white/60"
-                  }`}
-                >
-                  {darkMode ? "Dark Core" : "Light Aura"}
-                </button>
-              </div>
-
-              {/* Recommendation Processing Pipeline Option */}
-              <div className="flex justify-between items-center pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-sm text-fuchsia-400">
-                    <FaBrain />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight">AI Recommendation Quality</h3>
-                    <p className="text-xs text-white/40 mt-0.5">Unlock customized, hyper-focused algorithm filters matching profile history trends.</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={toggleAiQuality}
-                  className={`px-5 py-2 text-xs font-black rounded-xl tracking-wide uppercase transition-all duration-300 cursor-pointer border ${
-                    aiQuality 
-                      ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg border-transparent" 
-                      : "bg-white/5 border-white/10 text-white/30"
-                  }`}
-                >
-                  {aiQuality ? "Deep AI Active" : "Standard"}
-                </button>
-              </div>
-
+          <div className="py-5 border-b border-line">
+            <h3 className="t-main text-sm font-bold">Font</h3>
+            <p className="t-muted text-xs mt-1 mb-4">Applies to every page.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {Object.entries(FONTS).map(([key, f]) => {
+                const active = fontFamily === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFontFamily(key)}
+                    aria-pressed={active}
+                    className={`text-left p-4 rounded-2xl border-2 transition cursor-pointer ${
+                      active ? "border-red-500 surface" : "border-transparent surface surface-hover"
+                    }`}
+                  >
+                    <span className="block text-2xl font-bold t-main" style={{ fontFamily: f.stack }}>
+                      Aa
+                    </span>
+                    <span className="block text-sm font-bold t-main mt-1" style={{ fontFamily: f.stack }}>
+                      {f.label}
+                    </span>
+                    <span className="block text-xs t-muted">{f.note}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* 3. The Danger Zone Destructive Segment Block */}
-          <div className="border border-red-500/20 bg-gradient-to-b from-red-500/[0.02] to-transparent rounded-[36px] p-8 backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/[0.01] blur-2xl pointer-events-none" />
-            
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-red-400 tracking-tight flex items-center gap-2">
-                  <span>Danger Zone Boundary Node</span>
-                </h2>
-                <p className="text-xs text-white/40 leading-relaxed max-w-xl">
-                  Permanently wipe your MovieMind profile registry, telemetry, tracking metrics, and historical logs. This action is terminal and cannot be reversed by system technicians.
-                </p>
-              </div>
-              
-              <button 
-                onClick={handleDeleteAccount}
-                disabled={isDeleting || !currentUser}
-                className="px-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-lg shadow-red-900/20 active:scale-98 disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+          <Row title="Text size" description="Scales text and spacing everywhere.">
+            <Segmented label="Text size" options={sizeOptions} value={fontSize} onChange={setFontSize} />
+          </Row>
+
+          <Row
+            title="Reduce motion"
+            description="Turns off animations and transitions. Turned on automatically if your device asks for it."
+          >
+            <Switch checked={reducedMotion} onChange={setReducedMotion} label="Reduce motion" />
+          </Row>
+        </Card>
+
+        {/* ── streaming region ── */}
+        <Card title="Where to watch" subtitle="Used on movie pages to show which services carry a title.">
+          <Row title="Streaming region" description="Pick the country whose services you want to see.">
+            <select
+              value={region}
+              onChange={(e) => handleRegion(e.target.value)}
+              className="h-11 px-4 rounded-xl surface border border-line t-main text-sm font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
+            >
+              {REGIONS.map(([code, name]) => (
+                <option key={code} value={code} className="text-black">
+                  {name}
+                </option>
+              ))}
+            </select>
+          </Row>
+        </Card>
+
+        {/* ── data ── */}
+        <Card title="Your data" subtitle="Clean up what MovieMind stores for you.">
+          <ActionRow
+            title="Recent searches"
+            description="Removes the search suggestions saved on this device."
+            label="Clear searches"
+            armed={confirmKey === "searches"}
+            onClick={() => confirmThen("searches", clearSearches)}
+          />
+          <ActionRow
+            title="Watch history"
+            description={user ? "Removes watched trailers and resets your watched count." : "Log in to manage your history."}
+            label="Clear history"
+            armed={confirmKey === "history"}
+            disabled={!user}
+            onClick={() => confirmThen("history", clearHistory)}
+          />
+          <ActionRow
+            title="Watchlist"
+            description={user ? "Removes every saved movie from your watchlist." : "Log in to manage your watchlist."}
+            label="Clear watchlist"
+            armed={confirmKey === "watchlist"}
+            disabled={!user}
+            onClick={() => confirmThen("watchlist", clearWatchlist)}
+          />
+        </Card>
+
+        {/* ── danger zone ── */}
+        {user && (
+          <Card
+            danger
+            title="Delete account"
+            subtitle="Permanently removes your profile, stats and history. This can't be undone."
+          >
+            <button
+              onClick={openDelete}
+              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition flex items-center gap-2 cursor-pointer"
+            >
+              <FaTrashAlt className="text-xs" /> Delete my account
+            </button>
+          </Card>
+        )}
+      </main>
+
+      {/* ── delete dialog ── */}
+      {deleteOpen && user && (
+        <div
+          onClick={() => !deleting && setDeleteOpen(false)}
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-md menu-bg border border-line rounded-3xl p-6 sm:p-8 shadow-2xl"
+          >
+            <button
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+              aria-label="Close"
+              className="absolute top-4 right-4 w-9 h-9 rounded-full surface surface-hover border border-line flex items-center justify-center t-main hover:text-red-500 transition cursor-pointer disabled:opacity-40"
+            >
+              <FaTimes className="text-sm" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 flex items-center justify-center text-red-500 text-xl mb-4">
+              <FaExclamationTriangle />
+            </div>
+            <h2 className="t-main text-xl font-black mb-2">Delete your account?</h2>
+            <p className="t-muted text-sm leading-relaxed mb-5">
+              This permanently deletes your account and all of your data. Type{" "}
+              <span className="t-main font-bold break-all">{confirmWord}</span> to confirm.
+            </p>
+
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={confirmWord}
+              autoComplete="off"
+              className="w-full h-12 px-4 rounded-xl surface border border-line t-main text-sm placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition mb-3"
+            />
+
+            {needsPassword && (
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+                autoComplete="current-password"
+                className="w-full h-12 px-4 rounded-xl surface border border-line t-main text-sm placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition mb-3"
+              />
+            )}
+
+            {!needsPassword && providerIds.includes("google.com") && (
+              <p className="t-muted text-xs mb-3">You'll be asked to confirm with Google before the account is deleted.</p>
+            )}
+
+            {deleteError && <p className="text-red-500 text-sm font-semibold mb-3">{deleteError}</p>}
+
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl surface surface-hover border border-line t-main font-bold text-sm transition cursor-pointer disabled:opacity-40"
               >
-                {isDeleting ? (
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={!canDelete}
+                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? (
                   <>
-                    <FaSpinner className="animate-spin text-xs" />
-                    <span>Purging Account...</span>
+                    <FaSpinner className="animate-spin text-xs" /> Deleting…
                   </>
                 ) : (
-                  <>
-                    <FaTrashAlt className="text-xs" />
-                    <span>Scrub Account From Cloud</span>
-                  </>
+                  "Delete forever"
                 )}
               </button>
             </div>
           </div>
-
         </div>
+      )}
 
-      </div>
+      {/* ── toast ── */}
+      {toast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl flex items-center gap-2.5">
+          <FaCheckCircle className="text-emerald-500" />
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
