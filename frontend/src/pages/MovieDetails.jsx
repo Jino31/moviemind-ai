@@ -22,6 +22,7 @@ import {
 import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import Footer from "../components/Footer";
+import AmbientGlow from "../components/AmbientGlow";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -576,10 +577,9 @@ export default function MovieDetails() {
           onClick={closeTrailer}
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-5xl bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
-          >
+          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-5xl">
+            <AmbientGlow videoKey={trailer.key} />
+            <div className="relative z-10 bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
             <div className="flex items-center justify-between px-5 py-3 bg-zinc-950 border-b border-white/10">
               <span className="text-white/70 text-sm font-semibold truncate pr-4">{movie.title}</span>
               <button
@@ -609,6 +609,7 @@ export default function MovieDetails() {
                   showToast("This video can't be played here. Try the YouTube search instead.");
                 }}
               />
+              </div>
             </div>
           </div>
         </div>
