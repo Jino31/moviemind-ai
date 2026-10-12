@@ -11,7 +11,8 @@ import {
   FaUser,
 } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import ThemeToggle from "./ThemeToggle";
 
 const menuItems = [
@@ -78,6 +79,7 @@ function Navbar() {
   const location = useLocation();
 
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -95,6 +97,20 @@ function Navbar() {
     });
     return () => unsubscribe();
   }, []);
+
+  /* Live profile data (photo and name saved from the Profile page) */
+  useEffect(() => {
+    if (!user?.uid) {
+      setProfile(null);
+      return;
+    }
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => setProfile(snap.exists() ? snap.data() : null),
+      () => setProfile(null)
+    );
+    return () => unsub();
+  }, [user?.uid]);
 
   /* Close the profile menu on outside click / touch or Escape */
   useEffect(() => {
@@ -157,8 +173,20 @@ function Navbar() {
     }
   };
 
+  /* Merge Firebase Auth user with the profile saved in Firestore */
+  const displayUser = user
+    ? {
+        uid: user.uid,
+        email: user.email,
+        photoURL: profile?.photoURL || user.photoURL,
+        displayName: profile?.name || user.displayName,
+      }
+    : null;
+
   const firstName =
-    user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Explorer";
+    displayUser?.displayName?.split(" ")[0] ||
+    displayUser?.email?.split("@")[0] ||
+    "Explorer";
 
   return (
     <nav
@@ -249,7 +277,7 @@ function Navbar() {
                 aria-label="Open profile menu"
                 className="surface surface-hover border-line flex cursor-pointer items-center gap-2 rounded-full border py-1 pl-1 pr-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/60 sm:pr-3"
               >
-                <Avatar user={user} />
+                <Avatar user={displayUser} />
                 <span className="t-main hidden max-w-[96px] truncate text-xs font-semibold sm:inline">
                   {firstName}
                 </span>
@@ -277,13 +305,13 @@ function Navbar() {
                 {/* Identity */}
                 <div className="border-line flex items-center gap-3 border-b p-4">
                   <Avatar
-                    user={user}
+                    user={displayUser}
                     className="h-12 w-12"
                     textClass="text-base"
                   />
                   <div className="min-w-0">
                     <p className="t-main truncate text-sm font-bold">
-                      {user.displayName || firstName}
+                      {displayUser.displayName || firstName}
                     </p>
                     <p className="t-muted truncate text-xs">{user.email}</p>
                   </div>
