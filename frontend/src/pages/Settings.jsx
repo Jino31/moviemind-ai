@@ -29,7 +29,7 @@ const BTN_DANGER =
   "mm-btn-danger mm-focus inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 const FIELD = "mm-field rounded-xl px-4 py-2.5 text-sm transition placeholder:text-gray-500";
 
-const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png";
+
 
 const SECTIONS = [
   { id: "appearance", label: "Appearance", icon: "palette" },
