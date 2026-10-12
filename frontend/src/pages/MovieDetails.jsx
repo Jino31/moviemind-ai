@@ -32,6 +32,9 @@ const PROXY = import.meta.env.PROD;
 const TMDB = PROXY ? "/tmdb" : "https://api.themoviedb.org/3";
 const IMG = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
 
+// Video languages to request (English + major Indian languages + language-neutral)
+const VIDEO_LANGS = "en,hi,ta,te,ml,kn,null";
+
 const REGIONS = [
   ["IN", "India"],
   ["US", "United States"],
@@ -81,6 +84,10 @@ const formatRuntime = (minutes) => {
   const m = minutes % 60;
   return h ? `${h}h ${m}m` : `${m}m`;
 };
+
+// Best video first: official trailer, trailer, teaser, then clip / featurette
+const videoRank = (v) =>
+  ({ Trailer: 0, Teaser: 1, Clip: 2, Featurette: 3 }[v.type] ?? 4) * 2 + (v.official ? 0 : 1);
 
 // setDoc + merge works even if the user document doesn't exist yet
 async function syncUser(updates) {
@@ -154,7 +161,7 @@ export default function MovieDetails() {
     (async () => {
       try {
         const res = await fetch(
-          `${TMDB}/movie/${id}?api_key=${API_KEY}&append_to_response=videos,watch/providers`,
+          `${TMDB}/movie/${id}?api_key=${API_KEY}&append_to_response=videos,watch/providers&include_video_language=${VIDEO_LANGS}`,
           { signal: controller.signal }
         );
         if (res.status === 404) throw new Error("NOT_FOUND");
@@ -192,11 +199,8 @@ export default function MovieDetails() {
   /* ───────────── derived data ───────────── */
 
   const videos = movie?.videos?.results || [];
-  const trailer =
-    videos.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ||
-    videos.find((v) => v.site === "YouTube" && v.type === "Trailer") ||
-    videos.find((v) => v.site === "YouTube" && v.type === "Teaser") ||
-    null;
+  const ytVideos = videos.filter((v) => v.site === "YouTube");
+  const trailer = [...ytVideos].sort((a, b) => videoRank(a) - videoRank(b))[0] || null;
 
   const providersByRegion = movie?.["watch/providers"]?.results || {};
   const regionData = providersByRegion[region] || null;
@@ -222,7 +226,14 @@ export default function MovieDetails() {
       return;
     }
     if (!trailer) {
-      showToast("No trailer available for this title");
+      // No video on TMDB: fall back to a YouTube search so the button is never a dead end
+      window.open(
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(
+          `${movie?.title || ""} ${movie?.release_date?.slice(0, 4) || ""} official trailer`
+        )}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
       return;
     }
     trackedRef.current = false;
@@ -456,10 +467,9 @@ export default function MovieDetails() {
             <div className="flex flex-wrap gap-3 pt-5 border-t border-line">
               <button
                 onClick={openTrailer}
-                disabled={!trailer}
-                className="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-black text-sm shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:shadow-[0_0_40px_rgba(236,72,153,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-black text-sm shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:shadow-[0_0_40px_rgba(236,72,153,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2.5 cursor-pointer"
               >
-                <FaPlay className="text-xs" /> {trailer ? "Watch Trailer" : "No trailer"}
+                <FaPlay className="text-xs" /> {trailer ? "Watch Trailer" : "Search trailer"}
               </button>
 
               <button
@@ -590,6 +600,10 @@ export default function MovieDetails() {
                 onPlay={markAsWatched}
                 onEnd={() => {
                   trackedRef.current = false;
+                }}
+                onError={() => {
+                  closeTrailer();
+                  showToast("This video can't be played here. Try the YouTube search instead.");
                 }}
               />
             </div>
