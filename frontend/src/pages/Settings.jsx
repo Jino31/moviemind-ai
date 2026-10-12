@@ -733,7 +733,7 @@ export default function Settings() {
         <Row title="Signed in as" stack>
           <div className="flex items-center gap-4">
             <img
-              src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
+              src={user.photoURL || FALLBACK_AVATAR}
               alt=""
               referrerPolicy="no-referrer"
               className="h-14 w-14 rounded-full border border-black/10 object-cover"
@@ -834,7 +834,7 @@ export default function Settings() {
             {user ? (
               <Link to="/profile" aria-label="Your profile" className="mm-focus ml-1 rounded-full">
                 <img
-                  src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
+                  src={user.photoURL || FALLBACK_AVATAR}
                   alt=""
                   referrerPolicy="no-referrer"
                   className="border-line h-9 w-9 rounded-full border object-cover"
