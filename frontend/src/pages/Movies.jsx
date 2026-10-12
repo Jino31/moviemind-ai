@@ -33,6 +33,7 @@ import {
 import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import { FALLBACK_AVATAR } from "../constants";
+import useProfilePhoto from "../hooks/useProfilePhoto";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -47,6 +48,7 @@ const IMG_BASE = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
 const IMG_HERO = `${IMG_BASE}/w1280`;
 const IMG_BACKDROP = `${IMG_BASE}/w780`;
 const IMG_POSTER = `${IMG_BASE}/w342`;
+const profilePhoto = useProfilePhoto(user);
 
 
 const CATEGORIES = [
@@ -922,7 +924,7 @@ export default function Movies() {
                   className="h-11 pl-1.5 pr-3 rounded-full surface surface-hover border border-line flex items-center gap-2 transition cursor-pointer"
                 >
                   <img
-                    src={user.photoURL || FALLBACK_AVATAR}
+                    src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
                     alt="Profile"
                     referrerPolicy="no-referrer"
                     className="w-8 h-8 rounded-full object-cover border border-line"
@@ -939,7 +941,7 @@ export default function Movies() {
                   >
                     <div className="px-5 py-4 flex items-center gap-3 border-b border-line">
                       <img
-                        src={user.photoURL || FALLBACK_AVATAR}
+                       src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
                         alt=""
                         referrerPolicy="no-referrer"
                         className="w-11 h-11 rounded-full object-cover border border-line"
