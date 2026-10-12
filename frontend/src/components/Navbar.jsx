@@ -39,12 +39,18 @@ const menuItems = [
   },
 ];
 
-/* Profile photo with a letter fallback if the image is missing or fails to load */
+/*
+  Profile photo with layered fallbacks:
+  1. the user's saved photo
+  2. a generated avatar image with their initial
+  3. a plain letter circle (if the generated image can't load either)
+*/
 function Avatar({ user, className = "h-8 w-8", textClass = "text-xs" }) {
-  const [failed, setFailed] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [generatedFailed, setGeneratedFailed] = useState(false);
 
   useEffect(() => {
-    setFailed(false);
+    setPhotoFailed(false);
   }, [user?.photoURL]);
 
   const initial = (user?.displayName || user?.email || "E")
@@ -52,14 +58,29 @@ function Avatar({ user, className = "h-8 w-8", textClass = "text-xs" }) {
     .charAt(0)
     .toUpperCase();
 
-  if (user?.photoURL && !failed) {
+  const imgClass = `${className} flex-shrink-0 rounded-full object-cover`;
+
+  if (user?.photoURL && !photoFailed) {
     return (
       <img
         src={user.photoURL}
         alt=""
         referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-        className={`${className} flex-shrink-0 rounded-full object-cover`}
+        onError={() => setPhotoFailed(true)}
+        className={imgClass}
+      />
+    );
+  }
+
+  if (!generatedFailed) {
+    return (
+      <img
+        src={`https://ui-avatars.com/api/?background=ec4899&color=fff&bold=true&length=1&name=${encodeURIComponent(
+          initial
+        )}`}
+        alt=""
+        onError={() => setGeneratedFailed(true)}
+        className={imgClass}
       />
     );
   }
@@ -107,7 +128,10 @@ function Navbar() {
     const unsub = onSnapshot(
       doc(db, "users", user.uid),
       (snap) => setProfile(snap.exists() ? snap.data() : null),
-      () => setProfile(null)
+      (err) => {
+        console.error("Navbar profile listener failed:", err);
+        setProfile(null);
+      }
     );
     return () => unsub();
   }, [user?.uid]);
