@@ -252,16 +252,10 @@ function LoginScreen({ deniedEmail }) {
 
         {deniedEmail ? (
           <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-500">
-            <b>{deniedEmail}</b> is not an admin account. Sign out of it, then sign in with your admin credentials.
-            <button
-              type="button"
-              onClick={() => signOut(auth)}
-              className="mm-btn mm-focus mt-2 block w-full rounded-lg px-3 py-1.5 text-xs font-semibold"
-            >
-              Sign out of this account
-            </button>
+            You're signed in as <b>{deniedEmail}</b>, which is a normal user account. Signing in below with the admin
+            username and password switches this browser to the admin session.
           </div>
-        ) : (
+        ) : null}
           <form onSubmit={submit} className="space-y-4" autoComplete="on">
             <Field label="Username">
               <input
@@ -304,7 +298,6 @@ function LoginScreen({ deniedEmail }) {
               {busy ? "Signing in…" : "Sign in"}
             </button>
           </form>
-        )}
 
         <Link to="/" className="t-muted mt-5 flex items-center justify-center gap-2 text-xs hover:underline">
           <FaArrowLeft className="text-[10px]" /> Back to website

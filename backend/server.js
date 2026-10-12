@@ -2,14 +2,22 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import movieRoutes from "./routes/movieRoutes.js";
+import adminLogin from "./adminLogin.js";
 
 dotenv.config();
 
 // Verify critical environment variables
 console.log("TMDB KEY Loaded:", process.env.TMDB_API_KEY ? "YES" : "NO");
 console.log("GEMINI KEY Loaded:", process.env.GEMINI_API_KEY ? "YES" : "NO");
+console.log("ADMIN LOGIN Configured:", process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD ? "YES" : "NO");
 
 const app = express();
+
+// Render runs behind a proxy: needed so the admin login rate limit sees each visitor's real IP
+app.set("trust proxy", 1);
+
+// ✅ Admin login: mounted BEFORE the global CORS below so it keeps its own, stricter CORS
+app.use(adminLogin);
 
 // ✅ Explicit CORS Configuration for production frontend
 app.use(
