@@ -1,7 +1,6 @@
-// frontend/src/firebase.js
-
+// src/firebase.js
 import { initializeApp, getApp, getApps } from "firebase/app";
-
+import { getAnalytics } from "firebase/analytics";
 import {
   initializeAuth,
   getAuth,
@@ -9,47 +8,35 @@ import {
   browserLocalPersistence,
   browserPopupRedirectResolver,
 } from "firebase/auth";
-
 import { getFirestore } from "firebase/firestore";
 import { GoogleGenAI } from "@google/genai";
 
-// Firebase configuration
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: "AIzaSyColfrF7tfhhflJWoVx2GW-WvInheUTDXk",
   authDomain: "moviemind-25984.firebaseapp.com",
   projectId: "moviemind-25984",
   storageBucket: "moviemind-25984.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  messagingSenderId: "986863262205",
+  appId: "1:986863262205:web:b495e799970ad1c5e2e194",
+  measurementId: "G-VH3W61WCSK"
 };
-
-// Validate required Firebase configuration
-const requiredFirebaseFields = [
-  "apiKey",
-  "authDomain",
-  "projectId",
-  "appId",
-];
-
-const missingFirebaseFields = requiredFirebaseFields.filter(
-  (field) => !firebaseConfig[field]
-);
-
-if (missingFirebaseFields.length > 0) {
-  throw new Error(
-    `Missing Firebase configuration: ${missingFirebaseFields.join(", ")}. Check your frontend .env file.`
-  );
-}
 
 // Initialize Firebase only once
 const app = getApps().length > 0
   ? getApp()
   : initializeApp(firebaseConfig);
 
+// Initialize Analytics (safely checks if running in browser)
+let analytics = null;
+try {
+  analytics = getAnalytics(app);
+} catch (e) {
+  // Analytics might fail in some server-side or strict privacy browser environments
+}
+
 // Initialize Firebase Authentication
 let auth;
-
 try {
   auth = initializeAuth(app, {
     persistence: browserLocalPersistence,
@@ -67,7 +54,6 @@ export { auth };
 
 // Google Authentication Provider
 export const provider = new GoogleAuthProvider();
-
 provider.setCustomParameters({
   prompt: "select_account",
 });
@@ -75,7 +61,7 @@ provider.setCustomParameters({
 // Firestore Database
 export const db = getFirestore(app);
 
-// Gemini AI Initialization
+// Gemini AI Initialization (Optional: safe fallback if key isn't provided)
 const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 export const ai = geminiApiKey
