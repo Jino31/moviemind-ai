@@ -16,7 +16,8 @@ import crypto from "node:crypto";
 import { Router, json } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import admin from "firebase-admin";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 
 const router = Router();
 
@@ -30,6 +31,28 @@ const allowedOrigins = (
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest();
 const safeEqual = (a, b) => crypto.timingSafeEqual(sha(a), sha(b));
 
+// Accepts the service-account key however it was pasted into the env var:
+// plain one-line JSON, wrapped in quotes, base64, or with newlines turned into real line breaks.
+function parseServiceAccount(raw) {
+  let s = String(raw).trim();
+  if ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"'))) s = s.slice(1, -1).trim();
+  if (!s.startsWith("{")) {
+    s = Buffer.from(s, "base64").toString("utf8").trim();
+    if (!s.startsWith("{")) throw new Error("value is not JSON. Paste the whole key file contents (starts with { )");
+  }
+
+  let obj;
+  try {
+    obj = JSON.parse(s);
+  } catch {
+    // retry: real line breaks inside the private key
+    obj = JSON.parse(s.replace(/\r?\n/g, "\\n"));
+  }
+  if (typeof obj.private_key === "string") obj.private_key = obj.private_key.replace(/\\n/g, "\n");
+  if (!obj.client_email || !obj.private_key) throw new Error("JSON is missing client_email or private_key");
+  return obj;
+}
+
 // Set up Firebase Admin once, the first time someone tries to log in.
 // A missing/bad config only breaks this route, never the rest of your backend.
 function ready() {
@@ -38,12 +61,11 @@ function ready() {
     return "Admin login is not configured on the server.";
   }
   if (ADMIN_PASSWORD.length < 12) return "ADMIN_PASSWORD must be at least 12 characters.";
-  if (!admin.apps.length) {
+  if (!getApps().length) {
     try {
-      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(FIREBASE_SERVICE_ACCOUNT)) });
+      initializeApp({ credential: cert(parseServiceAccount(FIREBASE_SERVICE_ACCOUNT)) });
     } catch (err) {
-      console.error("Firebase Admin init failed:", err.message);
-      return "Server could not start Firebase Admin.";
+      return `FIREBASE_SERVICE_ACCOUNT is not valid: ${err.message}`;
     }
   }
   return null;
@@ -87,7 +109,7 @@ router.post(
     if (!(userOk && passOk)) return res.status(401).json({ error: "Wrong username or password." });
 
     try {
-      const token = await admin.auth().createCustomToken("admin-console", { admin: true });
+      const token = await getAuth().createCustomToken("admin-console", { admin: true });
       return res.json({ token });
     } catch (err) {
       console.error("createCustomToken failed:", err.message);
@@ -95,5 +117,8 @@ router.post(
     }
   }
 );
+
+// Say right at startup whether admin login will work, and if not, exactly why.
+console.log("ADMIN LOGIN check:", ready() || "OK, ready to accept logins");
 
 export default router;
