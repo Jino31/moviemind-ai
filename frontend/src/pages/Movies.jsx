@@ -36,6 +36,8 @@ import { FALLBACK_AVATAR } from "../constants";
 import useProfilePhoto from "../hooks/useProfilePhoto";
 import Footer from "../components/Footer";
 import AmbientGlow from "../components/AmbientGlow";
+import TrailerLanguageSelect from "../components/TrailerLanguageSelect";
+import { VIDEO_LANGS, buildTrailerOptions } from "../utils/trailers";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -649,26 +651,21 @@ export default function Movies() {
     if (!requireAuth("watch trailers")) return;
 
     try {
-      // English + major Indian languages + language-neutral, then fall back to any language
-      let data = await tmdb(`/movie/${movie.id}/videos`, "&include_video_language=en,hi,ta,te,ml,kn,null");
-      let videos = (data.results || []).filter((v) => v.site === "YouTube");
+      // Fetch trailers in every supported language, then fall back to the default list
+      let data = await tmdb(`/movie/${movie.id}/videos`, `&include_video_language=${VIDEO_LANGS}`);
+      let options = buildTrailerOptions(data.results || []);
 
-      if (videos.length === 0) {
+      if (options.length === 0) {
         data = await tmdb(`/movie/${movie.id}/videos`);
-        videos = (data.results || []).filter((v) => v.site === "YouTube");
+        options = buildTrailerOptions(data.results || []);
       }
 
-      // Best match first: trailer, teaser, then clip / featurette; official ones before unofficial
-      const rank = (v) =>
-        ({ Trailer: 0, Teaser: 1, Clip: 2, Featurette: 3 }[v.type] ?? 4) * 2 + (v.official ? 0 : 1);
-      const found = [...videos].sort((a, b) => rank(a) - rank(b))[0];
-
-      if (!found) {
+      if (options.length === 0) {
         showToast("No trailer available for this title yet");
         return;
       }
       trackedRef.current = false;
-      setTrailer({ key: found.key, movie });
+      setTrailer({ key: options[0].key, movie, options });
     } catch (err) {
       console.error("Trailer load failed:", err);
       showToast("Couldn't load the trailer. Please try again.");
@@ -1236,6 +1233,11 @@ export default function Movies() {
             <div className="relative z-10 bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
             <div className="flex items-center justify-between px-5 py-3 bg-zinc-950 border-b border-white/10">
               <span className="text-white/70 text-sm font-semibold truncate pr-4">{trailer.movie.title}</span>
+              <TrailerLanguageSelect
+                options={trailer.options}
+                value={trailer.key}
+                onChange={(key) => setTrailer((t) => ({ ...t, key }))}
+              />
               <button
                 onClick={closeTrailer}
                 aria-label="Close trailer"

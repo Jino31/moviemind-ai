@@ -23,6 +23,8 @@ import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import Footer from "../components/Footer";
 import AmbientGlow from "../components/AmbientGlow";
+import TrailerLanguageSelect from "../components/TrailerLanguageSelect";
+import { VIDEO_LANGS, buildTrailerOptions } from "../utils/trailers";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -33,9 +35,6 @@ const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const PROXY = import.meta.env.PROD;
 const TMDB = PROXY ? "/tmdb" : "https://api.themoviedb.org/3";
 const IMG = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
-
-// Video languages to request (English + major Indian languages + language-neutral)
-const VIDEO_LANGS = "en,hi,ta,te,ml,kn,null";
 
 const REGIONS = [
   ["IN", "India"],
@@ -87,10 +86,6 @@ const formatRuntime = (minutes) => {
   return h ? `${h}h ${m}m` : `${m}m`;
 };
 
-// Best video first: official trailer, trailer, teaser, then clip / featurette
-const videoRank = (v) =>
-  ({ Trailer: 0, Teaser: 1, Clip: 2, Featurette: 3 }[v.type] ?? 4) * 2 + (v.official ? 0 : 1);
-
 // setDoc + merge works even if the user document doesn't exist yet
 async function syncUser(updates) {
   const user = auth.currentUser;
@@ -117,6 +112,7 @@ export default function MovieDetails() {
   const [inWatchlist, setInWatchlist] = useState(false);
 
   const [trailerOpen, setTrailerOpen] = useState(false);
+  const [trailerKey, setTrailerKey] = useState(null);
   const [region, setRegion] = useState(() => {
     try {
       return localStorage.getItem("watch_region") || "IN";
@@ -149,6 +145,7 @@ export default function MovieDetails() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
     setTrailerOpen(false);
+    setTrailerKey(null);
 
     if (!API_KEY) {
       setError("TMDB API key missing. Add VITE_TMDB_API_KEY to your environment.");
@@ -201,8 +198,8 @@ export default function MovieDetails() {
   /* ───────────── derived data ───────────── */
 
   const videos = movie?.videos?.results || [];
-  const ytVideos = videos.filter((v) => v.site === "YouTube");
-  const trailer = [...ytVideos].sort((a, b) => videoRank(a) - videoRank(b))[0] || null;
+  const trailerOptions = buildTrailerOptions(videos);
+  const trailer = trailerOptions.find((o) => o.key === trailerKey) || trailerOptions[0] || null;
 
   const providersByRegion = movie?.["watch/providers"]?.results || {};
   const regionData = providersByRegion[region] || null;
@@ -582,6 +579,11 @@ export default function MovieDetails() {
             <div className="relative z-10 bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
             <div className="flex items-center justify-between px-5 py-3 bg-zinc-950 border-b border-white/10">
               <span className="text-white/70 text-sm font-semibold truncate pr-4">{movie.title}</span>
+              <TrailerLanguageSelect
+                options={trailerOptions}
+                value={trailer.key}
+                onChange={setTrailerKey}
+              />
               <button
                 onClick={closeTrailer}
                 aria-label="Close trailer"
