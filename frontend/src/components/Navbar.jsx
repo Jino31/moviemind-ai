@@ -9,11 +9,14 @@ import {
   FaSignOutAlt,
   FaTimes,
   FaUser,
+  FaSun,
+  FaMoon,
 } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "../context/ThemeContext"; // Import useTheme for mobile toggle
 
 const menuItems = [
   {
@@ -39,12 +42,6 @@ const menuItems = [
   },
 ];
 
-/*
-  Profile photo with layered fallbacks:
-  1. the user's saved photo
-  2. a generated avatar image with their initial
-  3. a plain letter circle (if the generated image can't load either)
-*/
 function Avatar({ user, className = "h-8 w-8", textClass = "text-xs" }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const [generatedFailed, setGeneratedFailed] = useState(false);
@@ -98,6 +95,7 @@ function Avatar({ user, className = "h-8 w-8", textClass = "text-xs" }) {
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme(); // Hook for mobile theme switching
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -110,7 +108,6 @@ function Navbar() {
   const menuRef = useRef(null);
   const mobileSearchRef = useRef(null);
 
-  /* Auth state (authLoading prevents the Login button flashing on refresh) */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -119,7 +116,6 @@ function Navbar() {
     return () => unsubscribe();
   }, []);
 
-  /* Live profile data (photo and name saved from the Profile page) */
   useEffect(() => {
     if (!user?.uid) {
       setProfile(null);
@@ -136,7 +132,6 @@ function Navbar() {
     return () => unsub();
   }, [user?.uid]);
 
-  /* Close the profile menu on outside click / touch or Escape */
   useEffect(() => {
     if (!showMenu) return;
 
@@ -160,7 +155,6 @@ function Navbar() {
     };
   }, [showMenu]);
 
-  /* Stronger shadow once the page is scrolled */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -168,13 +162,11 @@ function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* Close menus whenever the route changes */
   useEffect(() => {
     setShowMenu(false);
     setShowSearch(false);
   }, [location.pathname]);
 
-  /* Focus the mobile search field when it opens */
   useEffect(() => {
     if (showSearch) mobileSearchRef.current?.focus();
   }, [showSearch]);
@@ -197,7 +189,6 @@ function Navbar() {
     }
   };
 
-  /* Merge Firebase Auth user with the profile saved in Firestore */
   const displayUser = user
     ? {
         uid: user.uid,
@@ -218,13 +209,14 @@ function Navbar() {
         scrolled ? "shadow-lg" : "shadow-none"
       }`}
     >
-      {/* Full width so the brand and controls sit in the corners */}
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        {/* LEFT CORNER: BRAND */}
+        {/* LEFT CORNER: BRAND (Hidden on mobile when search is open) */}
         <Link
           to="/"
           aria-label="MovieMind AI home"
-          className="group flex flex-shrink-0 items-center gap-3"
+          className={`group flex flex-shrink-0 items-center gap-3 ${
+            showSearch ? "hidden sm:flex" : "flex"
+          }`}
         >
           <img
             src="/logo.png"
@@ -240,6 +232,28 @@ function Navbar() {
             </span>
           </div>
         </Link>
+
+        {/* MOBILE EXPANDED SEARCH BAR (Covers MovieMind part on mobile only) */}
+        {showSearch && (
+          <form
+            onSubmit={handleSearch}
+            role="search"
+            className="flex flex-1 items-center sm:hidden"
+          >
+            <div className="surface border-line flex w-full items-center gap-2 rounded-xl border px-3 py-2 focus-within:border-pink-500/60">
+              <FaSearch className="t-muted text-xs" aria-hidden="true" />
+              <input
+                ref={mobileSearchRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search movies..."
+                aria-label="Search movies"
+                className="t-main w-full bg-transparent text-xs outline-none placeholder:text-gray-400"
+              />
+            </div>
+          </form>
+        )}
 
         {/* RIGHT CORNER: SEARCH, THEME, PROFILE */}
         <div className="flex items-center gap-2.5">
@@ -275,6 +289,21 @@ function Navbar() {
             )}
           </button>
 
+          {/* MOBILE ONLY Theme Toggle: Transparent, borderless, icon-only button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="surface surface-hover t-main flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl transition md:hidden"
+          >
+            {theme === "dark" ? (
+              <FaSun className="text-xs text-amber-400" />
+            ) : (
+              <FaMoon className="text-xs text-indigo-400" />
+            )}
+          </button>
+
+          {/* PC Theme Toggle (Untouched, maintains exact original PC behavior) */}
           <ThemeToggle />
 
           {/* Auth area */}
@@ -323,10 +352,7 @@ function Navbar() {
                     : "invisible -translate-y-1 scale-95 opacity-0"
                 }`}
               >
-                {/* Accent bar */}
                 <div className="h-1 w-full bg-gradient-to-r from-red-500 via-pink-500 to-purple-500" />
-
-                {/* Identity */}
                 <div className="border-line flex items-center gap-3 border-b p-4">
                   <Avatar
                     user={displayUser}
@@ -340,8 +366,6 @@ function Navbar() {
                     <p className="t-muted truncate text-xs">{user.email}</p>
                   </div>
                 </div>
-
-                {/* Links */}
                 <div className="p-2">
                   {menuItems.map(({ label, hint, to, icon: Icon, tint }) => (
                     <Link
@@ -368,8 +392,6 @@ function Navbar() {
                     </Link>
                   ))}
                 </div>
-
-                {/* Logout */}
                 <div className="border-line border-t p-2">
                   <button
                     type="button"
@@ -389,28 +411,6 @@ function Navbar() {
           )}
         </div>
       </div>
-
-      {/* Mobile search row */}
-      {showSearch && (
-        <form
-          onSubmit={handleSearch}
-          role="search"
-          className="border-line border-t px-4 pb-3 pt-3 sm:px-6 md:hidden"
-        >
-          <div className="surface border-line flex items-center gap-2 rounded-xl border px-3 py-2.5 focus-within:border-pink-500/60">
-            <FaSearch className="t-muted text-xs" aria-hidden="true" />
-            <input
-              ref={mobileSearchRef}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search movies..."
-              aria-label="Search movies"
-              className="t-main w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
-            />
-          </div>
-        </form>
-      )}
     </nav>
   );
 }
