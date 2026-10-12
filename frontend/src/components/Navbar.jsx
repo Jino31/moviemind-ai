@@ -9,14 +9,11 @@ import {
   FaSignOutAlt,
   FaTimes,
   FaUser,
-  FaSun,
-  FaMoon,
 } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import ThemeToggle from "./ThemeToggle";
-import { useTheme } from "../context/ThemeContext"; // Import useTheme for mobile toggle
 
 const menuItems = [
   {
@@ -95,7 +92,6 @@ function Avatar({ user, className = "h-8 w-8", textClass = "text-xs" }) {
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme(); // Hook for mobile theme switching
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -289,21 +285,7 @@ function Navbar() {
             )}
           </button>
 
-          {/* MOBILE ONLY Theme Toggle: Transparent, borderless, icon-only button */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="surface surface-hover t-main flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl transition md:hidden"
-          >
-            {theme === "dark" ? (
-              <FaSun className="text-xs text-amber-400" />
-            ) : (
-              <FaMoon className="text-xs text-indigo-400" />
-            )}
-          </button>
-
-          {/* PC Theme Toggle (Untouched, maintains exact original PC behavior) */}
+          {/* Theme toggle (all screen sizes) */}
           <ThemeToggle />
 
           {/* Auth area */}

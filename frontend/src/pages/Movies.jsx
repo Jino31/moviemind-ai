@@ -30,14 +30,15 @@ import {
   FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
-import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import { FALLBACK_AVATAR } from "../constants";
 import useProfilePhoto from "../hooks/useProfilePhoto";
 import Footer from "../components/Footer";
-import AmbientGlow from "../components/AmbientGlow";
-import TrailerLanguageSelect from "../components/TrailerLanguageSelect";
+import MovieTrailerModal from "../components/MovieTrailerModal";
 import { VIDEO_LANGS, buildTrailerOptions } from "../utils/trailers";
+
+// App logo from /public. Change the file name here if yours differs.
+const LOGO_SRC = "/logo.png";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -135,13 +136,19 @@ function MovieCard({
   const year = movie.release_date?.split("-")[0] || "Unknown";
 
   return (
-    <div className={isRow ? "shrink-0 w-[240px] sm:w-[280px] lg:w-[320px] snap-start" : "w-full"}>
+    <div
+      className={
+        isRow
+          ? "shrink-0 w-[72vw] max-w-[280px] sm:max-w-none sm:w-[280px] lg:w-[320px] snap-start"
+          : "w-full"
+      }
+    >
       <div
         role="button"
         tabIndex={0}
         onClick={() => onOpen(movie)}
         onKeyDown={(e) => e.key === "Enter" && onOpen(movie)}
-        className={`group/card relative overflow-hidden rounded-2xl cursor-pointer bg-zinc-900 transition-all duration-300 hover:scale-[1.04] hover:z-10 hover:shadow-[0_0_35px_rgba(239,68,68,0.35)] ${
+        className={`group/card relative overflow-hidden rounded-2xl cursor-pointer bg-zinc-900 transition-all duration-300 active:scale-[0.98] md:active:scale-100 md:hover:scale-[1.04] md:hover:z-10 md:hover:shadow-[0_0_35px_rgba(239,68,68,0.35)] ${
           isRow ? "aspect-video" : "aspect-[2/3]"
         }`}
       >
@@ -150,7 +157,7 @@ function MovieCard({
             src={src}
             alt={movie.title}
             loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+            className="w-full h-full object-cover transition-transform duration-700 md:group-hover/card:scale-110"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono">
@@ -161,8 +168,8 @@ function MovieCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
 
         {/* Rating + info */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-          <div className="px-3 py-1 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-1.5 text-xs shadow-md">
+        <div className="absolute top-2.5 left-2.5 right-2.5 md:top-3 md:left-3 md:right-3 flex items-center justify-between z-10">
+          <div className="px-2.5 py-0.5 md:px-3 md:py-1 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-1.5 text-[11px] md:text-xs shadow-md">
             <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
           </div>
           <button
@@ -171,7 +178,8 @@ function MovieCard({
               onInfo(movie);
             }}
             title="More info"
-            className="w-8 h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition cursor-pointer"
+            aria-label="More info"
+            className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition cursor-pointer"
           >
             <FaInfoCircle className="text-sm" />
           </button>
@@ -179,14 +187,54 @@ function MovieCard({
 
         {/* Title (row cards only; grid cards show it underneath) */}
         {isRow && (
-          <div className="absolute bottom-0 inset-x-0 p-4 transition-opacity duration-300 group-hover/card:opacity-0 pointer-events-none">
-            <h3 className="text-white text-lg font-bold line-clamp-1">{movie.title}</h3>
+          <div className="absolute bottom-0 inset-x-0 p-3 pr-24 md:p-4 md:pr-4 transition-opacity duration-300 md:group-hover/card:opacity-0 pointer-events-none">
+            <h3 className="text-white text-base md:text-lg font-bold line-clamp-1">{movie.title}</h3>
             <p className="text-white/70 text-xs mt-0.5">{year}</p>
           </div>
         )}
 
-        {/* Hover actions */}
-        <div className="absolute inset-x-0 bottom-0 p-3 flex gap-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10">
+        {/* Touch devices: always-visible quick actions (no hover on phones) */}
+        <div className="md:hidden absolute right-2.5 bottom-2.5 z-10 flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrailer(movie);
+            }}
+            aria-label="Watch trailer"
+            className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
+          >
+            <FaPlay className="text-xs ml-0.5" />
+          </button>
+
+          {onRemove ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(movie);
+              }}
+              aria-label={removeTitle}
+              className="w-10 h-10 rounded-full bg-red-600/70 backdrop-blur-md border border-red-400/40 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
+            >
+              <FaTrashAlt className="text-xs" />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleWatchlist(movie);
+              }}
+              aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+              className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center text-white active:scale-90 transition cursor-pointer ${
+                inWatchlist ? "bg-emerald-600 border-emerald-400" : "bg-black/65 border-white/20"
+              }`}
+            >
+              {inWatchlist ? <FaCheck className="text-xs" /> : <FaPlus className="text-xs" />}
+            </button>
+          )}
+        </div>
+
+        {/* Desktop hover actions */}
+        <div className="hidden md:flex absolute inset-x-0 bottom-0 p-3 gap-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -228,7 +276,7 @@ function MovieCard({
       </div>
 
       {!isRow && (
-        <div className="mt-3 px-1">
+        <div className="mt-2.5 md:mt-3 px-1">
           <h3 className="t-main font-bold text-sm line-clamp-1">{movie.title}</h3>
           <p className="t-muted text-xs mt-0.5">{year}</p>
         </div>
@@ -249,15 +297,15 @@ function MovieRow({ id, title, icon, movies, onViewAll, cardProps }) {
   };
 
   return (
-    <section id={id} className="group/row mb-10 scroll-mt-32">
-      <div className={`flex items-center justify-between ${PAGE_PAD} mb-4`}>
-        <div className="flex items-center gap-3">
-          {icon && <span className="text-red-500 text-xl">{icon}</span>}
-          <h2 className="t-main text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">{title}</h2>
+    <section id={id} className="group/row mb-7 md:mb-10 scroll-mt-32">
+      <div className={`flex items-center justify-between ${PAGE_PAD} mb-3 md:mb-4`}>
+        <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+          {icon && <span className="text-red-500 text-lg md:text-xl">{icon}</span>}
+          <h2 className="t-main text-lg sm:text-2xl lg:text-3xl font-black tracking-tight truncate">{title}</h2>
         </div>
         <button
           onClick={onViewAll}
-          className="flex items-center gap-1 t-muted font-semibold text-sm hover:text-red-500 transition cursor-pointer"
+          className="shrink-0 flex items-center gap-1 t-muted font-semibold text-sm py-2 pl-3 hover:text-red-500 transition cursor-pointer"
         >
           View All <FaChevronRight className="text-xs" />
         </button>
@@ -282,7 +330,7 @@ function MovieRow({ id, title, icon, movies, onViewAll, cardProps }) {
         {/* py + negative margin leaves room for the hover-scale without clipping */}
         <div
           ref={rowRef}
-          className={`flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth snap-x ${PAGE_PAD} py-5 -my-5`}
+          className={`flex gap-3 sm:gap-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth snap-x ${PAGE_PAD} py-5 -my-5`}
         >
           {movies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} variant="row" {...cardProps} />
@@ -295,7 +343,7 @@ function MovieRow({ id, title, icon, movies, onViewAll, cardProps }) {
 
 function MovieGrid({ movies, cardProps }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-5 sm:gap-6">
       {movies.map((movie) => (
         <MovieCard key={movie.id} movie={movie} variant="grid" {...cardProps} />
       ))}
@@ -305,7 +353,7 @@ function MovieGrid({ movies, cardProps }) {
 
 function EmptyState({ icon, title, text, actionLabel, onAction }) {
   return (
-    <div className="py-24 text-center">
+    <div className="py-16 md:py-24 text-center px-2">
       <div className="text-5xl t-muted opacity-40 mb-5 flex justify-center">{icon}</div>
       <h3 className="t-main text-xl font-bold mb-2">{title}</h3>
       {text && <p className="t-muted max-w-md mx-auto">{text}</p>}
@@ -324,11 +372,28 @@ function EmptyState({ icon, title, text, actionLabel, onAction }) {
 /* ───────────────────────── HERO ───────────────────────── */
 
 function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onToggleWatchlist }) {
+  const touchX = useRef(null);
   const movie = movies[index];
   if (!movie) return null;
 
+  // swipe left/right to change slide (touch only, no effect with a mouse)
+  const handleTouchStart = (e) => {
+    touchX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e) => {
+    if (touchX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    touchX.current = null;
+    if (Math.abs(dx) < 50) return;
+    onIndex((index + (dx < 0 ? 1 : -1) + movies.length) % movies.length);
+  };
+
   return (
-    <section className="relative w-full h-[64vh] min-h-[440px] max-h-[740px] overflow-hidden select-none">
+    <section
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="relative w-full h-[62vh] md:h-[64vh] min-h-[420px] md:min-h-[440px] max-h-[740px] overflow-hidden select-none touch-pan-y"
+    >
       {movies.map((m, i) => (
         <img
           key={m.id}
@@ -351,13 +416,13 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
       />
 
       <div className="relative z-10 h-full flex items-end">
-        <div className={`w-full ${PAGE_PAD} pb-14 sm:pb-16`}>
-          <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-600/20 border border-red-500/30 backdrop-blur-md text-red-500 font-bold text-xs sm:text-sm">
+        <div className={`w-full ${PAGE_PAD} pb-12 sm:pb-16`}>
+          <div className="max-w-2xl space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-red-600/20 border border-red-500/30 backdrop-blur-md text-red-500 font-bold text-xs sm:text-sm">
               🔥 Trending Worldwide
             </div>
 
-            <h1 className="t-main text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05]">
+            <h1 className="t-main text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05] line-clamp-2 sm:line-clamp-none">
               {movie.title}
             </h1>
 
@@ -368,21 +433,21 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
               <span className="t-muted">{movie.release_date?.split("-")[0] || ""}</span>
             </div>
 
-            <p className="t-muted text-sm sm:text-base lg:text-lg line-clamp-3 leading-relaxed">
+            <p className="t-muted text-sm sm:text-base lg:text-lg line-clamp-2 sm:line-clamp-3 leading-relaxed">
               {movie.overview}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex items-center gap-2.5 sm:flex-wrap sm:gap-3 pt-1 sm:pt-2">
               <button
                 onClick={() => onTrailer(movie)}
-                className="px-6 sm:px-8 py-3.5 rounded-2xl bg-[color:var(--text)] text-[color:var(--bg)] font-extrabold flex items-center gap-3 hover:scale-105 active:scale-95 transition shadow-2xl cursor-pointer"
+                className="flex-1 sm:flex-none px-4 sm:px-8 py-3.5 rounded-2xl bg-[color:var(--text)] text-[color:var(--bg)] font-extrabold flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition shadow-2xl cursor-pointer whitespace-nowrap"
               >
                 <FaPlay className="text-sm" /> Watch Trailer
               </button>
 
               <button
                 onClick={() => onDetails(movie)}
-                className="px-6 sm:px-8 py-3.5 rounded-2xl surface surface-hover border border-line t-main font-bold backdrop-blur-md hover:scale-105 active:scale-95 transition cursor-pointer"
+                className="px-5 sm:px-8 py-3.5 rounded-2xl surface surface-hover border border-line t-main font-bold backdrop-blur-md hover:scale-105 active:scale-95 transition cursor-pointer"
               >
                 Details
               </button>
@@ -390,7 +455,8 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
               <button
                 onClick={() => onToggleWatchlist(movie)}
                 title={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-                className={`w-12 h-12 rounded-2xl border backdrop-blur-md flex items-center justify-center hover:scale-105 active:scale-95 transition cursor-pointer ${
+                aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+                className={`shrink-0 w-12 h-12 rounded-2xl border backdrop-blur-md flex items-center justify-center hover:scale-105 active:scale-95 transition cursor-pointer ${
                   inWatchlist
                     ? "bg-emerald-600 border-emerald-500 text-white"
                     : "surface surface-hover border-line t-main"
@@ -404,7 +470,7 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
       </div>
 
       {movies.length > 1 && (
-        <div className="absolute bottom-5 z-10 flex gap-2 left-4 sm:left-8 lg:left-12">
+        <div className="absolute bottom-4 sm:bottom-5 z-10 flex gap-2 left-4 sm:left-8 lg:left-12">
           {movies.map((m, i) => (
             <button
               key={m.id}
@@ -423,15 +489,15 @@ function Hero({ movies, index, onIndex, onTrailer, onDetails, inWatchlist, onTog
 
 function RowSkeleton() {
   return (
-    <div className="mb-10">
+    <div className="mb-7 md:mb-10">
       <div className={`${PAGE_PAD} mb-4`}>
-        <div className="h-7 w-56 rounded-lg surface animate-pulse" />
+        <div className="h-7 w-48 md:w-56 rounded-lg surface animate-pulse" />
       </div>
-      <div className={`flex gap-4 overflow-hidden ${PAGE_PAD}`}>
+      <div className={`flex gap-3 sm:gap-4 overflow-hidden ${PAGE_PAD}`}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="shrink-0 w-[240px] sm:w-[280px] lg:w-[320px] aspect-video rounded-2xl surface animate-pulse"
+            className="shrink-0 w-[72vw] max-w-[280px] sm:max-w-none sm:w-[280px] lg:w-[320px] aspect-video rounded-2xl surface animate-pulse"
           />
         ))}
       </div>
@@ -452,6 +518,8 @@ export default function Movies() {
   const [user, setUser] = useState(null);
   const profilePhoto = useProfilePhoto(user);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false); // phones: search bar replaces the brand text
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const [catalog, setCatalog] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -497,6 +565,11 @@ export default function Movies() {
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
+  // focus the box as soon as it slides open
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   const requireAuth = (action) => {
     if (auth.currentUser) return auth.currentUser;
     showToast(`🔒 Please log in to ${action}`);
@@ -523,9 +596,11 @@ export default function Movies() {
     };
     const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
     document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
       document.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
@@ -612,6 +687,7 @@ export default function Movies() {
     setQuery(q);
     setView("search");
     setSearching(true);
+    searchInputRef.current?.blur(); // closes the phone keyboard so results are visible
     const seq = ++searchSeq.current;
 
     try {
@@ -784,7 +860,13 @@ export default function Movies() {
 
   const focusSearch = () => {
     setView("search");
+    setSearchOpen(true);
     setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    searchInputRef.current?.blur();
   };
 
   const openCollection = (title, movies) => {
@@ -835,13 +917,17 @@ export default function Movies() {
     <div className="app-bg min-h-screen overflow-x-clip font-sans">
       {/* ═════════ TOP NAVIGATION ═════════ */}
       <header className="sticky top-0 z-40 nav-bg backdrop-blur-2xl border-b border-line">
-        <div className={`max-w-[1800px] mx-auto ${PAGE_PAD} py-3 flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-3`}>
-          {/* back */}
+        <div
+          className={`max-w-[1800px] mx-auto ${PAGE_PAD} py-2.5 md:py-3 flex items-center gap-x-3`}
+        >
+          {/* back (phones: only inside sub-views, the bottom nav handles the rest) */}
           <button
             onClick={goBack}
             title={view === "home" ? "Go back" : "Back to Discover"}
             aria-label="Go back"
-            className="shrink-0 h-11 px-3 sm:px-4 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm flex items-center gap-2 transition hover:text-red-500 active:scale-95 cursor-pointer"
+            className={`${
+              view === "home" || searchOpen ? "hidden sm:flex" : "flex"
+            } shrink-0 h-11 px-3 sm:px-4 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm items-center gap-2 transition hover:text-red-500 active:scale-95 cursor-pointer`}
           >
             <FaArrowLeft className="text-xs" />
             <span className="hidden sm:inline">Back</span>
@@ -853,10 +939,24 @@ export default function Movies() {
             title="MovieMind AI home"
             className="shrink-0 flex items-center gap-2.5 cursor-pointer"
           >
-            <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-black shadow-[0_0_20px_rgba(236,72,153,0.35)]">
-              M
-            </span>
-            <span className="hidden lg:block t-main font-black tracking-tight text-lg whitespace-nowrap">
+            {logoFailed ? (
+              <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-black shadow-[0_0_20px_rgba(236,72,153,0.35)]">
+                M
+              </span>
+            ) : (
+              <img
+                src={LOGO_SRC}
+                alt="MovieMind AI"
+                onError={() => setLogoFailed(true)}
+                className="w-10 h-10 rounded-xl object-contain"
+              />
+            )}
+            {/* on phones the search bar takes this spot while it's open */}
+            <span
+              className={`${
+                searchOpen ? "hidden lg:block" : "sm:hidden lg:block"
+              } t-main font-black tracking-tight text-lg whitespace-nowrap`}
+            >
               MovieMind <span className="text-red-500">AI</span>
             </span>
           </button>
@@ -883,37 +983,61 @@ export default function Movies() {
             })}
           </nav>
 
-          {/* search (own row on phones) */}
+          {/* search: always visible on desktop; on phones it opens from the search button */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               runSearch();
             }}
-            className="order-last md:order-none w-full md:w-auto md:flex-1 relative min-w-0 md:max-w-md md:ml-auto"
+            className={`${
+              searchOpen ? "block" : "hidden"
+            } md:block flex-1 relative min-w-0 md:max-w-md md:ml-auto`}
           >
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
+              enterKeyHint="search"
+              autoComplete="off"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search movies..."
-              className="w-full h-11 surface border border-line rounded-2xl pl-10 pr-10 text-sm t-main placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition"
+              className="w-full h-11 surface border border-line rounded-2xl pl-10 pr-10 text-base md:text-sm t-main placeholder:text-gray-500 focus:outline-none focus:border-red-500 transition"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer"
               >
                 <FaTimes className="text-sm" />
               </button>
             )}
           </form>
 
+          {/* phones: close the search bar */}
+          {searchOpen && (
+            <button
+              onClick={closeSearch}
+              aria-label="Close search"
+              className="md:hidden shrink-0 w-11 h-11 rounded-2xl surface surface-hover border border-line t-main flex items-center justify-center active:scale-95 transition cursor-pointer"
+            >
+              <FaTimes />
+            </button>
+          )}
+
           {/* right cluster */}
-          <div className="ml-auto md:ml-0 flex items-center gap-2 shrink-0">
+          <div className={`${searchOpen ? "hidden md:flex" : "flex"} ml-auto md:ml-0 items-center gap-2 shrink-0`}>
+            {/* phones: search button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="md:hidden h-11 w-11 rounded-2xl surface surface-hover border border-line t-main flex items-center justify-center active:scale-95 transition cursor-pointer"
+            >
+              <FaSearch className="text-sm" />
+            </button>
+
             <ThemeToggle />
 
             {!user ? (
@@ -945,7 +1069,7 @@ export default function Movies() {
                 {menuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 mt-3 w-72 rounded-3xl border border-line menu-bg backdrop-blur-xl overflow-hidden z-50 shadow-[0_0_30px_rgba(255,0,100,0.2)]"
+                    className="absolute right-0 mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-line menu-bg backdrop-blur-xl overflow-hidden z-50 shadow-[0_0_30px_rgba(255,0,100,0.2)]"
                   >
                     <div className="px-5 py-4 flex items-center gap-3 border-b border-line">
                       <img
@@ -1024,10 +1148,12 @@ export default function Movies() {
             <button
               key={tab.id}
               onClick={tab.onClick}
-              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition cursor-pointer ${
+              aria-label={tab.label}
+              className={`relative flex-1 flex flex-col items-center gap-1 pt-3 pb-2 text-[10px] font-bold transition active:scale-95 cursor-pointer ${
                 active ? "text-red-500" : "t-muted"
               }`}
             >
+              {active && <span className="absolute top-0 h-[3px] w-8 rounded-b-full bg-red-500" />}
               <span className={`text-lg ${active ? "scale-110" : ""} transition-transform`}>{tab.icon}</span>
               {tab.label}
             </button>
@@ -1058,7 +1184,7 @@ export default function Movies() {
 
             {errorMessage && (
               <div className={`${PAGE_PAD} mt-6`}>
-                <div className="p-4 rounded-2xl border border-red-500/40 bg-red-500/10 flex items-center gap-4">
+                <div className="p-4 rounded-2xl border border-red-500/40 bg-red-500/10 flex flex-wrap sm:flex-nowrap items-center gap-4">
                   <FaExclamationTriangle className="text-2xl text-red-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="t-main font-bold">Catalog problem</p>
@@ -1066,7 +1192,7 @@ export default function Movies() {
                   </div>
                   <button
                     onClick={loadCatalog}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm transition cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm transition cursor-pointer"
                   >
                     Retry
                   </button>
@@ -1074,7 +1200,7 @@ export default function Movies() {
               </div>
             )}
 
-            <div className="pt-8">
+            <div className="pt-6 md:pt-8">
               {isLoading ? (
                 <>
                   <RowSkeleton />
@@ -1099,15 +1225,15 @@ export default function Movies() {
 
         {/* SEARCH */}
         {view === "search" && (
-          <div className={`${PAGE_PAD} py-8`}>
+          <div className={`${PAGE_PAD} py-6 md:py-8`}>
             {recentSearches.length > 0 && (
-              <div className="mb-8 flex items-center gap-3 flex-wrap">
-                <span className="t-muted text-xs font-bold uppercase tracking-wider">Recent</span>
+              <div className="mb-6 md:mb-8 flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
+                <span className="shrink-0 t-muted text-xs font-bold uppercase tracking-wider">Recent</span>
                 {recentSearches.map((term, index) => (
                   <div
                     key={term}
                     onClick={() => runSearch(term)}
-                    className="flex items-center gap-2 surface surface-hover border border-line hover:border-red-500/50 pl-4 pr-2 py-1.5 rounded-full text-sm font-medium t-main cursor-pointer transition"
+                    className="shrink-0 whitespace-nowrap flex items-center gap-2 surface surface-hover border border-line hover:border-red-500/50 pl-4 pr-2 py-1.5 rounded-full text-sm font-medium t-main cursor-pointer transition"
                   >
                     <span>{term}</span>
                     <button
@@ -1116,7 +1242,7 @@ export default function Movies() {
                         removeRecent(index);
                       }}
                       aria-label={`Remove ${term}`}
-                      className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer"
+                      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer"
                     >
                       <FaTimes className="text-[10px]" />
                     </button>
@@ -1131,7 +1257,7 @@ export default function Movies() {
               </div>
             ) : searchResults.length > 0 ? (
               <>
-                <h2 className="t-main text-2xl font-black mb-6">
+                <h2 className="t-main text-xl sm:text-2xl font-black mb-5 md:mb-6">
                   Results for “{resultsFor}”{" "}
                   <span className="t-muted font-semibold">({searchResults.length})</span>
                 </h2>
@@ -1155,10 +1281,10 @@ export default function Movies() {
 
         {/* WATCHLIST */}
         {view === "watchlist" && (
-          <div className={`${PAGE_PAD} py-8`}>
+          <div className={`${PAGE_PAD} py-6 md:py-8`}>
             {watchlist.length > 0 ? (
               <>
-                <h2 className="t-main text-2xl font-black mb-6">
+                <h2 className="t-main text-xl sm:text-2xl font-black mb-5 md:mb-6">
                   Your Watchlist{" "}
                   <span className="t-muted font-semibold">
                     ({watchlist.length} {watchlist.length === 1 ? "title" : "titles"})
@@ -1183,10 +1309,10 @@ export default function Movies() {
 
         {/* HISTORY */}
         {view === "history" && (
-          <div className={`${PAGE_PAD} py-8`}>
+          <div className={`${PAGE_PAD} py-6 md:py-8`}>
             {watchedHistory.length > 0 ? (
               <>
-                <h2 className="t-main text-2xl font-black mb-6">Recently watched trailers</h2>
+                <h2 className="t-main text-xl sm:text-2xl font-black mb-5 md:mb-6">Recently watched trailers</h2>
                 <MovieGrid
                   movies={watchedHistory}
                   cardProps={{ ...cardProps, onRemove: removeFromHistory, removeTitle: "Remove from history" }}
@@ -1206,8 +1332,8 @@ export default function Movies() {
 
         {/* COLLECTION ("View All") */}
         {view === "collection" && (
-          <div className={`${PAGE_PAD} py-8`}>
-            <h2 className="t-main text-3xl font-black mb-6">{collection.title}</h2>
+          <div className={`${PAGE_PAD} py-6 md:py-8`}>
+            <h2 className="t-main text-2xl sm:text-3xl font-black mb-5 md:mb-6">{collection.title}</h2>
             {collection.movies.length > 0 ? (
               <MovieGrid movies={collection.movies} cardProps={cardProps} />
             ) : (
@@ -1224,95 +1350,74 @@ export default function Movies() {
 
       {/* ═════════ TRAILER MODAL ═════════ */}
       {trailer && (
-        <div
-          onClick={closeTrailer}
-          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
-        >
-          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-5xl">
-            <AmbientGlow videoKey={trailer.key} />
-            <div className="relative z-10 bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-3 bg-zinc-950 border-b border-white/10">
-              <span className="text-white/70 text-sm font-semibold truncate pr-4">{trailer.movie.title}</span>
-              <TrailerLanguageSelect
-                options={trailer.options}
-                value={trailer.key}
-                onChange={(key) => setTrailer((t) => ({ ...t, key }))}
-              />
-              <button
-                onClick={closeTrailer}
-                aria-label="Close trailer"
-                className="w-9 h-9 shrink-0 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-red-600 transition cursor-pointer"
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="relative pt-[56.25%] w-full">
-              <YouTube
-                videoId={trailer.key}
-                className="absolute inset-0 w-full h-full"
-                opts={{
-                  width: "100%",
-                  height: "100%",
-                  playerVars: { autoplay: 1, modestbranding: 1, rel: 0 },
-                }}
-                onPlay={() => markAsWatched(trailer.movie)}
-                onEnd={() => {
-                  trackedRef.current = false;
-                }}
-                onError={() => {
-                  closeTrailer();
-                  showToast("This video can't be played here. Try another title.");
-                }}
-              />
-              </div>
-            </div>
-          </div>
-        </div>
+        <MovieTrailerModal
+          movie={trailer.movie}
+          options={trailer.options}
+          videoKey={trailer.key}
+          onKeyChange={(key) => setTrailer((t) => ({ ...t, key }))}
+          onClose={closeTrailer}
+          onPlay={() => markAsWatched(trailer.movie)}
+          onEnd={() => {
+            trackedRef.current = false;
+          }}
+          onError={() => {
+            closeTrailer();
+            showToast("This video can't be played here. Try another title.");
+          }}
+          inWatchlist={watchlistIds.has(trailer.movie.id)}
+          onToggleWatchlist={() => toggleWatchlist(trailer.movie)}
+          onDetails={() => {
+            const m = trailer.movie;
+            closeTrailer();
+            openDetails(m);
+          }}
+        />
       )}
 
-      {/* ═════════ MOVIE INFO MODAL ═════════ */}
+      {/* ═════════ MOVIE INFO MODAL (bottom sheet on phones) ═════════ */}
       {infoMovie && (
         <div
           onClick={() => setInfoMovie(null)}
-          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto menu-bg border border-line rounded-3xl p-6 sm:p-8 shadow-2xl"
+            className="relative w-full sm:max-w-2xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto menu-bg border border-line rounded-t-3xl sm:rounded-3xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-8 shadow-2xl"
           >
+            <div className="sm:hidden mx-auto mb-4 h-1.5 w-12 rounded-full bg-gray-400/50" />
+
             <button
               onClick={() => setInfoMovie(null)}
               aria-label="Close"
-              className="absolute top-4 right-4 w-10 h-10 rounded-full surface surface-hover border border-line flex items-center justify-center t-main hover:text-red-500 transition cursor-pointer"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-10 h-10 rounded-full surface surface-hover border border-line flex items-center justify-center t-main hover:text-red-500 transition cursor-pointer"
             >
               <FaTimes />
             </button>
 
-            <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col sm:flex-row gap-5 sm:gap-6">
               {infoMovie.poster_path || infoMovie.backdrop_path ? (
                 <img
                   src={`${IMG_POSTER}${infoMovie.poster_path || infoMovie.backdrop_path}`}
                   alt={infoMovie.title}
-                  className="w-40 sm:w-48 h-auto sm:h-72 object-cover rounded-2xl shadow-lg self-center sm:self-start"
+                  className="w-32 sm:w-48 h-auto sm:h-72 object-cover rounded-2xl shadow-lg self-center sm:self-start"
                 />
               ) : (
-                <div className="w-full sm:w-48 h-72 surface rounded-2xl flex items-center justify-center t-muted text-xs font-mono">
+                <div className="w-full sm:w-48 h-48 sm:h-72 surface rounded-2xl flex items-center justify-center t-muted text-xs font-mono">
                   NO COVER
                 </div>
               )}
 
               <div className="flex-1 flex flex-col justify-between min-w-0">
-                <div>
-                  <h2 className="t-main text-2xl sm:text-3xl font-black mb-2 pr-10">{infoMovie.title}</h2>
-                  <div className="flex items-center gap-3 text-sm t-muted mb-4">
+                <div className="text-center sm:text-left">
+                  <h2 className="t-main text-2xl sm:text-3xl font-black mb-2 sm:pr-10">{infoMovie.title}</h2>
+                  <div className="flex items-center justify-center sm:justify-start gap-3 text-sm t-muted mb-4">
                     <span className="flex items-center gap-1 text-yellow-500 font-bold">
                       <FaStar /> {infoMovie.vote_average?.toFixed(1) || "N/A"}
                     </span>
                     <span>•</span>
                     <span>{infoMovie.release_date || "Release unknown"}</span>
                   </div>
-                  <p className="t-muted text-sm leading-relaxed mb-6 line-clamp-6">
+                  <p className="t-muted text-sm leading-relaxed mb-6 text-left line-clamp-6">
                     {infoMovie.overview || "No overview available for this title."}
                   </p>
                 </div>
@@ -1324,13 +1429,13 @@ export default function Movies() {
                       setInfoMovie(null);
                       openTrailer(m);
                     }}
-                    className="flex-1 min-w-[140px] py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-3.5 sm:py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <FaPlay className="text-xs" /> Watch Trailer
                   </button>
                   <button
                     onClick={() => toggleWatchlist(infoMovie)}
-                    className="px-5 py-3 surface surface-hover border border-line t-main font-bold rounded-xl transition cursor-pointer"
+                    className="flex-1 sm:flex-none px-5 py-3 surface surface-hover border border-line t-main font-bold rounded-xl transition cursor-pointer"
                   >
                     {watchlistIds.has(infoMovie.id) ? "✓ In Watchlist" : "+ Watchlist"}
                   </button>
@@ -1340,7 +1445,7 @@ export default function Movies() {
                       setInfoMovie(null);
                       openDetails(m);
                     }}
-                    className="px-5 py-3 surface surface-hover border border-line t-main font-bold rounded-xl transition cursor-pointer"
+                    className="flex-1 sm:flex-none px-5 py-3 surface surface-hover border border-line t-main font-bold rounded-xl transition cursor-pointer"
                   >
                     Full details
                   </button>
@@ -1353,7 +1458,7 @@ export default function Movies() {
 
       {/* ═════════ TOAST ═════════ */}
       {toast && (
-        <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl">
+        <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[120] w-max max-w-[90vw] text-center px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl">
           {toast}
         </div>
       )}

@@ -14,16 +14,13 @@ import {
   FaStar,
   FaCalendarAlt,
   FaClock,
-  FaTimes,
   FaExternalLinkAlt,
   FaExclamationTriangle,
   FaTv,
 } from "react-icons/fa";
-import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import Footer from "../components/Footer";
-import AmbientGlow from "../components/AmbientGlow";
-import TrailerLanguageSelect from "../components/TrailerLanguageSelect";
+import MovieTrailerModal from "../components/MovieTrailerModal";
 import { VIDEO_LANGS, buildTrailerOptions } from "../utils/trailers";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
@@ -113,6 +110,7 @@ export default function MovieDetails() {
 
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [trailerKey, setTrailerKey] = useState(null);
+  const [overviewOpen, setOverviewOpen] = useState(false); // phones: "Read more"
   const [region, setRegion] = useState(() => {
     try {
       return localStorage.getItem("watch_region") || "IN";
@@ -146,6 +144,7 @@ export default function MovieDetails() {
     window.scrollTo({ top: 0 });
     setTrailerOpen(false);
     setTrailerKey(null);
+    setOverviewOpen(false);
 
     if (!API_KEY) {
       setError("TMDB API key missing. Add VITE_TMDB_API_KEY to your environment.");
@@ -209,6 +208,7 @@ export default function MovieDetails() {
 
   const year = movie?.release_date ? movie.release_date.split("-")[0] : "—";
   const runtime = formatRuntime(movie?.runtime);
+  const longOverview = (movie?.overview || "").length > 180;
 
   /* ───────────── actions ───────────── */
 
@@ -323,7 +323,7 @@ export default function MovieDetails() {
 
   const TopBar = ({ title }) => (
     <header className="sticky top-0 z-40 nav-bg backdrop-blur-2xl border-b border-line">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center gap-3">
         <button
           onClick={goBack}
           aria-label="Go back"
@@ -396,7 +396,7 @@ export default function MovieDetails() {
 
       {/* blurred backdrop that fades into the page background */}
       {movie.backdrop_path && (
-        <div className="absolute top-0 left-0 w-full h-[75vh] overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-[55vh] md:h-[75vh] overflow-hidden pointer-events-none">
           <img
             src={`${IMG}/w1280${movie.backdrop_path}`}
             alt=""
@@ -409,10 +409,10 @@ export default function MovieDetails() {
         </div>
       )}
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-8">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8">
         {/* ── main card ── */}
-        <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-start surface backdrop-blur-3xl border border-line p-6 sm:p-8 md:p-10 rounded-[32px] shadow-2xl">
-          <div className="w-48 sm:w-60 md:w-72 shrink-0 mx-auto md:mx-0 rounded-2xl overflow-hidden border border-line shadow-2xl surface">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start surface backdrop-blur-3xl border border-line p-5 sm:p-8 md:p-10 rounded-3xl md:rounded-[32px] shadow-2xl">
+          <div className="w-40 sm:w-60 md:w-72 shrink-0 mx-auto md:mx-0 rounded-2xl overflow-hidden border border-line shadow-2xl surface">
             {movie.poster_path ? (
               <img src={`${IMG}/w500${movie.poster_path}`} alt={movie.title} className="w-full h-auto object-cover" />
             ) : (
@@ -422,9 +422,9 @@ export default function MovieDetails() {
             )}
           </div>
 
-          <div className="flex-1 min-w-0 space-y-5">
+          <div className="flex-1 min-w-0 w-full space-y-4 md:space-y-5 text-center md:text-left">
             <div>
-              <div className="flex flex-wrap items-center gap-2.5 mb-4">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-2.5 mb-4">
                 <span className="px-3 py-1.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-600 font-bold text-xs flex items-center gap-1.5">
                   <FaStar className="text-[10px]" /> {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
                   <span className="font-medium opacity-70">({movie.vote_count || 0})</span>
@@ -443,10 +443,10 @@ export default function MovieDetails() {
                 {movie.title}
               </h1>
 
-              {movie.tagline && <p className="t-muted italic mt-2">{movie.tagline}</p>}
+              {movie.tagline && <p className="t-muted italic mt-2 text-sm sm:text-base">{movie.tagline}</p>}
 
               {movie.genres?.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                   {movie.genres.map((g) => (
                     <span
                       key={g.id}
@@ -459,21 +459,40 @@ export default function MovieDetails() {
               )}
             </div>
 
-            <p className="t-muted text-sm sm:text-base leading-relaxed max-w-3xl">
-              {movie.overview || "No overview available for this title."}
-            </p>
+            <div className="max-w-3xl text-left">
+              <p
+                className={`t-muted text-sm sm:text-base leading-relaxed ${
+                  overviewOpen ? "" : "line-clamp-4"
+                } md:line-clamp-none`}
+              >
+                {movie.overview || "No overview available for this title."}
+              </p>
+              {longOverview && (
+                <button
+                  onClick={() => setOverviewOpen((o) => !o)}
+                  className="md:hidden mt-2 py-1 text-red-500 font-bold text-sm cursor-pointer"
+                >
+                  {overviewOpen ? "Show less" : "Read more"}
+                </button>
+              )}
+            </div>
 
-            <div className="flex flex-wrap gap-3 pt-5 border-t border-line">
+            {/* desktop actions (phones use the sticky bar below) */}
+            <div
+              className={`${
+                movie.homepage ? "flex" : "hidden md:flex"
+              } flex-wrap justify-center md:justify-start gap-3 md:pt-5 md:border-t md:border-line`}
+            >
               <button
                 onClick={openTrailer}
-                className="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-black text-sm shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:shadow-[0_0_40px_rgba(236,72,153,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2.5 cursor-pointer"
+                className="hidden md:flex px-7 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-black text-sm shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:shadow-[0_0_40px_rgba(236,72,153,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all items-center gap-2.5 cursor-pointer"
               >
                 <FaPlay className="text-xs" /> {trailer ? "Watch Trailer" : "Search trailer"}
               </button>
 
               <button
                 onClick={toggleWatchlist}
-                className={`px-6 py-3.5 rounded-2xl border font-bold text-sm transition flex items-center gap-2 cursor-pointer ${
+                className={`hidden md:flex px-6 py-3.5 rounded-2xl border font-bold text-sm transition items-center gap-2 cursor-pointer ${
                   inWatchlist
                     ? "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500"
                     : "surface surface-hover border-line t-main"
@@ -488,7 +507,7 @@ export default function MovieDetails() {
                   href={movie.homepage}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm transition flex items-center gap-2"
+                  className="w-full md:w-auto justify-center px-6 py-3.5 rounded-2xl surface surface-hover border border-line t-main font-bold text-sm transition flex items-center gap-2"
                 >
                   Official site <FaExternalLinkAlt className="text-[10px]" />
                 </a>
@@ -498,19 +517,19 @@ export default function MovieDetails() {
         </div>
 
         {/* ── where to watch ── */}
-        <section className="mt-8 surface border border-line rounded-[32px] p-6 sm:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <section className="mt-6 md:mt-8 surface border border-line rounded-3xl md:rounded-[32px] p-5 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4 mb-5 md:mb-6">
             <div>
-              <h2 className="t-main text-2xl font-black">Where to watch</h2>
+              <h2 className="t-main text-xl sm:text-2xl font-black">Where to watch</h2>
               <p className="t-muted text-sm mt-1">Legal streaming, rental and purchase options.</p>
             </div>
 
-            <label className="flex items-center gap-2 text-sm t-muted font-semibold">
+            <label className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 text-sm t-muted font-semibold">
               Region
               <select
                 value={region}
                 onChange={(e) => changeRegion(e.target.value)}
-                className="h-10 px-3 rounded-xl surface border border-line t-main text-sm font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
+                className="flex-1 sm:flex-none h-11 sm:h-10 px-3 rounded-xl surface border border-line t-main text-base sm:text-sm font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
               >
                 {REGIONS.map(([code, name]) => (
                   <option key={code} value={code} className="text-black">
@@ -526,7 +545,7 @@ export default function MovieDetails() {
               {providerGroups.map((group) => (
                 <div key={group.key}>
                   <h3 className="t-muted text-xs font-bold uppercase tracking-wider mb-3">{group.label}</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:gap-3">
                     {group.list.map((p) => (
                       <a
                         key={p.provider_id}
@@ -534,19 +553,19 @@ export default function MovieDetails() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`${p.provider_name} — open on JustWatch`}
-                        className="flex items-center gap-3 pr-4 pl-2 py-2 rounded-2xl surface surface-hover border border-line hover:border-red-500/50 transition"
+                        className="min-w-0 flex items-center gap-3 pr-3 sm:pr-4 pl-2 py-2 rounded-2xl surface surface-hover border border-line hover:border-red-500/50 active:scale-[0.98] transition"
                       >
                         {p.logo_path ? (
                           <img
                             src={`${IMG}/w92${p.logo_path}`}
                             alt=""
                             loading="lazy"
-                            className="w-10 h-10 rounded-xl object-cover"
+                            className="w-10 h-10 shrink-0 rounded-xl object-cover"
                           />
                         ) : (
-                          <span className="w-10 h-10 rounded-xl surface" />
+                          <span className="w-10 h-10 shrink-0 rounded-xl surface" />
                         )}
-                        <span className="t-main text-sm font-semibold">{p.provider_name}</span>
+                        <span className="t-main text-sm font-semibold truncate">{p.provider_name}</span>
                       </a>
                     ))}
                   </div>
@@ -566,60 +585,56 @@ export default function MovieDetails() {
         </section>
       </main>
 
-      <Footer />
+      <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <Footer />
+      </div>
+
+      {/* ── phone action bar: always reachable with one thumb ── */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 menu-bg border-t border-line backdrop-blur-2xl px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-3">
+        <button
+          onClick={openTrailer}
+          className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white font-black text-sm shadow-[0_0_24px_rgba(236,72,153,0.3)] active:scale-[0.98] transition flex items-center justify-center gap-2.5 cursor-pointer"
+        >
+          <FaPlay className="text-xs" /> {trailer ? "Watch Trailer" : "Search trailer"}
+        </button>
+        <button
+          onClick={toggleWatchlist}
+          aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+          className={`h-12 px-5 rounded-2xl border font-bold text-sm active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer ${
+            inWatchlist
+              ? "bg-emerald-600 border-emerald-500 text-white"
+              : "surface surface-hover border-line t-main"
+          }`}
+        >
+          {inWatchlist ? <FaCheck className="text-xs" /> : <FaPlus className="text-xs" />}
+          {inWatchlist ? "Added" : "Watchlist"}
+        </button>
+      </div>
 
       {/* ── trailer modal ── */}
       {trailerOpen && trailer && (
-        <div
-          onClick={closeTrailer}
-          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
-        >
-          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-5xl">
-            <AmbientGlow videoKey={trailer.key} />
-            <div className="relative z-10 bg-black border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-3 bg-zinc-950 border-b border-white/10">
-              <span className="text-white/70 text-sm font-semibold truncate pr-4">{movie.title}</span>
-              <TrailerLanguageSelect
-                options={trailerOptions}
-                value={trailer.key}
-                onChange={setTrailerKey}
-              />
-              <button
-                onClick={closeTrailer}
-                aria-label="Close trailer"
-                className="w-9 h-9 shrink-0 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-red-600 transition cursor-pointer"
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="relative pt-[56.25%] w-full">
-              <YouTube
-                videoId={trailer.key}
-                className="absolute inset-0 w-full h-full"
-                opts={{
-                  width: "100%",
-                  height: "100%",
-                  playerVars: { autoplay: 1, modestbranding: 1, rel: 0 },
-                }}
-                onPlay={markAsWatched}
-                onEnd={() => {
-                  trackedRef.current = false;
-                }}
-                onError={() => {
-                  closeTrailer();
-                  showToast("This video can't be played here. Try the YouTube search instead.");
-                }}
-              />
-              </div>
-            </div>
-          </div>
-        </div>
+        <MovieTrailerModal
+          movie={movie}
+          options={trailerOptions}
+          videoKey={trailer.key}
+          onKeyChange={setTrailerKey}
+          onClose={closeTrailer}
+          onPlay={markAsWatched}
+          onEnd={() => {
+            trackedRef.current = false;
+          }}
+          onError={() => {
+            closeTrailer();
+            showToast("This video can't be played here. Try the YouTube search instead.");
+          }}
+          inWatchlist={inWatchlist}
+          onToggleWatchlist={toggleWatchlist}
+        />
       )}
 
       {/* ── toast ── */}
       {toast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[120] px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl">
+        <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[120] w-max max-w-[90vw] text-center px-5 py-3 rounded-2xl menu-bg border border-line t-main text-sm font-semibold shadow-2xl backdrop-blur-xl">
           {toast}
         </div>
       )}
