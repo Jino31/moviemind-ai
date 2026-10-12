@@ -34,6 +34,7 @@ import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
 import { FALLBACK_AVATAR } from "../constants";
 import useProfilePhoto from "../hooks/useProfilePhoto";
+import Footer from "../components/Footer";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -647,12 +648,22 @@ export default function Movies() {
     if (!requireAuth("watch trailers")) return;
 
     try {
-      const data = await tmdb(`/movie/${movie.id}/videos`);
-      const found = data.results?.find(
-        (v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
-      );
+      // English + major Indian languages + language-neutral, then fall back to any language
+      let data = await tmdb(`/movie/${movie.id}/videos`, "&include_video_language=en,hi,ta,te,ml,kn,null");
+      let videos = (data.results || []).filter((v) => v.site === "YouTube");
+
+      if (videos.length === 0) {
+        data = await tmdb(`/movie/${movie.id}/videos`);
+        videos = (data.results || []).filter((v) => v.site === "YouTube");
+      }
+
+      // Best match first: trailer, teaser, then clip / featurette; official ones before unofficial
+      const rank = (v) =>
+        ({ Trailer: 0, Teaser: 1, Clip: 2, Featurette: 3 }[v.type] ?? 4) * 2 + (v.official ? 0 : 1);
+      const found = [...videos].sort((a, b) => rank(a) - rank(b))[0];
+
       if (!found) {
-        showToast("No trailer available for this title");
+        showToast("No trailer available for this title yet");
         return;
       }
       trackedRef.current = false;
@@ -1027,7 +1038,7 @@ export default function Movies() {
       </nav>
 
       {/* ═════════ CONTENT ═════════ */}
-      <main className="pb-28 md:pb-12">
+      <main className="pb-6">
         {/* HOME */}
         {view === "home" && (
           <>
@@ -1208,6 +1219,11 @@ export default function Movies() {
         )}
       </main>
 
+      {/* ═════════ FOOTER ═════════ */}
+      <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+        <Footer />
+      </div>
+
       {/* ═════════ TRAILER MODAL ═════════ */}
       {trailer && (
         <div
@@ -1241,6 +1257,10 @@ export default function Movies() {
                 onPlay={() => markAsWatched(trailer.movie)}
                 onEnd={() => {
                   trackedRef.current = false;
+                }}
+                onError={() => {
+                  closeTrailer();
+                  showToast("This video can't be played here. Try another title.");
                 }}
               />
             </div>

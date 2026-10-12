@@ -21,6 +21,7 @@ import {
 } from "react-icons/fa";
 import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
+import Footer from "../components/Footer";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -392,7 +393,7 @@ export default function MovieDetails() {
   /* ───────────── page ───────────── */
 
   return (
-    <div className="app-bg min-h-screen overflow-x-clip font-sans pb-16">
+    <div className="app-bg min-h-screen overflow-x-clip font-sans">
       <TopBar title={movie.title} />
 
       {/* blurred backdrop that fades into the page background */}
@@ -566,6 +567,8 @@ export default function MovieDetails() {
           </p>
         </section>
       </main>
+
+      <Footer />
 
       {/* ── trailer modal ── */}
       {trailerOpen && trailer && (
