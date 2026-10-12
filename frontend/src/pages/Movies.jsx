@@ -48,8 +48,6 @@ const IMG_BASE = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
 const IMG_HERO = `${IMG_BASE}/w1280`;
 const IMG_BACKDROP = `${IMG_BASE}/w780`;
 const IMG_POSTER = `${IMG_BASE}/w342`;
-const profilePhoto = useProfilePhoto(user);
-
 
 const CATEGORIES = [
   { key: "trending", title: "Trending Movies", icon: <FaFire />, path: "/trending/movie/week", params: "" },
@@ -448,6 +446,7 @@ export default function Movies() {
   const [collection, setCollection] = useState({ title: "", movies: [] });
 
   const [user, setUser] = useState(null);
+  const profilePhoto = useProfilePhoto(user);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [catalog, setCatalog] = useState({});
@@ -941,7 +940,7 @@ export default function Movies() {
                   >
                     <div className="px-5 py-4 flex items-center gap-3 border-b border-line">
                       <img
-                       src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
+                        src={profilePhoto || user.photoURL || FALLBACK_AVATAR}
                         alt=""
                         referrerPolicy="no-referrer"
                         className="w-11 h-11 rounded-full object-cover border border-line"
