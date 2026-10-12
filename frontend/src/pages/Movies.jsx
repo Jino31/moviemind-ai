@@ -32,6 +32,7 @@ import {
 } from "react-icons/fa";
 import YouTube from "react-youtube";
 import ThemeToggle from "../components/ThemeToggle";
+import { FALLBACK_AVATAR } from "../constants";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
 
@@ -46,6 +47,7 @@ const IMG_BASE = PROXY ? "/tmdb-img" : "https://image.tmdb.org/t/p";
 const IMG_HERO = `${IMG_BASE}/w1280`;
 const IMG_BACKDROP = `${IMG_BASE}/w780`;
 const IMG_POSTER = `${IMG_BASE}/w342`;
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png";
 
 const CATEGORIES = [
   { key: "trending", title: "Trending Movies", icon: <FaFire />, path: "/trending/movie/week", params: "" },

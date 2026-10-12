@@ -16,6 +16,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, deleteDoc, arrayUnion } from "firebase/firestore";
 import { useTheme, FONTS, FONT_SIZES, ensureFont } from "../context/ThemeContext";
+import { FALLBACK_AVATAR } from "../constants";
 
 /* =========================================================
    Tokens (the mm-* classes are injected by ThemeContext)
