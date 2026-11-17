@@ -65,6 +65,9 @@ const CATEGORIES = [
 
 const PAGE_PAD = "px-4 sm:px-8 lg:px-12";
 
+// Row-card width: smaller on phones, unchanged from sm (tablet) upward
+const ROW_CARD_W = "w-[56vw] max-w-[220px] sm:max-w-none sm:w-[280px] lg:w-[320px]";
+
 /* ───────────────────────── HELPERS ───────────────────────── */
 
 const watchlistKey = (uid) => (uid ? `watchlist_${uid}` : null);
@@ -136,13 +139,7 @@ function MovieCard({
   const year = movie.release_date?.split("-")[0] || "Unknown";
 
   return (
-    <div
-      className={
-        isRow
-          ? "shrink-0 w-[72vw] max-w-[280px] sm:max-w-none sm:w-[280px] lg:w-[320px] snap-start"
-          : "w-full"
-      }
-    >
+    <div className={isRow ? `shrink-0 ${ROW_CARD_W} snap-start` : "w-full"}>
       <div
         role="button"
         tabIndex={0}
@@ -168,8 +165,8 @@ function MovieCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
 
         {/* Rating + info */}
-        <div className="absolute top-2.5 left-2.5 right-2.5 md:top-3 md:left-3 md:right-3 flex items-center justify-between z-10">
-          <div className="px-2.5 py-0.5 md:px-3 md:py-1 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-1.5 text-[11px] md:text-xs shadow-md">
+        <div className="absolute top-2 left-2 right-2 md:top-3 md:left-3 md:right-3 flex items-center justify-between z-10">
+          <div className="px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-yellow-500 text-black font-bold flex items-center gap-1 md:gap-1.5 text-[10px] md:text-xs shadow-md">
             <FaStar /> {movie.vote_average?.toFixed(1) || "0.0"}
           </div>
           <button
@@ -179,31 +176,31 @@ function MovieCard({
             }}
             title="More info"
             aria-label="More info"
-            className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition cursor-pointer"
+            className="w-8 h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500 transition cursor-pointer"
           >
-            <FaInfoCircle className="text-sm" />
+            <FaInfoCircle className="text-xs md:text-sm" />
           </button>
         </div>
 
         {/* Title (row cards only; grid cards show it underneath) */}
         {isRow && (
-          <div className="absolute bottom-0 inset-x-0 p-3 pr-24 md:p-4 md:pr-4 transition-opacity duration-300 md:group-hover/card:opacity-0 pointer-events-none">
-            <h3 className="text-white text-base md:text-lg font-bold line-clamp-1">{movie.title}</h3>
-            <p className="text-white/70 text-xs mt-0.5">{year}</p>
+          <div className="absolute bottom-0 inset-x-0 p-2.5 pr-[5.5rem] md:p-4 md:pr-4 transition-opacity duration-300 md:group-hover/card:opacity-0 pointer-events-none">
+            <h3 className="text-white text-sm md:text-lg font-bold line-clamp-1">{movie.title}</h3>
+            <p className="text-white/70 text-[11px] md:text-xs mt-0.5">{year}</p>
           </div>
         )}
 
         {/* Touch devices: always-visible quick actions (no hover on phones) */}
-        <div className="md:hidden absolute right-2.5 bottom-2.5 z-10 flex gap-2">
+        <div className="md:hidden absolute right-2 bottom-2 z-10 flex gap-1.5">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onTrailer(movie);
             }}
             aria-label="Watch trailer"
-            className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
+            className="w-9 h-9 rounded-full bg-black/65 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
           >
-            <FaPlay className="text-xs ml-0.5" />
+            <FaPlay className="text-[11px] ml-0.5" />
           </button>
 
           {onRemove ? (
@@ -213,9 +210,9 @@ function MovieCard({
                 onRemove(movie);
               }}
               aria-label={removeTitle}
-              className="w-10 h-10 rounded-full bg-red-600/70 backdrop-blur-md border border-red-400/40 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
+              className="w-9 h-9 rounded-full bg-red-600/70 backdrop-blur-md border border-red-400/40 flex items-center justify-center text-white active:scale-90 transition cursor-pointer"
             >
-              <FaTrashAlt className="text-xs" />
+              <FaTrashAlt className="text-[11px]" />
             </button>
           ) : (
             <button
@@ -224,11 +221,11 @@ function MovieCard({
                 onToggleWatchlist(movie);
               }}
               aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-              className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center text-white active:scale-90 transition cursor-pointer ${
+              className={`w-9 h-9 rounded-full backdrop-blur-md border flex items-center justify-center text-white active:scale-90 transition cursor-pointer ${
                 inWatchlist ? "bg-emerald-600 border-emerald-400" : "bg-black/65 border-white/20"
               }`}
             >
-              {inWatchlist ? <FaCheck className="text-xs" /> : <FaPlus className="text-xs" />}
+              {inWatchlist ? <FaCheck className="text-[11px]" /> : <FaPlus className="text-[11px]" />}
             </button>
           )}
         </div>
@@ -497,7 +494,7 @@ function RowSkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="shrink-0 w-[72vw] max-w-[280px] sm:max-w-none sm:w-[280px] lg:w-[320px] aspect-video rounded-2xl surface animate-pulse"
+            className={`shrink-0 ${ROW_CARD_W} aspect-video rounded-2xl surface animate-pulse`}
           />
         ))}
       </div>

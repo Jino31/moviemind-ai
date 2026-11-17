@@ -2,8 +2,8 @@
 // Shared trailer popup.
 //  • Desktop (md+): the same centered card as before.
 //  • Phones: a full-screen black sheet. The video is edge-to-edge (so the black
-//    bars of widescreen trailers blend in) with the language picker and movie
-//    info underneath instead of a cramped header.
+//    bars of widescreen trailers blend in) with the movie info underneath.
+//    The language picker now lives in the header on every screen size.
 
 import { FaPlay, FaPlus, FaCheck, FaStar, FaTimes } from "react-icons/fa";
 import YouTube from "react-youtube";
@@ -37,12 +37,13 @@ export default function MovieTrailerModal({
 
         <div className="relative z-10 bg-black md:border md:border-white/10 md:rounded-3xl overflow-hidden md:shadow-2xl">
           {/* header */}
-          <div className="flex items-center justify-between gap-3 pl-4 pr-3 md:px-5 py-2.5 md:py-3 pt-[calc(0.625rem+env(safe-area-inset-top))] md:pt-3 bg-zinc-950 border-b border-white/10">
+          <div className="flex items-center justify-between gap-2 md:gap-3 pl-4 pr-3 md:px-5 py-2.5 md:py-3 pt-[calc(0.625rem+env(safe-area-inset-top))] md:pt-3 bg-zinc-950 border-b border-white/10">
             <span className="flex-1 min-w-0 text-white/80 md:text-white/70 text-sm font-semibold truncate md:pr-4">
               {movie?.title}
             </span>
 
-            <div className="hidden md:block">
+            {/* language picker: visible on phones and desktop */}
+            <div className="shrink-0 max-w-[45%] md:max-w-none">
               <TrailerLanguageSelect options={options} value={videoKey} onChange={onKeyChange} />
             </div>
 
@@ -71,15 +72,8 @@ export default function MovieTrailerModal({
             />
           </div>
 
-          {/* phones only: language + movie info + actions */}
+          {/* phones only: movie info + actions */}
           <div className="md:hidden px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-4">
-            {options?.length > 1 && (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Trailer language</span>
-                <TrailerLanguageSelect options={options} value={videoKey} onChange={onKeyChange} />
-              </div>
-            )}
-
             <div>
               <h2 className="text-white text-xl font-black leading-tight">{movie?.title}</h2>
               <div className="flex items-center gap-3 text-sm text-white/60 mt-1.5">
