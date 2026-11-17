@@ -2,7 +2,8 @@
 // Shared trailer popup with CUSTOM player controls.
 //  • YouTube's own control bar is off (controls: 0) and a transparent shield
 //    sits over the video so taps never reach YouTube's UI.
-//  • Our controls live in their own solid bar BELOW the video (not on top of it).
+//  • One compact floating control bar over the video. It auto-hides while the
+//    video plays and comes back on mouse move / tap (always visible when paused).
 //  • Controls: play/pause, -5s / +5s, mute + volume, CC, settings, fullscreen.
 //  • Settings menu: Ambient mode, Annotations, Subtitles/CC, Sleep timer, Playback speed.
 //  • Desktop (md+): centered card. Phones: full-screen black sheet.
@@ -35,6 +36,7 @@ import TrailerLanguageSelect from "./TrailerLanguageSelect";
 const SKIP = 5; // seconds for the back / forward buttons
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SLEEP_OPTIONS = [0, 5, 10, 15, 30, 60]; // minutes, 0 = off
+const HIDE_AFTER = 3000; // ms of inactivity before the controls fade out
 
 const fmt = (s) => {
   if (!Number.isFinite(s) || s < 0) return "0:00";
@@ -49,9 +51,9 @@ const sleepLabel = (m) => (m === 0 ? "Off" : `${m} min`);
 // shared slider look (thumb styling for WebKit + Firefox)
 const RANGE_BASE =
   "appearance-none cursor-pointer rounded-full focus:outline-none " +
-  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 " +
-  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md " +
-  "[&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full " +
+  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 " +
+  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow " +
+  "[&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full " +
   "[&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white";
 
 function Toggle({ on }) {
@@ -68,20 +70,33 @@ function Toggle({ on }) {
   );
 }
 
-// round glass button
-function RoundBtn({ onClick, label, active = false, children }) {
+// plain icon button (no background until hovered)
+function IconBtn({ onClick, label, active = false, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition active:scale-95 cursor-pointer ${
-        active ? "bg-red-500/20 text-red-400" : "bg-white/10 text-white hover:bg-white/20"
+      className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center transition active:scale-90 cursor-pointer hover:bg-white/15 ${
+        active ? "text-red-400" : "text-white"
       }`}
     >
       {children}
     </button>
+  );
+}
+
+// skip button: curved arrow with the seconds inside
+function SkipBtn({ onClick, label, forward }) {
+  const Icon = forward ? FaRedoAlt : FaUndoAlt;
+  return (
+    <IconBtn onClick={onClick} label={label}>
+      <span className="relative flex items-center justify-center">
+        <Icon className="text-[19px] opacity-90" />
+        <span className="absolute text-[8px] font-black leading-none mt-px">{SKIP}</span>
+      </span>
+    </IconBtn>
   );
 }
 
@@ -101,8 +116,9 @@ export default function MovieTrailerModal({
   const year = movie?.release_date?.split("-")[0];
 
   const playerRef = useRef(null);
-  const frameRef = useRef(null); // element we send to fullscreen (video + controls)
+  const frameRef = useRef(null); // element we send to fullscreen
   const startRef = useRef(0); // where to resume after a player remount
+  const hideTimer = useRef(null);
 
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
@@ -121,10 +137,26 @@ export default function MovieTrailerModal({
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuView, setMenuView] = useState("main"); // main | speed | sleep
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [uiVisible, setUiVisible] = useState(true);
 
   const canFullscreen =
     typeof document !== "undefined" &&
     !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+
+  /* ───── auto-hide controls ───── */
+
+  const poke = useCallback(() => {
+    setUiVisible(true);
+    clearTimeout(hideTimer.current);
+    if (playing && !menuOpen) {
+      hideTimer.current = setTimeout(() => setUiVisible(false), HIDE_AFTER);
+    }
+  }, [playing, menuOpen]);
+
+  useEffect(() => {
+    poke();
+    return () => clearTimeout(hideTimer.current);
+  }, [poke]);
 
   /* reset the UI whenever the trailer (language) changes */
   useEffect(() => {
@@ -230,8 +262,9 @@ export default function MovieTrailerModal({
       p.seekTo(next, true);
       setCurrent(next);
       if (ended) setEnded(false);
+      poke();
     },
-    [current, duration, ended]
+    [current, duration, ended, poke]
   );
 
   /* keyboard: ← / → skip 5s while the modal is open */
@@ -250,6 +283,7 @@ export default function MovieTrailerModal({
     const t = Number(e.target.value);
     setCurrent(t);
     playerRef.current?.seekTo(t, true);
+    poke();
   };
 
   const handleVolume = (e) => {
@@ -265,6 +299,7 @@ export default function MovieTrailerModal({
       p.unMute();
       setMuted(false);
     }
+    poke();
   };
 
   const toggleMute = () => {
@@ -281,12 +316,14 @@ export default function MovieTrailerModal({
       p.mute();
       setMuted(true);
     }
+    poke();
   };
 
   const toggleCaptions = () => {
     const next = !captions;
     setCaptions(next);
     applyCaptions(playerRef.current, next);
+    poke();
   };
 
   const toggleAnnotations = () => {
@@ -314,12 +351,21 @@ export default function MovieTrailerModal({
     setMenuView("main");
   };
 
+  // tap / click on the video
+  const handleShieldClick = () => {
+    if (menuOpen) return closeMenu();
+    if (!uiVisible) return poke(); // first tap only reveals the controls
+    togglePlay();
+    poke();
+  };
+
   const seekPct = duration ? (current / duration) * 100 : 0;
   const volPct = muted ? 0 : volume;
   const VolumeIcon = muted || volume === 0 ? FaVolumeMute : volume < 50 ? FaVolumeDown : FaVolumeUp;
+  const showBar = uiVisible || !playing || menuOpen;
 
   const menuRow =
-    "w-full flex items-center justify-between gap-6 px-4 py-2.5 text-left text-sm font-medium text-white/90 hover:bg-white/10 active:bg-white/10 transition cursor-pointer";
+    "w-full flex items-center justify-between gap-6 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 active:bg-white/10 transition cursor-pointer";
 
   return (
     <div
@@ -353,146 +399,67 @@ export default function MovieTrailerModal({
             </button>
           </div>
 
-          {/* video + controls (this whole block goes fullscreen) */}
-          <div ref={frameRef} className={`relative bg-black ${isFullscreen ? "flex flex-col h-full" : ""}`}>
-            {/* video area */}
-            <div className={`relative w-full bg-black ${isFullscreen ? "flex-1 min-h-0" : "pt-[56.25%]"}`}>
-              <YouTube
-                key={`${videoKey}-${annotations ? "a" : "n"}`}
-                videoId={videoKey}
-                className="absolute inset-0 w-full h-full"
-                iframeClassName="w-full h-full"
-                opts={{
-                  width: "100%",
-                  height: "100%",
-                  host: "https://www.youtube-nocookie.com",
-                  playerVars: {
-                    autoplay: 1,
-                    controls: 0, // hide YouTube's own control bar
-                    disablekb: 1, // we handle the keyboard ourselves
-                    fs: 0,
-                    iv_load_policy: annotations ? 1 : 3,
-                    rel: 0,
-                    playsinline: 1,
-                    start: startRef.current || 0,
-                  },
-                }}
-                onReady={handleReady}
-                onStateChange={handleStateChange}
-                onPlay={onPlay}
-                onEnd={onEnd}
-                onError={onError}
-              />
+          {/* video + floating controls (this block goes fullscreen) */}
+          <div
+            ref={frameRef}
+            onMouseMove={poke}
+            onTouchStart={poke}
+            className={`relative w-full bg-black ${isFullscreen ? "h-full" : "pt-[56.25%]"} ${
+              showBar ? "" : "cursor-none"
+            }`}
+          >
+            <YouTube
+              key={`${videoKey}-${annotations ? "a" : "n"}`}
+              videoId={videoKey}
+              className="absolute inset-0 w-full h-full"
+              iframeClassName="w-full h-full"
+              opts={{
+                width: "100%",
+                height: "100%",
+                host: "https://www.youtube-nocookie.com",
+                playerVars: {
+                  autoplay: 1,
+                  controls: 0, // hide YouTube's own control bar
+                  disablekb: 1, // we handle the keyboard ourselves
+                  fs: 0,
+                  iv_load_policy: annotations ? 1 : 3,
+                  rel: 0,
+                  playsinline: 1,
+                  start: startRef.current || 0,
+                },
+              }}
+              onReady={handleReady}
+              onStateChange={handleStateChange}
+              onPlay={onPlay}
+              onEnd={onEnd}
+              onError={onError}
+            />
 
-              {/* shield: swallows taps/hover so YouTube's UI never gets them; tap = play/pause */}
-              <button
-                type="button"
-                onClick={() => (menuOpen ? closeMenu() : togglePlay())}
-                aria-label={playing ? "Pause" : "Play"}
-                className="absolute inset-0 z-10 w-full h-full cursor-pointer focus:outline-none"
-              >
-                {(!playing || ended) && (
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <span className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                      {ended ? <FaRedo className="text-xl" /> : <FaPlay className="text-xl ml-1" />}
-                    </span>
+            {/* shield: swallows taps/hover so YouTube's UI never gets them; tap = play/pause */}
+            <button
+              type="button"
+              onClick={handleShieldClick}
+              aria-label={playing ? "Pause" : "Play"}
+              className="absolute inset-0 z-10 w-full h-full cursor-pointer focus:outline-none"
+            >
+              {(!playing || ended) && (
+                <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                  <span className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/55 border border-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                    {ended ? <FaRedo className="text-xl" /> : <FaPlay className="text-xl ml-1" />}
                   </span>
-                )}
-              </button>
-            </div>
+                </span>
+              )}
+            </button>
 
-            {/* settings menu (anchored above the control bar) */}
-            {menuOpen && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-2 md:right-4 bottom-[7.5rem] z-30 w-[min(18rem,calc(100%-1rem))] max-h-[60%] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950/95 backdrop-blur-xl shadow-2xl py-1.5"
-              >
-                {menuView === "main" && (
-                  <>
-                    <div className="hidden md:block">
-                      <button type="button" onClick={() => setAmbient((a) => !a)} className={menuRow}>
-                        <span>Ambient mode</span>
-                        <Toggle on={ambient} />
-                      </button>
-                    </div>
-
-                    <button type="button" onClick={toggleAnnotations} className={menuRow}>
-                      <span>Annotations</span>
-                      <Toggle on={annotations} />
-                    </button>
-
-                    <button type="button" onClick={toggleCaptions} className={menuRow}>
-                      <span>Subtitles/CC</span>
-                      <Toggle on={captions} />
-                    </button>
-
-                    <button type="button" onClick={() => setMenuView("sleep")} className={menuRow}>
-                      <span>Sleep timer</span>
-                      <span className="flex items-center gap-2 text-white/60">
-                        {sleepLabel(sleepMin)} <FaChevronRight className="text-[10px]" />
-                      </span>
-                    </button>
-
-                    <button type="button" onClick={() => setMenuView("speed")} className={menuRow}>
-                      <span>Playback speed</span>
-                      <span className="flex items-center gap-2 text-white/60">
-                        {speedLabel(speed)} <FaChevronRight className="text-[10px]" />
-                      </span>
-                    </button>
-                  </>
-                )}
-
-                {menuView === "speed" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setMenuView("main")}
-                      className={`${menuRow} !justify-start gap-3 border-b border-white/10 font-bold`}
-                    >
-                      <FaChevronLeft className="text-[10px]" /> Playback speed
-                    </button>
-                    {SPEEDS.map((v) => (
-                      <button key={v} type="button" onClick={() => changeSpeed(v)} className={menuRow}>
-                        <span>{speedLabel(v)}</span>
-                        {speed === v && <FaCheck className="text-xs text-red-500" />}
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {menuView === "sleep" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setMenuView("main")}
-                      className={`${menuRow} !justify-start gap-3 border-b border-white/10 font-bold`}
-                    >
-                      <FaChevronLeft className="text-[10px]" /> Sleep timer
-                    </button>
-                    {SLEEP_OPTIONS.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => {
-                          setSleepMin(m);
-                          setMenuView("main");
-                        }}
-                        className={menuRow}
-                      >
-                        <span>{sleepLabel(m)}</span>
-                        {sleepMin === m && <FaCheck className="text-xs text-red-500" />}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ───── control bar (solid, below the video) ───── */}
-            <div className="relative z-20 bg-zinc-950 border-t border-white/10 px-3 md:px-5 pt-3 pb-3 space-y-3">
-              {/* seek row: 0:18 ───●─── 2:09 */}
-              <div className="flex items-center gap-3">
-                <span className="w-10 text-right text-[11px] md:text-xs font-semibold tabular-nums text-white/70">
+            {/* floating control bar */}
+            <div
+              className={`absolute inset-x-2 bottom-2 md:inset-x-4 md:bottom-4 z-20 rounded-2xl bg-black/65 backdrop-blur-xl border border-white/10 px-2.5 md:px-3 pt-2 pb-1.5 transition-opacity duration-300 ${
+                showBar ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              {/* seek row */}
+              <div className="flex items-center gap-2.5 px-1">
+                <span className="text-[11px] font-semibold tabular-nums text-white/75 w-9 text-right">
                   {fmt(current)}
                 </span>
                 <input
@@ -504,91 +471,55 @@ export default function MovieTrailerModal({
                   onChange={handleSeek}
                   aria-label="Seek"
                   style={{
-                    background: `linear-gradient(to right, #ef4444 0%, #ec4899 ${seekPct}%, rgba(255,255,255,0.15) ${seekPct}%)`,
+                    background: `linear-gradient(to right, #ef4444 ${seekPct}%, rgba(255,255,255,0.25) ${seekPct}%)`,
                   }}
-                  className={`flex-1 h-1.5 ${RANGE_BASE}`}
+                  className={`flex-1 h-1 ${RANGE_BASE}`}
                 />
-                <span className="w-10 text-[11px] md:text-xs font-semibold tabular-nums text-white/70">
-                  {fmt(duration)}
-                </span>
+                <span className="text-[11px] font-semibold tabular-nums text-white/75 w-9">{fmt(duration)}</span>
               </div>
 
               {/* buttons row */}
-              <div className="flex items-center gap-2 md:gap-3">
-                {/* play / pause */}
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  aria-label={playing ? "Pause" : "Play"}
-                  className="w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-red-500 to-pink-500 text-white flex items-center justify-center shadow-[0_0_18px_rgba(236,72,153,0.35)] hover:scale-105 active:scale-95 transition cursor-pointer"
-                >
-                  {ended ? (
-                    <FaRedo className="text-sm" />
-                  ) : playing ? (
-                    <FaPause className="text-sm" />
-                  ) : (
-                    <FaPlay className="text-sm ml-0.5" />
-                  )}
-                </button>
+              <div className="flex items-center justify-between mt-0.5">
+                <div className="flex items-center">
+                  <IconBtn onClick={togglePlay} label={playing ? "Pause" : "Play"}>
+                    {ended ? (
+                      <FaRedo className="text-sm" />
+                    ) : playing ? (
+                      <FaPause className="text-sm" />
+                    ) : (
+                      <FaPlay className="text-sm ml-0.5" />
+                    )}
+                  </IconBtn>
 
-                {/* skip pill */}
-                <div className="flex items-center rounded-full bg-white/10 h-10 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => seekBy(-SKIP)}
-                    aria-label={`Back ${SKIP} seconds`}
-                    title={`Back ${SKIP} seconds`}
-                    className="h-10 pl-3 pr-2 flex items-center gap-1 rounded-l-full text-white hover:bg-white/10 active:bg-white/10 transition cursor-pointer"
-                  >
-                    <FaUndoAlt className="text-xs" />
-                    <span className="text-xs font-bold tabular-nums">{SKIP}</span>
-                  </button>
-                  <span className="w-px h-4 bg-white/15" />
-                  <button
-                    type="button"
-                    onClick={() => seekBy(SKIP)}
-                    aria-label={`Forward ${SKIP} seconds`}
-                    title={`Forward ${SKIP} seconds`}
-                    className="h-10 pl-2 pr-3 flex items-center gap-1 rounded-r-full text-white hover:bg-white/10 active:bg-white/10 transition cursor-pointer"
-                  >
-                    <span className="text-xs font-bold tabular-nums">{SKIP}</span>
-                    <FaRedoAlt className="text-xs" />
-                  </button>
+                  <SkipBtn onClick={() => seekBy(-SKIP)} label={`Back ${SKIP} seconds`} />
+                  <SkipBtn onClick={() => seekBy(SKIP)} label={`Forward ${SKIP} seconds`} forward />
+
+                  <div className="flex items-center group/vol">
+                    <IconBtn onClick={toggleMute} label={muted ? "Unmute" : "Mute"}>
+                      <VolumeIcon className="text-sm" />
+                    </IconBtn>
+                    {/* slider: wider screens only, phones use the device volume keys */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={muted ? 0 : volume}
+                      onChange={handleVolume}
+                      aria-label="Volume"
+                      style={{
+                        background: `linear-gradient(to right, #fff ${volPct}%, rgba(255,255,255,0.25) ${volPct}%)`,
+                      }}
+                      className={`hidden md:block w-20 h-1 ml-1 ${RANGE_BASE}`}
+                    />
+                  </div>
                 </div>
 
-                {/* volume pill */}
-                <div className="flex items-center rounded-full bg-white/10 h-10 shrink-0">
-                  <button
-                    type="button"
-                    onClick={toggleMute}
-                    aria-label={muted ? "Unmute" : "Mute"}
-                    title={muted ? "Unmute" : "Mute"}
-                    className="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/10 transition cursor-pointer"
-                  >
-                    <VolumeIcon className="text-sm" />
-                  </button>
-                  {/* slider: wider screens only, phones use the device volume keys */}
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={muted ? 0 : volume}
-                    onChange={handleVolume}
-                    aria-label="Volume"
-                    style={{
-                      background: `linear-gradient(to right, #fff ${volPct}%, rgba(255,255,255,0.2) ${volPct}%)`,
-                    }}
-                    className={`hidden sm:block w-16 md:w-24 h-1 mr-3 ${RANGE_BASE}`}
-                  />
-                </div>
-
-                {/* right side */}
-                <div className="ml-auto flex items-center gap-2">
-                  <RoundBtn onClick={toggleCaptions} label="Subtitles/CC" active={captions}>
+                <div className="flex items-center">
+                  <IconBtn onClick={toggleCaptions} label="Subtitles/CC" active={captions}>
                     <FaClosedCaptioning className="text-base" />
-                  </RoundBtn>
+                  </IconBtn>
 
-                  <RoundBtn
+                  <IconBtn
                     onClick={() => {
                       setMenuView("main");
                       setMenuOpen((o) => !o);
@@ -597,16 +528,106 @@ export default function MovieTrailerModal({
                     active={menuOpen}
                   >
                     <FaCog className={`text-sm transition-transform duration-300 ${menuOpen ? "rotate-90" : ""}`} />
-                  </RoundBtn>
+                  </IconBtn>
 
                   {canFullscreen && (
-                    <RoundBtn onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+                    <IconBtn onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
                       {isFullscreen ? <FaCompress className="text-sm" /> : <FaExpand className="text-sm" />}
-                    </RoundBtn>
+                    </IconBtn>
                   )}
                 </div>
               </div>
             </div>
+
+            {/* settings menu: bottom sheet on phones, popover on desktop */}
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-[105]" onClick={closeMenu} />
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="fixed inset-x-3 bottom-3 z-[110] md:absolute md:inset-x-auto md:right-4 md:bottom-[5.75rem] md:w-72 max-h-[70vh] md:max-h-[60%] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950/95 backdrop-blur-xl shadow-2xl py-1.5"
+                >
+                  {menuView === "main" && (
+                    <>
+                      <div className="hidden md:block">
+                        <button type="button" onClick={() => setAmbient((a) => !a)} className={menuRow}>
+                          <span>Ambient mode</span>
+                          <Toggle on={ambient} />
+                        </button>
+                      </div>
+
+                      <button type="button" onClick={toggleAnnotations} className={menuRow}>
+                        <span>Annotations</span>
+                        <Toggle on={annotations} />
+                      </button>
+
+                      <button type="button" onClick={toggleCaptions} className={menuRow}>
+                        <span>Subtitles/CC</span>
+                        <Toggle on={captions} />
+                      </button>
+
+                      <button type="button" onClick={() => setMenuView("sleep")} className={menuRow}>
+                        <span>Sleep timer</span>
+                        <span className="flex items-center gap-2 text-white/60">
+                          {sleepLabel(sleepMin)} <FaChevronRight className="text-[10px]" />
+                        </span>
+                      </button>
+
+                      <button type="button" onClick={() => setMenuView("speed")} className={menuRow}>
+                        <span>Playback speed</span>
+                        <span className="flex items-center gap-2 text-white/60">
+                          {speedLabel(speed)} <FaChevronRight className="text-[10px]" />
+                        </span>
+                      </button>
+                    </>
+                  )}
+
+                  {menuView === "speed" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setMenuView("main")}
+                        className={`${menuRow} !justify-start gap-3 border-b border-white/10 font-bold`}
+                      >
+                        <FaChevronLeft className="text-[10px]" /> Playback speed
+                      </button>
+                      {SPEEDS.map((v) => (
+                        <button key={v} type="button" onClick={() => changeSpeed(v)} className={menuRow}>
+                          <span>{speedLabel(v)}</span>
+                          {speed === v && <FaCheck className="text-xs text-red-500" />}
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {menuView === "sleep" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setMenuView("main")}
+                        className={`${menuRow} !justify-start gap-3 border-b border-white/10 font-bold`}
+                      >
+                        <FaChevronLeft className="text-[10px]" /> Sleep timer
+                      </button>
+                      {SLEEP_OPTIONS.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setSleepMin(m);
+                            setMenuView("main");
+                          }}
+                          className={menuRow}
+                        >
+                          <span>{sleepLabel(m)}</span>
+                          {sleepMin === m && <FaCheck className="text-xs text-red-500" />}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* phones only: movie info + actions */}
